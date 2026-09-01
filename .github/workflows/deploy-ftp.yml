@@ -1,0 +1,52 @@
+# Nahraje aplikaci (složku web/) na FTP webhostingu při každé změně.
+#
+# Než to začne fungovat, doplňte v GitHubu přístupové údaje:
+#   Settings → Secrets and variables → Actions
+#     Secrets:    FTP_SERVER    např. ftp.gjk.cz
+#                 FTP_USERNAME  přihlašovací jméno k FTP
+#                 FTP_PASSWORD  heslo k FTP
+#     Variables:  FTP_DIR       cílová složka, např. ./www/portfolio/
+#
+# Dokud FTP_SERVER chybí, nahrání se přeskočí a nic nespadne.
+name: Nasazení na FTP
+
+on:
+  push:
+    branches: ['**']
+    paths: ['web/**', 'scripts/kontrola.mjs', '.github/workflows/deploy-ftp.yml']
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # Rozbitý soubor by se jinak nahrál na web a uživatelé by viděli bílou stránku.
+      - name: Kontrola aplikace
+        run: node scripts/kontrola.mjs
+
+      - name: Zjistit, zda je FTP nastavené
+        id: check
+        run: |
+          if [ -n "${{ secrets.FTP_SERVER }}" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "FTP zatím není nastavené – přeskakuji nahrání."
+            echo "Doplňte FTP_SERVER, FTP_USERNAME a FTP_PASSWORD v Settings → Secrets."
+          fi
+
+      - name: Nahrát na FTP
+        if: steps.check.outputs.ready == 'true'
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./web/
+          server-dir: ${{ vars.FTP_DIR || './' }}

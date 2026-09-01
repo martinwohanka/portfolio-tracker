@@ -1,0 +1,3440 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0E1116">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Portfolio</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='14'%20fill='%23151A22'/%3E%3Cpath%20d='M10%2046%20L22%2035%20L30%2039%20L42%2024%20L52%2017'%20fill='none'%20stroke='%2334D399'%20stroke-width='5.5'%20stroke-linecap='round'%20stroke-linejoin='round'/%3E%3Ccircle%20cx='52'%20cy='17'%20r='5'%20fill='%236E9BFF'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>/* aplikuj uložený vzhled co nejdřív, ať neproblikne tmavá */
+try{ var _t=localStorage.getItem("theme"); if(_t==="light"||_t==="dark") document.documentElement.setAttribute("data-theme",_t); }catch(e){}</script>
+<style>
+:root{
+  --bg:#0E1116; --surface:#151A22; --surface2:#1B2230; --border:#232B38;
+  --text:#E8ECF4; --muted:#8A94A6; --faint:#5A6478;
+  --green:#34D399; --red:#F87171; --accent:#6E9BFF;
+  --inv:#A78BFA; --xtb:#EF4444; --rev:#3B82F6; --csq:#EAB308; --dgr:#2DD4BF; --ibk:#EC4899; --t212:#A78BFA; --rvcr:#F97316; --f24:#22C55E;
+  --radius:12px;
+}
+/* Světlá paleta — aplikuje se přes data-theme="light" (ruční volba)
+   nebo přes prefers-color-scheme, když je theme="auto" (data-theme není nastaveno) */
+:root[data-theme="light"]{
+  --bg:#F4F6FA; --surface:#FFFFFF; --surface2:#EEF1F6; --border:#D9DEE8;
+  --text:#1A2030; --muted:#5A6478; --faint:#9AA3B5;
+  --green:#0EA371; --red:#DC4C53; --accent:#3B6FE0;
+  --inv:#7C5CE0; --xtb:#DC2626; --rev:#2563EB; --csq:#CA8A04; --dgr:#0D9488; --ibk:#DB2777; --t212:#7C5CE0; --rvcr:#EA580C; --f24:#16A34A;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme]){
+    --bg:#F4F6FA; --surface:#FFFFFF; --surface2:#EEF1F6; --border:#D9DEE8;
+    --text:#1A2030; --muted:#5A6478; --faint:#9AA3B5;
+    --green:#0EA371; --red:#DC4C53; --accent:#3B6FE0;
+    --inv:#7C5CE0; --xtb:#DC2626; --rev:#2563EB; --csq:#CA8A04; --dgr:#0D9488; --ibk:#DB2777; --t212:#7C5CE0; --rvcr:#EA580C; --f24:#16A34A;
+  }
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+html{-webkit-text-size-adjust:100%;}
+body{
+  background:var(--bg); color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  font-size:15px; line-height:1.5; min-height:100vh;
+  padding-bottom:max(2rem, env(safe-area-inset-bottom));
+}
+.num, h1, h2, .hero-value, .tab, .pill{font-family:"Space Grotesk",-apple-system,sans-serif; font-feature-settings:"tnum";}
+.wrap{max-width:860px; margin:0 auto; padding:0 16px;}
+
+header{display:flex; align-items:center; justify-content:space-between; padding:18px 0 6px; padding-top:calc(18px + env(safe-area-inset-top));}
+header h1{font-size:20px; font-weight:600; letter-spacing:.02em;}
+header h1 span{color:var(--accent);}
+.hdr-actions{display:flex; gap:8px;}
+.btn{
+  background:var(--surface); border:1px solid var(--border); color:var(--text);
+  border-radius:10px; padding:8px 14px; font-size:13px; cursor:pointer;
+  font-family:inherit; display:inline-flex; align-items:center; gap:6px;
+}
+.btn:hover{background:var(--surface2);}
+.btn.primary{background:var(--accent); border-color:var(--accent); color:#0B1020; font-weight:600;}
+.btn.danger{color:var(--red); border-color:#3a2330;}
+.btn:disabled{opacity:.5; cursor:default;}
+.btn.icon{padding:8px 10px; font-size:15px; line-height:1; justify-content:center; min-width:38px;}
+.btn.icon svg{display:block;}
+
+.tabs{display:flex; gap:6px; margin:14px 0 4px; overflow-x:auto; scrollbar-width:none;}
+.tabs::-webkit-scrollbar{display:none;}
+.tab{
+  border:1px solid var(--border); background:transparent; color:var(--muted);
+  border-radius:999px; padding:7px 16px; font-size:13px; cursor:pointer; white-space:nowrap;
+}
+.tab.active{background:var(--accent); border-color:var(--accent); color:#0B1020; font-weight:600;}
+.tab.xtb.active{background:var(--xtb); border-color:var(--xtb);}
+.tab.rev.active{background:var(--rev); border-color:var(--rev);}
+.tab.csq.active{background:var(--csq); border-color:var(--csq);}
+.tab.dgr.active{background:var(--dgr); border-color:var(--dgr);}
+.tab.ibk.active{background:var(--ibk); border-color:var(--ibk);}
+.tab.t212.active{background:var(--t212); border-color:var(--t212);}
+.tab.rvcr.active{background:var(--rvcr); border-color:var(--rvcr);}
+.tab.f24.active{background:var(--f24); border-color:var(--f24);}
+
+.hero{margin:18px 0 6px;}
+.hero-value{font-size:clamp(30px,6vw,40px); font-weight:600; letter-spacing:-.01em;}
+.hero-sub{display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; margin-top:2px; font-size:14px;}
+.up{color:var(--green);} .down{color:var(--red);} .flat{color:var(--muted);}
+
+.chart-head{display:flex; align-items:center; justify-content:space-between; margin:14px 0 6px; gap:8px; flex-wrap:wrap;}
+.pills{display:flex; gap:4px;}
+.pill{
+  border:none; background:transparent; color:var(--faint); border-radius:8px;
+  padding:5px 11px; font-size:13px; cursor:pointer;
+}
+.pill.active{background:var(--surface2); color:var(--text); font-weight:600;}
+.legend{display:flex; gap:14px; font-size:12px; color:var(--muted);}
+.legend i{display:inline-block; width:14px; height:0; border-top:2px solid var(--green); vertical-align:middle; margin-right:5px;}
+.legend i.inv{border-top-style:dashed; border-color:var(--inv);}
+
+#chart{width:100%; height:230px; touch-action:pan-y;}
+#chart svg{width:100%; height:100%; display:block;}
+.chart-note{font-size:12px; color:var(--faint); text-align:center; padding:6px 0;}
+
+.cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px; margin:16px 0;}
+.card{background:var(--surface); border-radius:var(--radius); padding:12px 14px;}
+.card .lbl{font-size:12px; color:var(--muted);}
+.card .val{font-size:18px; font-weight:600; margin-top:2px;}
+.card .abs{font-size:12px; color:var(--faint); margin-top:1px;}
+
+.divline{font-size:13px; color:var(--muted); margin:4px 0 18px;}
+.divline b{color:var(--text); font-weight:600;}
+
+nav.views{display:flex; gap:2px; border-bottom:1px solid var(--border); margin:8px 0 14px; overflow-x:auto; scrollbar-width:none;}
+nav.views::-webkit-scrollbar{display:none;}
+nav.views button{
+  background:none; border:none; color:var(--muted); font-size:14px; font-family:inherit;
+  padding:9px 14px; cursor:pointer; border-bottom:2px solid transparent; white-space:nowrap;
+}
+nav.views button.active{color:var(--text); border-bottom-color:var(--accent); font-weight:600;}
+
+table{width:100%; border-collapse:collapse; font-size:13.5px;}
+th{font-size:12px; font-weight:500; color:var(--faint); text-align:left; padding:6px 8px; white-space:nowrap;}
+th.sortable{cursor:pointer; user-select:none;}
+th.sortable:hover{color:var(--text);}
+th.sorted{color:var(--text);}
+td{padding:9px 8px; border-top:1px solid var(--border); white-space:nowrap;}
+td.r, th.r{text-align:right;}
+.badge{font-size:10.5px; font-weight:600; padding:2px 7px; border-radius:6px; vertical-align:1px; margin-left:6px;}
+.badge.XTB{background:rgba(239,68,68,.14); color:var(--xtb);}
+.badge.REVOLUT{background:rgba(59,130,246,.14); color:var(--rev);}
+.badge.CONSEQ{background:rgba(234,179,8,.14); color:var(--csq);}
+.badge.WATCH{background:rgba(110,155,255,.14); color:var(--accent);}
+.badge.DEGIRO{background:rgba(45,212,191,.14); color:var(--dgr);}
+.badge.IBKR{background:rgba(236,72,153,.14); color:var(--ibk);}
+.badge.TRADING212{background:rgba(167,139,250,.16); color:var(--t212);}
+.badge.REVOLUT_CRYPTO{background:rgba(249,115,22,.14); color:var(--rvcr);}
+.badge.FREEDOM24{background:rgba(34,197,94,.14); color:var(--f24);}
+.tick{font-weight:600;}
+.tlogo{width:20px; height:20px; border-radius:50%; vertical-align:-5px; margin-right:7px; background:var(--surface2); object-fit:contain;}
+.tlogo-fb{display:none; width:20px; height:20px; border-radius:50%; vertical-align:-5px; margin-right:7px;
+  font-size:9px; font-weight:700; color:#fff; text-align:center; line-height:20px; letter-spacing:.3px;}
+.tlogo.lg{width:52px; height:52px; margin:0; background:#fff; padding:5px; box-sizing:border-box; vertical-align:top;}
+.tlogo-fb.lg{width:52px; height:52px; margin:0; font-size:18px; line-height:52px; vertical-align:top;}
+.tlogo.row{width:32px; height:32px; border-radius:50%; margin:0; background:#fff; padding:4px; box-sizing:border-box; vertical-align:top; flex:none;}
+.tlogo-fb.row{width:32px; height:32px; border-radius:50%; margin:0; font-size:12px; line-height:32px; flex:none;}
+.trow{display:flex; align-items:center; gap:12px;}
+.trow .tcol{min-width:0;}
+.tick.clickable{cursor:pointer; border-bottom:1px dotted var(--faint);}
+.tick.clickable:hover{color:var(--accent); border-bottom-color:var(--accent);}
+.sub{font-size:11.5px; color:var(--faint); font-weight:400;}
+.sub.up{color:var(--green);} .sub.down{color:var(--red);}
+.tbl-scroll{overflow-x:auto; -webkit-overflow-scrolling:touch;}
+.del{background:none; border:none; color:var(--faint); cursor:pointer; font-size:15px; padding:2px 6px;}
+.del:hover{color:var(--red);}
+
+.alloc{display:flex; gap:24px; align-items:center; flex-wrap:wrap; margin-top:6px;}
+.alloc-legend{flex:1; min-width:220px;}
+.alloc-row{display:flex; align-items:center; gap:8px; padding:5px 0; font-size:13.5px; border-bottom:1px solid var(--border);}
+.alloc-row.clickable{cursor:pointer;}
+.alloc-row.clickable:hover{background:var(--surface2);}
+.alloc-row:last-child{border-bottom:none;}
+.dot{width:10px; height:10px; border-radius:3px; flex:none;}
+.alloc-row .pct{margin-left:auto; color:var(--muted);}
+.alloc-switch{display:flex; gap:4px; margin-bottom:10px;}
+
+.empty{
+  border:1px dashed var(--border); border-radius:var(--radius); padding:34px 20px;
+  text-align:center; color:var(--muted); margin:24px 0; font-size:14px;
+}
+.empty b{color:var(--text);}
+
+.notice{background:var(--surface); border:1px solid var(--border); border-left:3px solid var(--accent);
+  border-radius:8px; padding:12px 14px; font-size:13.5px; color:var(--muted); margin:14px 0;}
+.notice.err{border-left-color:var(--red);}
+.notice code{color:var(--text); font-family:ui-monospace,monospace; font-size:12.5px;}
+
+.modal-bg{position:fixed; inset:0; background:rgba(5,8,12,.7); display:none; align-items:center; justify-content:center; z-index:50; padding:16px;}
+.modal-bg.open{display:flex;}
+.modal{background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:20px; max-width:440px; width:100%; max-height:85vh; overflow-y:auto;}
+.modal h2{font-size:17px; margin-bottom:10px;}
+.modal p{font-size:13.5px; color:var(--muted); margin:6px 0;}
+.modal .actions{display:flex; gap:8px; justify-content:flex-end; margin-top:16px;}
+
+.drop{position:fixed; inset:0; background:rgba(110,155,255,.08); border:3px dashed var(--accent);
+  z-index:60; display:none; align-items:center; justify-content:center; font-size:18px; color:var(--accent);}
+.drop.on{display:flex;}
+
+.map-row{display:flex; gap:8px; align-items:center; padding:7px 0; border-bottom:1px solid var(--border); font-size:13.5px; flex-wrap:wrap;}
+.map-row input{
+  background:var(--bg); border:1px solid var(--border); color:var(--text); border-radius:8px;
+  padding:6px 10px; font-size:13px; font-family:inherit; flex:1; min-width:90px; max-width:160px;
+}
+.map-row .raw{color:var(--muted); flex:1; min-width:80px; max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.setSel{background:var(--bg); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:6px 10px; font-size:13px; font-family:inherit;}
+
+#toast{position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(80px);
+  background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:10px 18px;
+  font-size:13.5px; transition:transform .25s; z-index:70; max-width:90vw;}
+#toast.show{transform:translateX(-50%) translateY(0);}
+
+.spin{display:inline-block; width:14px; height:14px; border:2px solid var(--faint); border-top-color:var(--accent);
+  border-radius:50%; animation:sp .7s linear infinite; vertical-align:-2px;}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin{animation:none} #toast{transition:none}}
+
+@media (max-width:560px){
+  td,th{padding-left:5px; padding-right:5px;}
+  #posTable td:first-child, #posTable th:first-child{max-width:32vw;}
+  #posTable .tick{display:inline-block; max-width:26vw; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; vertical-align:-3px;}
+  .hide-m{display:none;}
+  .cards{grid-template-columns:repeat(2,1fr);}
+}
+</style>
+</head>
+<body>
+
+<div id="authScreen" style="display:none; min-height:100vh; align-items:center; justify-content:center; padding:24px; padding-top:calc(24px + env(safe-area-inset-top))">
+  <div style="max-width:380px; width:100%; text-align:center">
+    <h1 style="font-size:30px; font-weight:600; letter-spacing:.02em; margin-bottom:6px">Portfolio<span style="color:var(--accent)">.</span></h1>
+    <p style="color:var(--muted); font-size:14px; margin-bottom:24px">Sledování akciového portfolia napříč brokery.</p>
+    <div id="authForm">
+      <input id="authEmail" type="email" inputmode="email" autocomplete="email" placeholder="tvuj@email.cz"
+        style="width:100%; background:var(--surface); border:1px solid var(--border); color:var(--text); border-radius:10px; padding:12px 14px; font-size:15px; font-family:inherit; margin-bottom:10px">
+      <button class="btn primary" id="authSend" style="width:100%; justify-content:center; padding:12px">Poslat přihlašovací e-mail</button>
+      <p style="font-size:12px; color:var(--faint); margin-top:14px; line-height:1.5">
+        Přijde ti e-mail s odkazem i kódem — stačí jedno z toho. Bez hesla.<br>Přístup mají jen povolené e-maily.</p>
+    </div>
+    <div id="authSent" style="display:none">
+      <p style="font-size:42px; margin-bottom:10px">📬</p>
+      <p style="font-size:15px">E-mail odeslán na <b id="authSentEmail"></b>.</p>
+      <p style="color:var(--muted); font-size:13.5px; margin-top:8px">Klikni v e-mailu na odkaz, nebo sem opiš přihlašovací kód.</p>
+      <input id="authCode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="10" placeholder="12345678"
+        style="width:100%; background:var(--surface); border:1px solid var(--border); color:var(--text); border-radius:10px; padding:12px 14px; font-size:20px; letter-spacing:.25em; text-align:center; font-family:inherit; margin:14px 0 10px">
+      <button class="btn primary" id="authVerify" style="width:100%; justify-content:center; padding:12px">Přihlásit kódem</button>
+      <p style="font-size:12px; color:var(--faint); margin-top:12px; line-height:1.5">
+        Na iPhonu s ikonou na ploše použij kód — odkaz z e-mailu se otevře v Safari, ne v aplikaci.</p>
+      <button class="btn" id="authBack" style="margin-top:14px">Zpět</button>
+    </div>
+    <div id="authErr" class="notice err" style="display:none; text-align:left; margin-top:16px"></div>
+  </div>
+</div>
+
+<div class="wrap" id="appWrap" style="display:none">
+
+<header>
+  <h1>Portfolio<span>.</span></h1>
+  <div class="hdr-actions">
+    <button class="btn icon" id="btnPrivacy" title="Soukromý režim — skrýt částky">👁</button>
+    <button class="btn icon" id="btnRefresh" title="Aktualizovat ceny">&#10227;</button>
+    <button class="btn icon primary" id="btnImport" title="Import výpisu (CSV / XLSX)" aria-label="Import">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 3v10m0 0 4-4m-4 4-4-4"/>
+        <path d="M4 14v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/>
+      </svg>
+    </button>
+    <button class="btn" id="btnLogout" title="Odhlásit">Odhlásit</button>
+    <input type="file" id="fileInput" accept=".csv,.txt,.xlsx,.xls" multiple hidden>
+  </div>
+</header>
+
+<div id="setupNotice" class="notice" style="display:none">
+  Appka zatím není propojená se Supabase — doplň <code>SUPABASE_URL</code>, <code>SUPABASE_ANON_KEY</code>
+  a <code>PROXY_URL</code> v konfiguraci na začátku skriptu (viz README).
+</div>
+<div id="errBox" class="notice err" style="display:none"></div>
+
+<div class="tabs" id="provTabs">
+  <button class="tab active" data-prov="ALL">Celkem</button>
+  <button class="tab xtb" data-prov="XTB" title="Klik přidá / odebere brokera z výběru">XTB</button>
+  <button class="tab rev" data-prov="REVOLUT" title="Klik přidá / odebere brokera z výběru">Revolut</button>
+  <button class="tab csq" data-prov="CONSEQ" title="Klik přidá / odebere brokera z výběru">Conseq</button>
+  <button class="tab dgr" data-prov="DEGIRO" title="Klik přidá / odebere brokera z výběru">Degiro</button>
+  <button class="tab ibk" data-prov="IBKR" title="Klik přidá / odebere brokera z výběru">IBKR</button>
+  <button class="tab t212" data-prov="TRADING212" title="Klik přidá / odebere brokera z výběru">Trading 212</button>
+  <button class="tab rvcr" data-prov="REVOLUT_CRYPTO" title="Klik přidá / odebere brokera z výběru">Revolut crypto</button>
+  <button class="tab f24" data-prov="FREEDOM24" title="Klik přidá / odebere brokera z výběru">Freedom 24</button>
+</div>
+
+<div id="content" style="display:none">
+  <div class="hero">
+    <div style="display:flex; align-items:baseline; gap:10px; flex-wrap:wrap">
+      <div class="hero-value num" id="heroValue">—</div>
+      <span id="heroExt" style="font-size:13.5px; white-space:nowrap"></span>
+    </div>
+    <div class="hero-sub">
+      <span class="num" id="heroChange"></span>
+      <span style="color:var(--faint); font-size:13px" id="heroPeriodLbl"></span>
+    </div>
+  </div>
+
+  <div class="chart-head">
+    <div class="pills" id="periodPills">
+      <button class="pill active" data-p="1D">1D</button>
+      <button class="pill" data-p="1T">1T</button>
+      <button class="pill" data-p="1M">1M</button>
+      <button class="pill" data-p="6M">6M</button>
+      <button class="pill" data-p="YTD">YTD</button>
+      <button class="pill" data-p="1R">1R</button>
+      <button class="pill" data-p="MAX">Max</button>
+    </div>
+    <div style="display:flex; gap:14px; align-items:center; flex-wrap:wrap">
+      <div class="pills" id="modePills">
+        <button class="pill active" data-m="value">Hodnota</button>
+        <button class="pill" data-m="profit">Zisk</button>
+      </div>
+      <div class="legend" id="chartLegend"><span><i></i>Hodnota</span><span><i class="inv"></i>Vloženo</span></div>
+    </div>
+  </div>
+  <div id="chart"></div>
+  <div class="chart-note" id="chartNote"></div>
+
+  <div class="cards" id="cards"></div>
+  <div class="divline" id="divLine"></div>
+
+  <nav class="views" id="viewNav">
+    <button class="active" data-v="pozice">Pozice</button>
+    <button data-v="watchlist">Watchlist</button>
+    <button data-v="obchody">Realizované</button>
+    <button data-v="alokace">Alokace</button>
+    <button data-v="transakce">Transakce</button>
+    <button data-v="nastaveni">Nastavení</button>
+  </nav>
+
+  <section id="v-pozice"><div class="tbl-scroll"><table id="posTable"></table></div></section>
+
+  <section id="v-obchody" style="display:none">
+    <div id="realSummary"></div>
+    <div class="tbl-scroll"><table id="realTable"></table></div>
+  </section>
+
+  <section id="v-alokace" style="display:none">
+    <div class="alloc-switch">
+      <button class="pill active" data-a="ticker">Podle titulu</button>
+      <button class="pill" data-a="currency">Podle měny</button>
+      <button class="pill" data-a="sector">Podle sektoru</button>
+      <button class="pill" data-a="provider">Podle brokera</button>
+      <button class="pill" data-a="country">Podle země</button>
+    </div>
+    <div class="alloc">
+      <svg id="donut" width="190" height="190" viewBox="0 0 190 190"></svg>
+      <div class="alloc-legend" id="allocLegend"></div>
+    </div>
+  </section>
+
+  <section id="v-transakce" style="display:none">
+    <div class="tbl-scroll"><table id="txTable"></table></div>
+  </section>
+
+  <section id="v-watchlist" style="display:none">
+    <div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap">
+      <input id="watchInput" placeholder="Ticker nebo název (AAPL, Tesla…)"
+        style="background:var(--bg); border:1px solid var(--border); color:var(--text); border-radius:10px; padding:8px 12px; font-size:13.5px; font-family:inherit; flex:1; min-width:180px; max-width:300px">
+      <button class="btn primary" id="watchAddBtn">Přidat</button>
+    </div>
+    <div class="pills" id="watchTabs" style="margin-bottom:10px">
+      <button class="pill active" data-wtab="mine">Můj</button>
+      <button class="pill" data-wtab="shared">Sdílené</button>
+    </div>
+    <div id="watchNote"></div>
+    <div class="tbl-scroll"><table id="watchTable"></table></div>
+  </section>
+
+  <section id="v-nastaveni" style="display:none">
+    <h2 style="font-size:16px; margin:22px 0 4px">Co zobrazit při spuštění</h2>
+    <p style="font-size:13px; color:var(--muted); margin-bottom:10px">Uloží se k tvému účtu, projeví se i na jiném zařízení.</p>
+    <div style="display:grid; gap:10px; max-width:420px">
+      <label style="display:flex; align-items:center; justify-content:space-between; font-size:13.5px; color:var(--muted)">Období grafu
+        <select id="setPeriod" class="setSel"></select></label>
+      <label style="display:flex; align-items:center; justify-content:space-between; font-size:13.5px; color:var(--muted)">Režim grafu
+        <select id="setMode" class="setSel"></select></label>
+      <label style="display:flex; align-items:center; justify-content:space-between; font-size:13.5px; color:var(--muted)">Výchozí brokeři
+        <select id="setProvs" class="setSel"></select></label>
+      <label style="display:flex; align-items:center; justify-content:space-between; font-size:13.5px; color:var(--muted)">Vzhled
+        <select id="setTheme" class="setSel">
+          <option value="auto">Podle systému</option>
+          <option value="dark">Tmavý</option>
+          <option value="light">Světlý</option>
+        </select></label>
+    </div>
+
+    <h2 style="font-size:16px; margin:22px 0 4px">Daňový podklad (ČR)</h2>
+    <p style="font-size:13px; color:var(--muted); margin-bottom:10px">
+      Přehled realizovaných prodejů (§10) s FIFO párováním nákupů, časovým testem 3 let a kontrolou limitu 100 000 Kč,
+      plus přijaté dividendy (§8). Je to podklad pro přiznání, ne daňové poradenství — částky si ověř.</p>
+    <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center">
+      <select id="taxYear" style="background:var(--bg); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:8px 10px; font-size:13px; font-family:inherit"></select>
+      <button class="btn" data-tax="xlsx">Stáhnout XLSX</button>
+      <button class="btn" data-tax="pdf">PDF (tisk)</button>
+    </div>
+    <div id="provOrderSection">
+      <h2 style="font-size:16px; margin:22px 0 4px">Pořadí brokerů</h2>
+      <p style="font-size:13px; color:var(--muted); margin-bottom:8px">Pořadí bublin s brokery nad grafem. Šipkami posuň nahoru/dolů.</p>
+      <div id="provOrderRows"></div>
+    </div>
+    <div id="cashSection">
+      <h2 style="font-size:16px; margin:22px 0 4px">Hotovost u brokerů</h2>
+      <p style="font-size:13px; color:var(--muted); margin-bottom:8px">
+        Zadej aktuální volné peníze na účtu. Od uvedeného dne se dopočítávají z obchodů a dividend
+        (nákup ubírá, prodej a dividenda přidávají). Vklady a výběry z exportů nevidím —
+        po převodu peněz proto stav srovnej. Hotovost se počítá do hodnoty portfolia i do vložených prostředků.
+      </p>
+      <div id="cashRows"></div>
+      <button class="btn primary" id="cashSave" style="margin-top:8px">Uložit hotovost</button>
+    </div>
+    <div id="cryptoRealSection" style="display:none">
+      <h2 style="font-size:16px; margin:22px 0 4px">Skutečný stav kryptoměn</h2>
+      <p style="font-size:13px; color:var(--muted); margin-bottom:8px">
+        Staking odměny z Revolutu nelze z exportu spolehlivě dopočítat, proto se množství crypto
+        může lišit od reality. Zadej skutečné množství podle Revolutu (0 = nevlastníš). Hodnota se pak počítá z toho.
+      </p>
+      <div id="cryptoRealRows"></div>
+      <button class="btn primary" id="cryptoRealSave" style="margin-top:8px">Uložit skutečný stav</button>
+    </div>
+    <h2 style="font-size:16px; margin:22px 0 4px">Mapování tickerů</h2>
+    <p style="font-size:13px; color:var(--muted); margin-bottom:8px">
+      Symbol z importu → symbol na Yahoo Finance. Uprav, pokud se pro titul nenačítá cena.
+      Delistovaný titul (bankrot, akvizice) označ vykřičníkem na začátku (např. <code style="color:var(--text)">!NKLAQ</code>) — appka ho přestane stahovat.</p>
+    <div id="tickerMap"></div>
+    <h2 style="font-size:16px; margin:22px 0 4px">Data</h2>
+    <p style="font-size:13px; color:var(--muted); margin-bottom:10px">
+      Smazání odstraní všechny transakce daného brokera ze Supabase. Import je možné kdykoli zopakovat.</p>
+    <div style="display:flex; gap:8px; flex-wrap:wrap">
+      <button class="btn danger" data-wipe="XTB">Smazat data XTB</button>
+      <button class="btn danger" data-wipe="REVOLUT">Smazat data Revolut</button>
+      <button class="btn danger" data-wipe="CONSEQ">Smazat data Conseq</button>
+      <button class="btn danger" data-wipe="DEGIRO">Smazat data Degiro</button>
+      <button class="btn danger" data-wipe="IBKR">Smazat data IBKR</button>
+      <button class="btn danger" data-wipe="TRADING212">Smazat data Trading 212</button>
+      <button class="btn danger" data-wipe="REVOLUT_CRYPTO">Smazat data Revolut crypto</button>
+      <button class="btn danger" data-wipe="FREEDOM24">Smazat data Freedom 24</button>
+      <button class="btn" id="btnClearCache">Vyčistit cache cen</button>
+    </div>
+    <div id="adminSection" style="display:none">
+      <h2 style="font-size:16px; margin:22px 0 4px">Administrace — povolené e-maily</h2>
+      <p style="font-size:13px; color:var(--muted); margin-bottom:10px">Jen tyto e-maily se mohou přihlásit. Změny se projeví okamžitě.</p>
+      <div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap">
+        <input id="adminEmail" type="email" inputmode="email" placeholder="kamarad@email.cz"
+          style="background:var(--bg); border:1px solid var(--border); color:var(--text); border-radius:10px; padding:8px 12px; font-size:13.5px; font-family:inherit; flex:1; min-width:200px; max-width:320px">
+        <button class="btn primary" id="adminAdd">Přidat</button>
+      </div>
+      <div class="tbl-scroll"><table id="adminTable"></table></div>
+    </div>
+
+    <p style="font-size:12px; color:var(--faint); margin-top:22px; display:none"><span id="appVer"></span></p>
+  </section>
+</div>
+
+<div class="empty" id="emptyState" style="display:none">
+  <p style="font-size:30px; margin-bottom:8px">📈</p>
+  <p><b>Zatím žádné transakce.</b></p>
+  <p style="margin-top:4px">Nahraj výpis transakcí od svého brokera — tlačítkem nahoře, nebo ho sem přetáhni.<br>
+  Podporuji: <b>XTB</b>, <b>Revolut</b>, <b>Conseq</b>, <b>Degiro</b>, <b>Interactive Brokers</b>, <b>Trading 212</b>, <b>Revolut crypto</b> a <b>Freedom 24</b> (CSV / XLSX export z účtu).</p>
+</div>
+
+<div id="loading" style="display:none; text-align:center; padding:40px; color:var(--muted)">
+  <span class="spin"></span>&ensp;<span id="loadingMsg">Načítám…</span>
+</div>
+
+<footer style="text-align:center; padding:28px 0 8px; font-family:'Space Grotesk',monospace; font-size:13px; color:var(--faint)">
+  vyrobil <span style="color:var(--accent)">Martin Wohanka</span> · <span id="footVer"></span>
+</footer>
+
+</div>
+
+<div class="drop" id="dropZone">Pusť CSV soubor(y) sem</div>
+
+<div class="modal-bg" id="importModal">
+  <div class="modal">
+    <h2>Import</h2>
+    <div id="importSummary"></div>
+    <div class="actions">
+      <button class="btn" id="impCancel">Zrušit</button>
+      <button class="btn primary" id="impConfirm">Importovat</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="histModal">
+  <div class="modal" style="max-width:640px">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:14px">
+      <div style="min-width:0">
+        <h2 id="histTitle" style="margin-bottom:2px"></h2>
+        <div id="histHead" style="font-size:13.5px; color:var(--muted); margin-bottom:12px"></div>
+      </div>
+      <div id="histLogo" style="flex:none"></div>
+    </div>
+    <div class="pills" id="histTabs" style="margin-bottom:12px; border-bottom:1px solid var(--border); padding-bottom:10px">
+      <button class="pill active" data-htab="chart">Vývoj</button>
+      <button class="pill" data-htab="tx">Transakce</button>
+    </div>
+    <div id="histBody"></div>
+    <div class="actions"><button class="btn" id="histClose">Zavřít</button></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="onboard">
+  <div class="modal" style="max-width:460px; text-align:center">
+    <p style="font-size:40px; margin-bottom:6px">👋</p>
+    <h2 style="font-size:19px; margin-bottom:8px">Vítej v Portfoliu</h2>
+    <p style="font-size:14px; color:var(--muted); margin-bottom:6px; line-height:1.6">
+      Tohle je tvůj soukromý prostor — data vidíš jen ty. Začni nahráním výpisu transakcí
+      od svého brokera, zbytek (ceny, grafy, zisky, daně) dopočítá appka sama.</p>
+    <p style="font-size:13px; color:var(--faint); margin-bottom:18px; line-height:1.7">
+      Podporovaní brokeři:<br><b style="color:var(--text)">XTB</b> · <b style="color:var(--text)">Revolut</b> · <b style="color:var(--text)">Conseq</b> · <b style="color:var(--text)">Degiro</b> · <b style="color:var(--text)">Interactive Brokers</b> · <b style="color:var(--text)">Trading 212</b> · <b style="color:var(--text)">Revolut crypto</b> · <b style="color:var(--text)">Freedom 24</b><br>
+      (CSV/XLSX export z účtu daného brokera)</p>
+    <button class="btn primary" id="onboardImport" style="width:100%; justify-content:center; padding:11px">Nahrát první výpis</button>
+    <button class="btn" id="onboardSkip" style="width:100%; justify-content:center; margin-top:8px">Zatím se jen rozhlédnu</button>
+  </div>
+</div>
+
+<div class="modal-bg" id="targetModal">
+  <div class="modal" style="max-width:500px">
+    <div style="display:flex; align-items:center; gap:10px">
+      <span style="font-size:26px; line-height:1">🎯</span>
+      <h2 style="font-size:18px; margin:0">Cílová cena dosažena</h2>
+    </div>
+    <p style="font-size:13.5px; color:var(--muted); margin:6px 0 12px" id="targetSub"></p>
+    <div class="tbl-scroll"><table id="targetTable"></table></div>
+    <div class="actions">
+      <button class="btn" id="targetClose">Zavřít</button>
+      <button class="btn primary" id="targetGo">Otevřít watchlist</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="changelogModal">
+  <div class="modal" style="max-width:520px; max-height:80vh; overflow-y:auto">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px">
+      <h2 style="font-size:18px">Seznam změn</h2>
+      <button class="btn" id="changelogClose">Zavřít</button>
+    </div>
+    <div id="changelogBody"></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="changelogModal">
+  <div class="modal" style="max-width:460px; max-height:80vh; overflow-y:auto">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px">
+      <h2 style="font-size:18px">Seznam změn</h2>
+      <button class="btn" id="changelogClose">Zavřít</button>
+    </div>
+    <div id="changelogBody"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+<script>
+/* ================= KONFIGURACE ================= */
+const APP_VERSION = "2.1 (14. 6. 2026) — administrace";
+const FOOTER_VERSION = "v2.75 · 21. 8. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
+
+// Seznam změn — nejnovější nahoře. Při každé úpravě appky sem přidat řádek.
+const CHANGELOG = [
+  {v:"v2.75", d:"21. 8. 2026", items:["Cílové ceny se hlídají z intradenních dat vč. pre-marketu a after-marketu — nečeká se na závěr trhu","Ozve se i titul, který se cíle dnes jen dotkl a zase odskočil (v okně je dnešní extrém, v tabulce bledší 🎯)","Tlačítko Aktualizovat ceny cíle prověří znovu"]},
+  {v:"v2.74", d:"21. 8. 2026", items:["Po přihlášení vyskočí upozornění, když nějaký titul z watchlistu dosáhl cílové ceny","Okno se ukáže nejvýš jednou denně; když týž den dosáhne cíle další titul, ukáže se znovu"]},
+  {v:"v2.73", d:"6. 8. 2026", items:["Vedle hodnoty portfolia se mimo obchodní hodiny ukazuje odhad podle pre-market / after-market cen"]},
+  {v:"v2.72", d:"6. 8. 2026", items:["Hotovost u brokerů — zadá se v Nastavení a dál se dopočítává z obchodů a dividend","Počítá se do hodnoty portfolia i do vložených prostředků, takže zisk v Kč zůstává přesný","Vlastní řádek v pozicích a vlastní dílek v alokaci"]},
+  {v:"v2.71", d:"27. 7. 2026", items:["Pre-market a after-market pohyb je nově ve sloupci Dnes, takže je vidět i na mobilu; tabulka pozic se po načtení intradenních dat sama obnoví"]},
+  {v:"v2.70", d:"27. 7. 2026", items:["Přihlašovací kód: pole bere i delší kódy (6–8 číslic), dřív šlo zadat jen šest"]},
+  {v:"v2.69", d:"27. 7. 2026", items:["iPhone: hlavička s tlačítky už nelezla pod stavový řádek (hodiny, baterie) — respektuje se bezpečná zóna displeje"]},
+  {v:"v2.68", d:"23. 7. 2026", items:["Přihlášení kódem z e-mailu — řeší iPhone, kde se ikona na ploše otevírá jako samostatná aplikace a odkaz ze Safari k ní nedosáhne"]},
+  {v:"v2.67", d:"23. 7. 2026", items:["Detail titulu: tlačítko vs S&P 500 — porovnání výkonnosti akcie s indexem v procentech od začátku zvoleného období"]},
+  {v:"v2.66", d:"23. 7. 2026", items:["Sladění barev ostatních brokerů, ať nekolidují: Conseq zlatá, Degiro tyrkysová, IBKR růžová, Trading 212 fialová, Revolut crypto oranžová"]},
+  {v:"v2.65", d:"23. 7. 2026", items:["Nové barvy brokerů: XTB červená, Revolut modrá, Freedom 24 zelená; čárkovaná linka Vloženo zůstává fialová"]},
+  {v:"v2.64", d:"23. 7. 2026", items:["Nastavení: pořadí brokerů — šipkami lze přerovnat bubliny nad grafem, uloží se napříč zařízeními"]},
+  {v:"v2.63", d:"23. 7. 2026", items:["Graf: klik na dva body zobrazí rozdíl mezi nimi (Kč i %; u portfolia navíc zisk očištěný o vklady v daném období); křížkem se měření zavře"]},
+  {v:"v2.62", d:"23. 7. 2026", items:["Graf: bublina při najetí myší ukazuje u data i letopočet (hlavní graf i detail titulu)"]},
+  {v:"v2.61", d:"21. 7. 2026", items:["Import Freedom 24: podpora třetí varianty exportu (sloupce Číslo/datum/Počet akcií, bez měny — měna se odvodí z přípony tickeru)"]},
+  {v:"v2.60", d:"18. 7. 2026", items:["Alokace: nový pohled Podle země — sídlo firmy u ADR titulů, jinak země burzy; krypto zvlášť; klik rozbalí tituly"]},
+  {v:"v2.59", d:"18. 7. 2026", items:["Alokace: klik na skupinu (sektor, měnu, brokera i Ostatní) rozbalí seznam konkrétních titulů s hodnotou a podílem"]},
+  {v:"v2.58", d:"18. 7. 2026", items:["Detail titulu (Transakce): nový řádek Výsledek celkem — realizované prodeje + nerealizovaný zisk držených kusů + dividendy v jednom čísle"]},
+  {v:"v2.57", d:"13. 7. 2026", items:["Oprava odhlašování po zavření prohlížeče — upgrade Supabase knihovny; stará verze při souběhu více oken (záložka + nainstalovaná appka) omylem mazala platné přihlášení"]},
+  {v:"v2.56", d:"7. 7. 2026", items:["Detail titulu: nová volba 1D — dnešní vnitrodenní vývoj ceny konkrétního tickeru"]},
+  {v:"v2.55", d:"7. 7. 2026", items:["Loga v seznamu pozic a watchlistu zpět kulatá, o něco zmenšena (32 px)"]},
+  {v:"v2.54", d:"7. 7. 2026", items:["Oprava importu Freedom 24 — nové exporty mají sloupec \"Order ID\" místo dřívějšího \"Id/OrderId\", parser teď uzná oba formáty"]},
+  {v:"v2.53", d:"22. 6. 2026", items:["Loga v seznamu pozic a watchlistu zvětšena na 44 px se zaoblenými rohy, přes výšku celého řádku"]},
+  {v:"v2.52", d:"22. 6. 2026", items:["Detail titulu: velké logo (52 px) vpravo nahoře, na bílém podkladu; bez loga se ukáže kolečko s iniciálami"]},
+  {v:"v2.51", d:"22. 6. 2026", items:["Loga titulů v seznamu pozic a ve watchlistu; když logo není k dispozici, ukáže se barevné kolečko s iniciálami"]},
+  {v:"v2.50", d:"22. 6. 2026", items:["Watchlist: tickery s národní příponou burzy (např. CSPX.UK) se převedou na Yahoo formát (CSPX.L), takže je lze přidat"]},
+  {v:"v2.49", d:"22. 6. 2026", items:["Nová volba zobrazení po spuštění: XTB + Revolut + Freedom 24"]},
+  {v:"v2.48", d:"22. 6. 2026", items:["Import od brokera Freedom 24 (list Trades z XLSX exportu); měnové konverze EUR/USD se přeskakují"]},
+  {v:"v2.47", d:"18. 6. 2026", items:["Watchlist: pořadí titulů lze měnit šipkami nahoru/dolů (pohled Můj), uloží se napříč zařízeními"]},
+  {v:"v2.46", d:"18. 6. 2026", items:["Dlaždice Dnes přejmenována na Dnes (od včera) a počítá stejně jako zisk nad grafem — od předchozího závěru trhu, vč. overnight gapu a pre-marketu"]},
+  {v:"v2.45", d:"18. 6. 2026", items:["Sjednocení zisku dnes s grafem — oba teď měří od stejného včerejšího závěru (chartPreviousClose) a dnešním kurzem; dříve se lišily až o tisíce Kč"]},
+  {v:"v2.44", d:"18. 6. 2026", items:["Oprava zisku dnes při dnešním nákupu — nově koupené tituly se počítají od nákupní ceny, ne od včerejška (zisk dnes se už nenafukuje o hodnotu nákupu)"]},
+  {v:"v2.43", d:"18. 6. 2026", items:["Graf: u téměř plochého dne se přidá vzduch kolem křivky, aby titěrné pohyby (desítky Kč) nevypadaly jako velké schody"]},
+  {v:"v2.42", d:"18. 6. 2026", items:["Oprava zisku dnes — dnešní úplný prodej pozice už nezkresluje zisk dnes (patří jen do Realizovaných, ne do vývoje drženého portfolia)"]},
+  {v:"v2.41", d:"18. 6. 2026", items:["Oprava zisku dnes nad grafem — dnešní vklady se počítaly z rozdílu posledních dvou dnů (zahrnovaly i starší prodeje), teď jen ze skutečně dnešních transakcí"]},
+  {v:"v2.40", d:"18. 6. 2026", items:["Oprava zisku dnes u crypto — intradenní graf počítal v USD místo CZK (zisk dnes vycházel nesmyslně, např. -95 %)"]},
+  {v:"v2.39", d:"18. 6. 2026", items:["Revolut crypto má zelenou barvu pilulky"]},
+  {v:"v2.38", d:"18. 6. 2026", items:["Oprava hodnoty crypto pozic — intradenní ceny se nepřeváděly na CZK (hodnota vycházela ~20× nižší)"]},
+  {v:"v2.37", d:"18. 6. 2026", items:["Oprava chyby při ukládání skutečného stavu kryptoměn (renderAll is not defined)"]},
+  {v:"v2.36", d:"18. 6. 2026", items:["Skutečný stav kryptoměn — ruční zadání reálného množství (staking z Revolutu nelze z exportu dopočítat)"]},
+  {v:"v2.35", d:"18. 6. 2026", items:["Seznam změn po kliknutí na verzi v patičce (dvojklik = diagnostika)"]},
+  {v:"v2.34", d:"18. 6. 2026", items:["Import crypto výpisu z Revolutu — nákupy, prodeje i transfery; staking se ignoruje","Crypto se oceňuje přes Yahoo (BTC-USD) přepočtem na CZK","Kryptoměny se nezahrnují do daňového podkladu (jiná pravidla v ČR)"]},
+  {v:"v2.33", d:"17. 6. 2026", items:["Světlý režim vzhledu s detekcí systému a ručním přepínačem v Nastavení"]},
+  {v:"v2.32", d:"17. 6. 2026", items:["Trading 212 doplněn i do uvítacího okna (seznam brokerů na obou místech)"]},
+  {v:"v2.31", d:"17. 6. 2026", items:["Seznam podporovaných brokerů na úvodní obrazovce"]},
+  {v:"v2.30", d:"16. 6. 2026", items:["Sdílený watchlist — vybrané tituly lze sdílet s ostatními (vč. poznámky a cílové ceny), záložky Můj / Sdílené"]},
+  {v:"v2.29", d:"16. 6. 2026", items:["Import od brokera Trading 212 (vč. zlomkových akcií a přepočtu GBX na GBP)"]},
+  {v:"v2.28", d:"16. 6. 2026", items:["P/E na mobilu: prázdná hodnota se cachuje jen 1 h, tlačítko Vyčistit cache cen maže i P/E"]},
+  {v:"v2.27", d:"16. 6. 2026", items:["Sjednocení verze — jen jedno číslo v patičce, diagnostika přesunuta do patičky"]},
+  {v:"v2.26", d:"16. 6. 2026", items:["Denní změna titulu v detailu i v korunách (vedle procenta)"]},
+  {v:"v2.25", d:"16. 6. 2026", items:["Oprava zisku dnes po víkendu — včerejší závěr z intradenního API (denní data Yahoo bývají o den pozadu)"]},
+  {v:"v2.24", d:"16. 6. 2026", items:["P/E přes crumb autorizaci Yahoo (oprava chyby Invalid Crumb)"]},
+  {v:"v2.23", d:"15. 6. 2026", items:["P/E akcie v detailu titulu i ve watchlistu"]},
+  {v:"v2.22", d:"15. 6. 2026", items:["Zisk titulu v detailu i v korunách (vedle P/L %)"]},
+  {v:"v2.21", d:"15. 6. 2026", items:["Oprava vypršení přihlášení — token se obnovuje automaticky"]},
+  {v:"v2.20", d:"15. 6. 2026", items:["Oprava ukládání nastavení (prázdná odpověď serveru)"]},
+  {v:"v2.19", d:"15. 6. 2026", items:["Nová ikona importu (šipka do schránky)"]},
+  {v:"v2.16", d:"15. 6. 2026", items:["Soukromý režim — skrytí částek (procenta zůstávají), import jako ikona"]},
+  {v:"v2.15", d:"15. 6. 2026", items:["Podpora nového formátu XTB exportu (Cash Operations)"]},
+  {v:"v2.14", d:"14. 6. 2026", items:["Watchlist přesunut hned vedle Pozic"]},
+  {v:"v2.13", d:"14. 6. 2026", items:["Oprava editace mapování tickerů (přepisování při scrollu na mobilu)"]},
+  {v:"v2.1",  d:"14. 6. 2026", items:["Administrace povolených e-mailů přímo v appce"]},
+  {v:"v2.0",  d:"14. 6. 2026", items:["Více uživatelů — přihlášení e-mailem, oddělená data, onboarding","Import z Degiro a Interactive Brokers"]},
+];
+const CONFIG = {
+  SUPABASE_URL: "https://gqzkhvdnnndtvyvxmctx.supabase.co",
+  SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdxemtodmRubm5kdHZ5dnhtY3R4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExMzcxNzEsImV4cCI6MjA5NjcxMzE3MX0.irRO0QZMEd6AItu_CP3wA2jYdFGwLyA4PYqAPb1-s7E",
+  PROXY_URL: "https://gqzkhvdnnndtvyvxmctx.supabase.co/functions/v1/yahoo",
+  XTB_ACCOUNT_CURRENCY: "CZK",  // měna tvého XTB účtu (částky dividend v exportu)
+  BASE_CURRENCY: "CZK"
+};
+const PRICE_TTL = 15*60*1000, FX_TTL = 6*60*60*1000, WPX_TTL = 5*60*1000;
+
+/* ================= STAV ================= */
+let TX = [];                 // všechny transakce ze Supabase
+let META = {};               // ticker -> {currency} z Yahoo
+let DAILY = {};              // ticker -> {dates:[], closes:[]}
+let FX = {};                 // currency -> {dates:[], rates:[]} (na CZK)
+let CAL = [];                // sjednocený denní kalendář (YYYY-MM-DD)
+let SERIES = {};             // provider -> {value:[], invested:[]}
+let INTRA = null;            // cache intradenní série {prov, points}
+let EXT = {};                // ticker -> {state:"pre"|"after", price} mimo obchodní hodiny
+let SECTORS = {};            // ticker -> sektor (z Yahoo search, cache 7 dní)
+let WATCH = null;            // watchlist (řádky ze Supabase), null = nenačteno
+let WPX = {};                // ticker -> {px, hi, lo, state} dnešní intradenní cena watchlistu (v měně titulu)
+const PROVIDERS = ["XTB","REVOLUT","CONSEQ","DEGIRO","IBKR","TRADING212","REVOLUT_CRYPTO","FREEDOM24"];
+let selProvs = new Set(["XTB","REVOLUT"]);
+function provKey(){
+  const avail=availableProviders();
+  const sel=[...selProvs].filter(p=>avail.has(p));
+  return (sel.length===avail.size && avail.size>0) ? "ALL" : sel.join("+");
+}
+let curProv = "XTB+REVOLUT", curPeriod = "1D", curAlloc = "ticker";
+let priceErrors = [];
+
+/* ================= UTILITY ================= */
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+let PRIVATE = false;
+const MASK = "•••";
+const fmtKc = n => PRIVATE ? MASK : ((n==null||isNaN(n)) ? "—" : Math.round(n).toLocaleString("cs-CZ") + " Kč");
+const fmtPct = n => (n==null||isNaN(n)) ? "—" : (n>0?"+":"") + n.toLocaleString("cs-CZ",{minimumFractionDigits:1,maximumFractionDigits:1}) + " %";
+const fmtSign = n => PRIVATE ? MASK : ((n==null||isNaN(n)) ? "—" : (n>0?"+":n<0?"−":"") + Math.abs(Math.round(n)).toLocaleString("cs-CZ") + " Kč");
+const fmtNum = (n,d=2) => n==null ? "—" : n.toLocaleString("cs-CZ",{maximumFractionDigits:d});
+const cls = n => n>0.0001 ? "up" : n<-0.0001 ? "down" : "flat";
+const todayStr = () => new Date().toISOString().slice(0,10);
+const escapeHtml = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function toast(msg, ms=3200){ const t=$("#toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("show"), ms); }
+function showErr(msg){ const b=$("#errBox"); b.style.display="block"; b.textContent=msg; }
+function hash(str){ let h=5381; for(let i=0;i<str.length;i++){ h=((h<<5)+h+str.charCodeAt(i))>>>0; } return h.toString(36)+"_"+str.length; }
+function addDays(d, n){ const x=new Date(d+"T12:00:00Z"); x.setUTCDate(x.getUTCDate()+n); return x.toISOString().slice(0,10); }
+function lsGet(k, ttl){ try{ const v=JSON.parse(localStorage.getItem(k)); if(v && Date.now()-v.t < ttl) return v.d; }catch(e){} return null; }
+function lsSet(k, d){ try{ localStorage.setItem(k, JSON.stringify({t:Date.now(), d})); }catch(e){} }
+
+/* tolerantní parsování čísla: "1,234.56", "$12.5", "1 234,56" */
+function parseNum(s){
+  if(s==null) return null;
+  s = String(s).replace(/[^\d.,\-]/g,"").trim();
+  if(!s) return null;
+  const lc = s.lastIndexOf(","), ld = s.lastIndexOf(".");
+  if(lc>-1 && ld>-1){ s = lc>ld ? s.replace(/\./g,"").replace(",",".") : s.replace(/,/g,""); }
+  else if(lc>-1){ s = (s.match(/,/g)||[]).length===1 ? s.replace(",",".") : s.replace(/,/g,""); }
+  const n = parseFloat(s);
+  return isNaN(n) ? null : n;
+}
+function parseDate(s){
+  if(!s) return null;
+  s = String(s).trim();
+  let m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);             // ISO
+  if(m) return `${m[1]}-${m[2]}-${m[3]}`;
+  m = s.match(/^(\d{5})(?:[.,]\d+)?$/);                       // excelové sériové datum
+  if(m){ const n=+m[1]; if(n>20000 && n<80000) return new Date(Math.round((n-25569)*864e5)).toISOString().slice(0,10); }
+  m = s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})/);           // dd.mm.yyyy
+  if(m) return `${m[3]}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}`;
+  m = s.match(/^(\d{1,2})-(\d{1,2})-(\d{4})/);             // dd-mm-yyyy (Degiro)
+  if(m) return `${m[3]}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}`;
+  m = s.match(/^(\d{4})(\d{2})(\d{2})(?:[;\s]|$)/);        // yyyymmdd (IBKR)
+  if(m) return `${m[1]}-${m[2]}-${m[3]}`;
+  m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);                 // lomítkový formát
+  if(m){
+    const a=+m[1], b=+m[2], y=m[3].length===2 ? 2000 + +m[3] : +m[3];
+    let day, mon;
+    if(a>12){ day=a; mon=b; }            // 21/10 -> dd/mm
+    else if(b>12){ mon=a; day=b; }       // 10/21 -> mm/dd
+    else { day=a; mon=b; }               // nejednoznačné -> evropsky dd/mm
+    if(mon<1||mon>12||day<1||day>31) return null;
+    return `${y}-${String(mon).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+  }
+  const d = new Date(s);
+  return isNaN(d) ? null : d.toISOString().slice(0,10);
+}
+
+/* ================= SUPABASE (REST) ================= */
+/* ================= SUPABASE KLIENT + AUTH ================= */
+let SB=null, USER=null;
+function sbClient(){
+  if(!SB) SB = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY,
+    {auth:{persistSession:true, autoRefreshToken:true, detectSessionInUrl:true}});
+  return SB;
+}
+async function freshToken(){
+  try{
+    const { data } = await sbClient().auth.getSession();
+    if(data && data.session){
+      USER = { id:data.session.user.id, email:data.session.user.email, token:data.session.access_token };
+      return data.session.access_token;
+    }
+  }catch(e){}
+  return (USER && USER.token) || CONFIG.SUPABASE_ANON_KEY;
+}
+async function sb(path, opts={}, _retry){
+  const token = await freshToken();
+  const res = await fetch(`${CONFIG.SUPABASE_URL}/rest/v1/${path}`, {
+    ...opts,
+    headers: {
+      apikey: CONFIG.SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+      ...(opts.headers||{})
+    }
+  });
+  if(!res.ok){
+    const body = (await res.text()).slice(0,300);
+    // vypršelý token: jednou zkus obnovit session a zopakovat
+    if((res.status===401 || /JWT expired|PGRST303/.test(body)) && !_retry){
+      try{ await sbClient().auth.refreshSession(); }catch(e){}
+      return sb(path, opts, true);
+    }
+    if(res.status===401 || /JWT expired/.test(body)){
+      throw new Error("Přihlášení vypršelo — obnov stránku a přihlas se znovu.");
+    }
+    throw new Error(`Supabase ${res.status}: ${body}`);
+  }
+  if(res.status===204) return null;
+  const txt = await res.text();
+  if(!txt) return null;
+  try{ return JSON.parse(txt); }catch(e){ return null; }
+}
+async function sendMagicLink(email){
+  const { error } = await sbClient().auth.signInWithOtp({
+    email, options:{ emailRedirectTo: window.location.origin + window.location.pathname }
+  });
+  if(error) throw error;
+}
+async function verifyCode(email, token){
+  const { data, error } = await sbClient().auth.verifyOtp({ email, token, type:"email" });
+  if(error) throw error;
+  return data;
+}
+async function currentSession(){
+  const { data } = await sbClient().auth.getSession();
+  if(data && data.session){
+    USER = { id:data.session.user.id, email:data.session.user.email, token:data.session.access_token };
+    return USER;
+  }
+  return null;
+}
+async function logout(){ await sbClient().auth.signOut(); location.reload(); }
+const loadTx = () => sb("transactions?select=*&order=date.asc&limit=20000");
+const insertTx = rows => sb("transactions?on_conflict=user_id,import_hash", {
+  method:"POST",
+  headers:{Prefer:"resolution=ignore-duplicates,return=representation"},
+  body: JSON.stringify(rows)
+});
+const deleteTx = id => sb(`transactions?id=eq.${id}`, {method:"DELETE"});
+const wipeProvider = p => sb(`transactions?provider=eq.${p}`, {method:"DELETE"});
+const loadWatch   = () => sb("watchlist?select=*&order=sort_order.asc.nullslast,created_at.asc");  // RLS vrátí vlastní + sdílené cizí
+const insertWatch = row => sb("watchlist", {method:"POST", headers:{Prefer:"return=representation"}, body:JSON.stringify([row])});
+const deleteWatch = id => sb(`watchlist?id=eq.${id}`, {method:"DELETE"});
+const updateWatch = (id,patch) => sb(`watchlist?id=eq.${id}`, {method:"PATCH", body:JSON.stringify(patch)});
+const loadSettings = () => sb("user_settings?select=*&limit=1");
+const saveSettings = patch => sb("user_settings", {method:"POST", headers:{Prefer:"resolution=merge-duplicates,return=minimal"}, body:JSON.stringify([{user_id:USER.id, ...patch, updated_at:new Date().toISOString()}])});
+const checkAdmin   = () => sb("rpc/is_admin", {method:"POST", body:"{}"});
+const loadAllowed  = () => sb("allowed_emails?select=email&order=email.asc");
+const addAllowed   = email => sb("allowed_emails", {method:"POST", headers:{Prefer:"return=minimal"}, body:JSON.stringify([{email}])});
+const delAllowed   = email => sb(`allowed_emails?email=eq.${encodeURIComponent(email)}`, {method:"DELETE"});
+const remapTicker = (oldT, newT) => sb(`transactions?ticker=eq.${encodeURIComponent(oldT)}&user_id=eq.${USER.id}`, {
+  method:"PATCH",
+  headers:{Prefer:"return=representation"},
+  body: JSON.stringify({ticker:newT})
+});
+
+/* ================= CSV PARSER ================= */
+function parseCSV(text){
+  text = text.replace(/^\uFEFF/,"");
+  const firstLine = text.slice(0, text.indexOf("\n")>-1 ? text.indexOf("\n") : text.length);
+  const delim = [";","\t",","].map(d=>[d,(firstLine.match(new RegExp(d==="\t"?"\\t":"\\"+d,"g"))||[]).length])
+                              .sort((a,b)=>b[1]-a[1])[0][0];
+  const rows=[]; let row=[], cell="", q=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(q){ if(c==='"'){ if(text[i+1]==='"'){cell+='"';i++;} else q=false; } else cell+=c; }
+    else if(c==='"') q=true;
+    else if(c===delim){ row.push(cell); cell=""; }
+    else if(c==="\n"||c==="\r"){ if(c==="\r"&&text[i+1]==="\n") i++; row.push(cell); cell="";
+      if(row.some(x=>x.trim()!=="")) rows.push(row); row=[]; }
+    else cell+=c;
+  }
+  if(cell!==""||row.length){ row.push(cell); if(row.some(x=>x.trim()!=="")) rows.push(row); }
+  return rows;
+}
+
+/* ruční převody symbolů na Yahoo (aplikují se při importu); "!" = delistovaný titul, cena se nestahuje */
+const SYMBOL_OVERRIDES = {
+  "QDV5":"QDV5.DE", "SPPW":"SPPW.DE", "ETLZ":"ETLZ.DE", "NOV1":"NOV.DE",
+  "BRK.B":"BRK-B", "BRKB":"BRK-B", "HMI":"ZEPP",
+  "NKLAQ":"!NKLAQ", "RNAM":"!RNAM",
+  "NOVOB.DK":"NOVO-B.CO", "NOVOB.CO":"NOVO-B.CO",
+  "BY6.DE":"BY6.F", "IUSN":"IUSN.DE",
+  // ISIN -> Yahoo (Degiro/IBKR uvádějí ISIN)
+  "US69608A1088":"PLTR", "IE00BZCQB185":"QDV5.DE", "US4128221086":"HOG",
+  "US6701002056":"NVO", "CZ0009009874":"PILBF",
+  "MBG.EU":"MBG.DE", "DE0007100000":"MBG.DE", "GRAB.US":"GRAB", "NFLX.US":"NFLX",
+  "DE":"" /*placeholder, nepoužije se*/
+};
+delete SYMBOL_OVERRIDES["DE"];
+
+// Crypto symboly z Revolutu -> Yahoo (oceňujeme v USD, převod na CZK řeší loadAllData)
+const CRYPTO_YH = {
+  "BTC":"BTC-USD", "ETH":"ETH-USD", "SOL":"SOL-USD", "DOT":"DOT-USD",
+  "SHIB":"SHIB-USD", "POL":"POL-USD", "MATIC":"MATIC-USD", "ADA":"ADA-USD",
+  "XRP":"XRP-USD", "DOGE":"DOGE-USD", "LTC":"LTC-USD", "BCH":"BCH-USD",
+  "AVAX":"AVAX-USD", "LINK":"LINK-USD", "UNI":"UNI-USD", "ATOM":"ATOM-USD",
+  "ALGO":"ALGO-USD", "XLM":"XLM-USD", "TRX":"TRX-USD", "USDT":"USDT-USD", "USDC":"USDC-USD"
+};
+// množina crypto tickerů (BTC-USD…) pro převod ceny na CZK
+const CRYPTO_TICKERS = new Set(Object.values(CRYPTO_YH));
+
+/* burzovní přípony pro Degiro Reference exchange / IBKR ListingExchange */
+const EXCH_SUFFIX = {
+  NSY:"", NYSE:"", NDQ:"", NASDAQ:"", AMEX:"", ARCA:"", BATS:"", PINK:"", OTC:"",
+  XET:".DE", XETA:".DE", FRA:".F", EAM:".AS", AMS:".AS", EPA:".PA", PAR:".PA",
+  MIL:".MI", BIT:".MI", MAD:".MC", BME:".MC", LSE:".L", LON:".L",
+  SWX:".SW", EBS:".SW", VIE:".VI", WBO:".VI", STO:".ST", HEL:".HE",
+  CPH:".CO", OSL:".OL", WSE:".WA", GPW:".WA", PRA:".PR", BUD:".BD", TOR:".TO"
+};
+function isinToYahoo(isin, exch){
+  if(SYMBOL_OVERRIDES[isin]) return SYMBOL_OVERRIDES[isin];
+  return null; // bez override se použije ticker uvedený v souboru
+}
+const mapSymbol = s => SYMBOL_OVERRIDES[s] || s;
+
+/* XTB symbol -> Yahoo symbol */
+const XTB_SUFFIX = {US:"",UK:".L",DE:".DE",NL:".AS",FR:".PA",IT:".MI",ES:".MC",PT:".LS",BE:".BR",
+  CZ:".PR",PL:".WA",HU:".BD",CH:".SW",SE:".ST",NO:".OL",DK:".CO",FI:".HE",AT:".VI",CA:".TO",IE:".IR",GR:".AT"};
+function xtbToYahoo(sym){
+  const m = String(sym).trim().toUpperCase().match(/^(.+)\.([A-Z]{2})$/);
+  if(m && m[2] in XTB_SUFFIX) return m[1] + XTB_SUFFIX[m[2]];
+  return String(sym).trim().toUpperCase();
+}
+
+/* detekce + parsování exportů; vrací {provider, txs:[], skipped} */
+function parseStatement(rows, fname){
+  const head = rows[0].map(h=>h.trim().toLowerCase());
+  const idx = names => { for(const n of names){ const i=head.findIndex(h=>h===n||h.startsWith(n)); if(i>-1) return i; } return -1; };
+
+  // REVOLUT: Date, Ticker, Type, Quantity, Price per share, Total Amount, Currency
+  if(idx(["ticker"])>-1 && idx(["total amount"])>-1){
+    const iD=idx(["date"]), iT=idx(["ticker"]), iTy=idx(["type"]), iQ=idx(["quantity"]),
+          iP=idx(["price per share"]), iA=idx(["total amount"]), iC=idx(["currency"]);
+    const txs=[]; let skipped=0;
+    for(const r of rows.slice(1)){
+      const tRaw=(r[iTy]||"").toUpperCase();
+      let type = /BUY/.test(tRaw)?"BUY" : /SELL/.test(tRaw)?"SELL" : /DIVIDEND/.test(tRaw)?"DIVIDEND" : null;
+      const ticker=(r[iT]||"").trim().toUpperCase();
+      if(!type || !ticker){ skipped++; continue; }
+      const date=parseDate(r[iD]); if(!date){ skipped++; continue; }
+      const qty=parseNum(r[iQ])||0, price=parseNum(r[iP]), total=parseNum(r[iA]),
+            currency=(r[iC]||"USD").trim().toUpperCase();
+      txs.push({provider:"REVOLUT", raw_symbol:ticker, ticker:mapSymbol(ticker), type, date,
+        quantity: type==="DIVIDEND"?0:qty, price, total, currency});
+    }
+    return {provider:"REVOLUT", txs, skipped};
+  }
+
+  // DEGIRO: Datum, Čas, Produkt, ISIN, Reference exchange, Venue, Počet, Cena, měna, ...
+  if(idx(["isin"])>-1 && idx(["produkt"])>-1 && idx(["počet","pocet"])>-1){
+    const iD=idx(["datum"]), iProd=idx(["produkt"]), iI=idx(["isin"]),
+          iEx=idx(["reference exchange","reference"]), iQ=idx(["počet","pocet"]),
+          iP=idx(["cena"]);
+    // měna je sloupec hned za "Cena" (bez vlastní hlavičky)
+    const iCur=iP+1;
+    const txs=[]; let skipped=0;
+    for(const r of rows.slice(1)){
+      const isin=(r[iI]||"").trim().toUpperCase();
+      const date=parseDate(r[iD]);
+      const qty=parseNum(r[iQ]);
+      if(!isin || !date || !qty){ skipped++; continue; }
+      const type = qty<0 ? "SELL" : "BUY";
+      const price=parseNum(r[iP]);
+      const exch=(r[iEx]||"").trim().toUpperCase();
+      const suf = EXCH_SUFFIX[exch]!==undefined ? EXCH_SUFFIX[exch] : "";
+      // bez override zkusíme ISIN-derivovaný ticker není možný; použijeme produkt? Yahoo chce ticker.
+      const ticker = SYMBOL_OVERRIDES[isin] || isin; // fallback ISIN -> uživatel doladí v mapování
+      const cur=(r[iCur]||"").trim().toUpperCase()||null;
+      txs.push({provider:"DEGIRO", raw_symbol:(r[iProd]||isin).trim(), ticker, type, date,
+        quantity:Math.abs(qty), price, total:Math.abs(qty)*(price||0), currency:cur,
+        uid:"DEGIRO:"+[date,isin,qty,price].join(":")});
+    }
+    return {provider:"DEGIRO", txs, skipped};
+  }
+
+  // REVOLUT CRYPTO (CSV): Symbol, Type, Quantity, Price, Value, Fees, Date
+  // qty počítáme z Value/Price (sloupec Quantity má nejednoznačný formát čárek)
+  if(idx(["symbol"])>-1 && idx(["type"])>-1 && idx(["quantity"])>-1 && idx(["value"])>-1
+     && idx(["price"])>-1 && idx(["fees"])>-1 && idx(["date"])>-1 && idx(["isin"])===-1){
+    const iS=idx(["symbol"]), iT=idx(["type"]), iP=idx(["price"]), iV=idx(["value"]), iD=idx(["date"]);
+    // očisti číslo: pryč "CZK", nbsp, mezery, Â; čárka = desetinná
+    const cnum = s => {
+      if(s==null) return null;
+      let x=String(s).replace(/CZK|USD|\$|€|EUR/gi,"").replace(/\u00a0/g," ").replace(/Â/g,"").replace(/\s/g,"").trim();
+      x=x.replace(/\./g,"").replace(",", ".");   // tisíce neoddělujeme tečkou; čárka -> tečka
+      const v=parseFloat(x); return isNaN(v)?null:v;
+    };
+    // typ tolerantní k rozbité diakritice (mojibake): porovnáme bez ne-ASCII znaků
+    const norm = t => String(t||"").toLowerCase().replace(/[^a-z]/g,"");
+    const txs=[]; let skipped=0;
+    for(const r of rows.slice(1)){
+      const tRaw=norm(r[iT]);             // "nÃ¡kup"->"nkup", "prodej"->"prodej", "odeslÃ¡nÃ­"->"odesln"
+      let type=null;
+      if(/nkup|nakup/.test(tRaw)) type="BUY";              // Nákup
+      else if(/prodej/.test(tRaw)) type="SELL";            // Prodej
+      else if(/pjem|pijem|prijem/.test(tRaw)) type="BUY";  // Příjem (transfer dovnitř)
+      else if(/odesln|odeslan|platba/.test(tRaw)) type="SELL"; // Odeslání / Platba (transfer ven)
+      else { skipped++; continue; }                        // Staking, Zrušení stakingu, Odměny… ignorovat
+      const sym=(r[iS]||"").trim().toUpperCase();
+      // datum Revolut crypto: "d. m. yyyy hh:mm:ss" -> den. měsíc. rok
+      let date=null;
+      const dm=String(r[iD]||"").match(/(\d{1,2})\.\s*(\d{1,2})\.\s*(\d{4})/);
+      if(dm) date=`${dm[3]}-${dm[2].padStart(2,"0")}-${dm[1].padStart(2,"0")}`;
+      // měna řádku: většina CZK, občas USD ($)
+      const rowCur = /\$|USD/i.test(String(r[iV])+String(r[iP])) ? "USD" : "CZK";
+      const price=cnum(r[iP]);            // cena za 1 coin
+      const value=cnum(r[iV]);            // objem obchodu
+      if(!sym || !date || !price || price<=0 || value==null){ skipped++; continue; }
+      const qty=value/price;              // spolehlivý výpočet množství
+      if(!(qty>0)){ skipped++; continue; }
+      // Transakce zůstávají v původní měně (většinou CZK). Aktuální cenu bereme z BTC-USD,
+      // pro CZK pozice ji loadAllData převede na CZK; USD řádky (vzácné) zůstanou v USD.
+      const ticker = CRYPTO_YH[sym] || (sym+"-USD");
+      txs.push({provider:"REVOLUT_CRYPTO", raw_symbol:sym, ticker, type, date,
+        quantity:qty, price:price, total:value, currency:rowCur,
+        uid:"RVCR:"+[date,sym,type,qty.toFixed(8),Math.round(price)].join(":")});
+    }
+    return {provider:"REVOLUT_CRYPTO", txs, skipped};
+  }
+
+  // TRADING 212 (CSV): Action, Time, ISIN, Ticker, Name, ..., No. of shares, Price / share, Currency (Price / share), ..., ID
+  if(idx(["action"])>-1 && idx(["no. of shares","no of shares"])>-1 && idx(["price / share","price/share"])>-1){
+    const iAct=idx(["action"]), iTime=idx(["time"]), iIsin=idx(["isin"]), iTk=idx(["ticker"]),
+          iName=idx(["name"]), iQ=idx(["no. of shares","no of shares"]),
+          iP=idx(["price / share","price/share"]), iPC=idx(["currency (price / share)","currency (price/share)"]),
+          iId=idx(["id"]);
+    const txs=[]; let skipped=0;
+    for(const r of rows.slice(1)){
+      const act=(r[iAct]||"").trim().toLowerCase();
+      let type = /market buy|^buy|limit buy/.test(act)?"BUY"
+               : /market sell|^sell|limit sell/.test(act)?"SELL"
+               : /dividend/.test(act)?"DIVIDEND" : null;
+      if(!type){ skipped++; continue; }   // Deposit, Interest, Cashback, Withdrawal, Card debit...
+      const date=parseDate(r[iTime]);
+      const tk=(r[iTk]||"").trim().toUpperCase();
+      const isin=(r[iIsin]||"").trim().toUpperCase();
+      if(!date || (!tk && !isin)){ skipped++; continue; }
+      let qty=Math.abs(parseNum(r[iQ])||0);
+      let price=parseNum(r[iP]);
+      let cur=(r[iPC]||"").trim().toUpperCase()||null;
+      if(cur==="GBX"){ if(price!=null) price/=100; cur="GBP"; }  // T212 uvádí UK ceny v pence
+      const ticker = SYMBOL_OVERRIDES[isin] || SYMBOL_OVERRIDES[tk] || tk || isin;
+      const uid = (r[iId]||"").trim() ? "T212:"+(r[iId]||"").trim() : "T212:"+[date,tk,qty,price].join(":");
+      txs.push({provider:"TRADING212", raw_symbol:(r[iName]||tk||isin).trim(), ticker, type, date,
+        quantity:type==="DIVIDEND"?0:qty, price:type==="DIVIDEND"?null:price,
+        total:qty*(price||0), currency:cur, uid});
+    }
+    return {provider:"TRADING212", txs, skipped};
+  }
+
+  // INTERACTIVE BROKERS (Flex/Activity CSV): Symbol, ISIN, Buy/Sell, Quantity, Price, CurrencyPrimary, TradeDate/Date/Time, TradeID
+  if(idx(["buy/sell"])>-1 && idx(["symbol"])>-1 && (idx(["isin"])>-1 || idx(["conid"])>-1)){
+    const iSym=idx(["symbol"]), iI=idx(["isin"]), iBS=idx(["buy/sell"]), iQ=idx(["quantity"]),
+          iP=idx(["price"]), iCur=idx(["currencyprimary"]),
+          iDate=idx(["tradedate"]), iDT=idx(["date/time"]), iId=idx(["tradeid"]),
+          iAC=idx(["assetclass"]);
+    const grouped={}; let skipped=0;
+    for(const r of rows.slice(1)){
+      const ac=(r[iAC]||"").toUpperCase();
+      if(ac && ac!=="STK"){ skipped++; continue; }          // jen akcie/ETF, ne opce/forex
+      const bs=(r[iBS]||"").toUpperCase();
+      let type = bs==="BUY"?"BUY" : bs==="SELL"?"SELL" : null;
+      const sym=(r[iSym]||"").trim().toUpperCase();
+      let date=parseDate(r[iDate>-1?iDate:iDT]);
+      if(date && date.length>10) date=date.slice(0,10);
+      if(!type || !sym || !date){ skipped++; continue; }
+      const qty=Math.abs(parseNum(r[iQ])||0), price=parseNum(r[iP]);
+      if(!qty){ skipped++; continue; }
+      const isin=(r[iI]||"").trim().toUpperCase();
+      const cur=(r[iCur]||"USD").trim().toUpperCase();
+      // sčítání dílčích exekucí: klíč den+symbol+směr
+      const key=date+"|"+sym+"|"+type;
+      const g=grouped[key]=grouped[key]||{provider:"IBKR", raw_symbol:sym, isin,
+        ticker:SYMBOL_OVERRIDES[isin]||SYMBOL_OVERRIDES[sym]||sym, type, date,
+        quantity:0, notional:0, currency:cur, ids:[]};
+      g.quantity+=qty; g.notional+=qty*(price||0); g.ids.push((r[iId]||"").trim());
+    }
+    const txs=Object.values(grouped).map(g=>({
+      provider:"IBKR", raw_symbol:g.raw_symbol, ticker:g.ticker, type:g.type, date:g.date,
+      quantity:g.quantity, price:g.quantity?g.notional/g.quantity:null, total:g.notional,
+      currency:g.currency, uid:"IBKR:"+g.ids.filter(Boolean).sort().join(",")
+    }));
+    return {provider:"IBKR", txs, skipped};
+  }
+
+  // FREEDOM 24 (XLSX): 3 varianty exportu — (a) Trades: Ticker/ISIN/Trh/Operace/Množství/Cena/Měna/.../Datum obchodu/Id-OrderId,
+  // (b) totéž s "Order ID", (c) jednolistý: Číslo/datum/Výpočty/Ticker/Operace/Počet akcií/Cena/částka/Zisk/Poplatek (bez měny)
+  if(idx(["operace"])>-1 && idx(["ticker"])>-1 && idx(["datum obchodu","datum"])>-1
+     && (idx(["id/orderid"])>-1||idx(["id/order"])>-1||idx(["order id"])>-1||idx(["číslo","cislo"])>-1)){
+    const iTk=idx(["ticker"]), iIsin=idx(["isin"]), iTrh=idx(["trh"]), iOp=idx(["operace"]),
+          iQ=idx(["množství","mnozstvi","počet akcií","pocet akcii"]), iP=idx(["cena"]), iC=idx(["měna","mena"]),
+          iD=idx(["datum obchodu","datum"]), iId=idx(["id/orderid","id/order","order id","číslo","cislo"]);
+    const txs=[]; let skipped=0;
+    for(const r of rows.slice(1)){
+      const op=(r[iOp]||"").trim().toLowerCase();
+      let type = /nákup|nakup|buy/.test(op)?"BUY" : /prodej|sell/.test(op)?"SELL" : null;
+      if(!type){ skipped++; continue; }
+      const tkRaw=(r[iTk]||"").trim().toUpperCase();
+      const isin=(r[iIsin]||"").trim().toUpperCase();
+      const trh=(r[iTrh]||"").trim().toUpperCase();
+      // přeskoč měnové konverze (EUR/USD, ISIN "-", trh OTC) — není to cenný papír
+      if(!tkRaw || tkRaw.includes("/") || isin==="-" || isin==="" && trh==="OTC"){ skipped++; continue; }
+      // datum: varianta a/b má "yyyy-mm-dd hh:mm:ss"; varianta c projde SheetJS
+      // formátováním na americké "m/d/yy" -> nutno číst jako měsíc/den (ne den/měsíc)
+      const dstr=String(r[iD]||"").trim();
+      const dm=dstr.match(/(\d{4})-(\d{2})-(\d{2})/);
+      let date = dm ? `${dm[1]}-${dm[2]}-${dm[3]}` : null;
+      if(!date){
+        const us=dstr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+        if(us){ let y=+us[3]; if(y<100) y+=2000; date=`${y}-${String(+us[1]).padStart(2,"0")}-${String(+us[2]).padStart(2,"0")}`; }
+      }
+      if(!date) date=parseDate(r[iD]);
+      if(!date){ skipped++; continue; }
+      const qty=Math.abs(parseNum(r[iQ])||0);
+      const price=parseNum(r[iP]);
+      let cur=(iC>-1?(r[iC]||"").trim().toUpperCase():"")||null;
+      if(!cur){ if(/\.US$/.test(tkRaw)) cur="USD"; else if(/\.(EU|DE|EUR)$/.test(tkRaw)) cur="EUR"; }
+      // ticker pro Yahoo: Freedom používá SYMBOL.US / .EU; ořež příponu, přemapuj přes overrides
+      const baseSym = tkRaw.replace(/\.(US|EU|DE|EUR)$/,"");
+      const ticker = SYMBOL_OVERRIDES[isin] || SYMBOL_OVERRIDES[tkRaw] || SYMBOL_OVERRIDES[baseSym] || baseSym;
+      // ID: varianty a/b mají "cislo/orderid", varianta c jen "cislo" — normalizujeme
+      // na část před lomítkem, aby stejný obchod měl stejný klíč napříč exporty
+      const id=(r[iId]||"").trim().split("/")[0];
+      const uid = id ? "F24:"+id : "F24:"+[date,tkRaw,type,qty,price].join(":");
+      txs.push({provider:"FREEDOM24", raw_symbol:tkRaw, ticker, type, date,
+        quantity:qty, price, total:qty*(price||0), currency:cur, uid});
+    }
+    return {provider:"FREEDOM24", txs, skipped};
+  }
+
+  // CONSEQ: Datum obchodu, Investiční nástroj, ISIN, Typ operace, Počet, Cena za kus, Celkem..., Měna
+  if(idx(["isin"])>-1 && idx(["typ operace"])>-1){
+    const iD=idx(["datum obchodu","datum"]), iN=idx(["investiční nástroj","investicni nastroj"]),
+          iI=idx(["isin"]), iTy=idx(["typ operace"]), iQ=idx(["počet","pocet"]),
+          iP=idx(["cena za kus"]), iTot=idx(["celkem v měně investičního","celkem v mene investicniho"]),
+          iC=idx(["měna","mena"]);
+    const txs=[]; let skipped=0;
+    for(const r of rows.slice(1)){
+      const isin=(r[iI]||"").trim().toUpperCase(), tRaw=(r[iTy]||"");
+      const date=parseDate(r[iD]);
+      let type = /prodej|odkup/i.test(tRaw)?"SELL" : /n[aá]kup/i.test(tRaw)?"BUY" : null;
+      if(!isin || !type || !date){ skipped++; continue; }
+      const qty=parseNum(r[iQ]), price=parseNum(r[iP]), total=parseNum(r[iTot]),
+            currency=(r[iC]||"").trim().toUpperCase()||null;
+      if(!qty){ skipped++; continue; }
+      const ticker = SYMBOL_OVERRIDES[isin] || mapSymbol(isin+".SG");
+      txs.push({provider:"CONSEQ", raw_symbol:(r[iN]||isin).trim(), ticker, type, date,
+        quantity:qty, price, total, currency});
+    }
+    return {provider:"CONSEQ", txs, skipped};
+  }
+
+  // XTB cash operations: starý (Symbol) i nový (Ticker) formát; Type, Time/Date, Comment, Amount, ID
+  const iSym=idx(["symbol","ticker"]), iCom=idx(["comment","komentář","komentar"]);
+  if(iSym>-1 && iCom>-1){
+    const iTy=idx(["type","typ"]), iTi=idx(["time","čas","cas","date"]), iA=idx(["amount","částka","castka"]), iId=idx(["id"]);
+    const txs=[]; let skipped=0;
+    for(const r of rows.slice(1)){
+      const tRaw=(r[iTy]||""), com=(r[iCom]||""), sym=(r[iSym]||"").trim();
+      const uid = iId>-1 && (r[iId]||"").trim() ? "XTB:"+(r[iId]||"").trim() : null;
+      const date=parseDate(r[iTi]);
+      let type = /purchase|n[aá]kup/i.test(tRaw)?"BUY" : /sell|sale|prodej/i.test(tRaw)?"SELL"
+               : /^dividen/i.test(tRaw.trim())?"DIVIDEND" : null; // "Stock sell" i staré "Stock sale"
+      if(!type || !sym || !date){ skipped++; continue; }
+      if(type==="DIVIDEND"){
+        txs.push({provider:"XTB", raw_symbol:sym, ticker:mapSymbol(xtbToYahoo(sym)), type, date,
+          quantity:0, price:null, total:Math.abs(parseNum(r[iA])||0), currency:CONFIG.XTB_ACCOUNT_CURRENCY, uid});
+        continue;
+      }
+      const m = com.match(/(?:OPEN|CLOSE)?\s*(?:BUY|SELL)\s+([\d.,]+)(?:\/[\d.,]+)?\s*@\s*([\d.,]+)/i);
+      if(!m){ skipped++; continue; }
+      const qty=parseNum(m[1]), price=parseNum(m[2]);
+      if(!qty || !price){ skipped++; continue; }
+      txs.push({provider:"XTB", raw_symbol:sym, ticker:mapSymbol(xtbToYahoo(sym)), type, date,
+        quantity:qty, price, total:qty*price, currency:null, uid}); // měna titulu se doplní z Yahoo
+    }
+    return {provider:"XTB", txs, skipped};
+  }
+  throw new Error(`Nerozpoznaný formát „${fname}" — podporuji XTB, Revolut, Conseq, Degiro, Interactive Brokers, Trading 212, Revolut crypto a Freedom 24.`);
+}
+
+/* ================= CENY (Yahoo přes edge proxy) ================= */
+async function fetchChart(symbol, range, interval, prePost){
+  const u = `${CONFIG.PROXY_URL}?symbol=${encodeURIComponent(symbol)}&range=${range}&interval=${interval}${prePost?"&prepost=true":""}`;
+  const r = await fetch(u, {headers:{Authorization:`Bearer ${CONFIG.SUPABASE_ANON_KEY}`}, cache:"no-store"});
+  if(!r.ok) throw new Error(`proxy ${r.status}`);
+  const j = await r.json();
+  const res = j.chart && j.chart.result && j.chart.result[0];
+  if(!res) throw new Error((j.chart&&j.chart.error&&j.chart.error.description) || "žádná data");
+  return res;
+}
+function pickRange(firstDate){
+  const days = (new Date(todayStr()) - new Date(firstDate)) / 864e5;
+  return days<330?"1y" : days<700?"2y" : days<1780?"5y" : days<3600?"10y" : "max";
+}
+async function loadDaily(ticker, firstDate){
+  const key = `px:${ticker}`;
+  const c = lsGet(key, PRICE_TTL);
+  if(c && c.firstDate<=firstDate && c.series.dates.length) { META[ticker]=c.meta; DAILY[ticker]=c.series; return; }
+  const res = await fetchChart(ticker, pickRange(firstDate), "1d");
+  let cur = (res.meta.currency||"USD");
+  let div = 1;
+  if(cur==="GBp"||cur==="GBX"){ cur="GBP"; div=100; }
+  if(cur==="ZAc"){ cur="ZAR"; div=100; }
+  const ts = res.timestamp||[], closes = (res.indicators.quote[0].close)||[];
+  const dates=[], vals=[]; let last=null;
+  for(let i=0;i<ts.length;i++){
+    let v = closes[i];
+    if(v==null) v=last; else v=v/div;
+    if(v==null) continue;
+    last=v;
+    dates.push(new Date(ts[i]*1000).toISOString().slice(0,10));
+    vals.push(v);
+  }
+  // dnešní (intradenní) cena, pokud je v meta novější
+  const rmp = res.meta.regularMarketPrice;
+  if(rmp!=null && dates.length && dates[dates.length-1]<todayStr()){
+    dates.push(todayStr()); vals.push(rmp/div);
+  }
+  if(!dates.length){
+    if(rmp!=null){ dates.push(todayStr()); vals.push(rmp/div); }
+    else throw new Error("prázdná data");
+  }
+  META[ticker]={currency:cur};
+  DAILY[ticker]={dates, closes:vals};
+  lsSet(key, {meta:META[ticker], series:DAILY[ticker], firstDate});
+}
+
+/* ================= KURZY (Frankfurter / ECB) ================= */
+async function loadFx(cur, firstDate){
+  if(cur===CONFIG.BASE_CURRENCY) return;
+  const key=`fx:${cur}`;
+  const c = lsGet(key, FX_TTL);
+  if(c && c.firstDate<=firstDate){ FX[cur]=c.series; return; }
+  const start = addDays(firstDate,-7);
+  const r = await fetch(`https://api.frankfurter.dev/v1/${start}..?from=${cur}&to=${CONFIG.BASE_CURRENCY}`);
+  if(!r.ok) throw new Error(`FX ${cur}: ${r.status}`);
+  const j = await r.json();
+  const dates = Object.keys(j.rates).sort();
+  FX[cur] = {dates, rates: dates.map(d=>j.rates[d][CONFIG.BASE_CURRENCY])};
+  lsSet(key, {series:FX[cur], firstDate});
+}
+/* kurz k datu (poslední známý <= date) */
+function fxAt(cur, date){
+  if(cur===CONFIG.BASE_CURRENCY || !cur) return 1;
+  const f = FX[cur]; if(!f) return null;
+  let lo=0, hi=f.dates.length-1, ans=0;
+  while(lo<=hi){ const m=(lo+hi)>>1; if(f.dates[m]<=date){ans=m; lo=m+1;} else hi=m-1; }
+  return f.rates[ans];
+}
+function priceAt(ticker, date){
+  const s = DAILY[ticker]; if(!s||!s.dates.length) return null;
+  let lo=0, hi=s.dates.length-1, ans=-1;
+  while(lo<=hi){ const m=(lo+hi)>>1; if(s.dates[m]<=date){ans=m; lo=m+1;} else hi=m-1; }
+  return ans===-1 ? s.closes[0] : s.closes[ans]; // před začátkem dat: první známá cena
+}
+
+/* ================= VÝPOČTY ================= */
+function txFor(key){
+  if(key==="ALL") return TX;
+  const set=key.split("+");
+  return TX.filter(t=>set.includes(t.provider));
+}
+function txCurrency(t){ return t.currency || (META[t.ticker]&&META[t.ticker].currency) || "USD"; }
+
+function buildCalendar(){
+  if(!TX.length){ CAL=[]; return; }
+  let d = TX[0].date; const end = todayStr(); CAL=[];
+  while(d<=end){ CAL.push(d); d=addDays(d,1); }
+}
+
+function computeSeries(prov){
+  const txs = txFor(prov).filter(t=>t.type!=="DIVIDEND");
+  const value=new Array(CAL.length).fill(0), invested=new Array(CAL.length).fill(0);
+  // pozor: i bez obchodů může existovat hotovost (nebo jen dividendy), proto se
+  // nekončí předčasně — jen když není vůbec žádný kalendář
+  if(!CAL.length) return {value, invested};
+  const byDate={};
+  for(const t of txs) (byDate[t.date]=byDate[t.date]||[]).push(t);
+  // hotovost: základ k zadanému dni + průběžné pohyby (nákup ubírá, prodej a dividenda přidávají).
+  // Počítá se inkrementálně v jednom průchodu, ať se nezpomalí vykreslování.
+  const cfg=cashCfg();
+  const cashProvs=(prov==="ALL" ? PROVIDERS : String(prov).split("+"))
+    .filter(p=>cfg[p] && cfg[p].date && isFinite(+cfg[p].amount));
+  const cashStart={}, allTx={};
+  for(const p of cashProvs){
+    const c=cfg[p];
+    cashStart[c.date]=(cashStart[c.date]||0) + (+c.amount)*(fxAt(c.currency||CONFIG.BASE_CURRENCY, c.date)||1);
+  }
+  if(cashProvs.length){
+    for(const t of TX){
+      const c=cfg[t.provider];
+      if(!c || !cashProvs.includes(t.provider) || t.date<=c.date) continue;
+      (allTx[t.date]=allTx[t.date]||[]).push(t);
+    }
+  }
+  const qty={}; let inv=0, cash=0, divCum=0;
+  for(let i=0;i<CAL.length;i++){
+    const d=CAL[i];
+    if(cashStart[d]) cash+=cashStart[d];
+    for(const t of (allTx[d]||[])){
+      const fx=fxAt(txCurrency(t), d)||0;
+      const val=(t.total!=null?t.total:(t.quantity*(t.price||0)))*fx;
+      if(t.type==="BUY") cash-=val;
+      else { cash+=val; if(t.type==="DIVIDEND") divCum+=val; }
+    }
+    for(const t of (byDate[d]||[])){
+      const cur=txCurrency(t), fx=fxAt(cur,d)||0;
+      const c2=(t.total!=null?t.total:(t.quantity*(t.price||0)))*fx;
+      if(t.type==="BUY"){ qty[t.ticker]=(qty[t.ticker]||0)+t.quantity; inv+=c2; }
+      else { qty[t.ticker]=(qty[t.ticker]||0)-t.quantity; inv-=c2; }
+    }
+    let v=0;
+    for(const tk in qty){
+      if(Math.abs(qty[tk])<1e-9) continue;
+      const p=priceAt(tk,d); if(p==null) continue;
+      v += qty[tk]*p*(fxAt((META[tk]&&META[tk].currency)||"USD",d)||0);
+    }
+    // hotovost jde do hodnoty i do vloženého (mínus dividendy — ty nejsou vklad),
+    // takže zisk v Kč zůstává stejný a procenta počítají i s ležícími penězi
+    value[i]=v+cash; invested[i]=inv+cash-divCum;
+  }
+  return {value, invested};
+}
+
+/* pozice k dnešku (průměrná pořizovací cena metodou váženého průměru) */
+function computePositions(prov){
+  const txs = txFor(prov).filter(t=>t.type!=="DIVIDEND");
+  const pos={};
+  for(const t of txs){
+    const key=t.ticker+"|"+t.provider;
+    const p = pos[key] = pos[key]||{ticker:t.ticker, provider:t.provider, raw:t.raw_symbol, qty:0, cost:0};
+    if(t.type==="BUY"){ p.cost+=t.quantity*(t.price!=null?t.price:(t.total||0)/(t.quantity||1)); p.qty+=t.quantity; }
+    else { const avg=p.qty>0?p.cost/p.qty:0; p.cost-=t.quantity*avg; p.qty-=t.quantity; }
+  }
+  // Ruční „skutečný stav" pro crypto: přepíše dopočtené množství zadanou realitou.
+  // (Revolut staking nelze z exportu spolehlivě rekonstruovat, takže množství zadává uživatel.)
+  const real = cryptoReal();
+  for(const key in pos){
+    const p=pos[key];
+    if(p.provider!=="REVOLUT_CRYPTO") continue;
+    if(real && Object.prototype.hasOwnProperty.call(real, p.ticker)){
+      const want=real[p.ticker];
+      const avg = p.qty>0 ? p.cost/p.qty : 0;   // zachovej průměrnou nákupní cenu
+      p.qty = want;
+      p.cost = avg>0 ? want*avg : p.cost;       // cost dopočti z průměru (kvůli P/L)
+      p.realSet = true;
+    }
+  }
+  const today=todayStr();
+  return Object.values(pos).filter(p=>p.qty>1e-9).map(p=>{
+    const cur=(META[p.ticker]&&META[p.ticker].currency)||"USD";
+    const px=priceAt(p.ticker,today), pxPrev=priceAt(p.ticker,addDays(today,-1));
+    const fx=fxAt(cur,today)||0;
+    const valCzk=px!=null?p.qty*px*fx:null;
+    const avg=p.qty>0?p.cost/p.qty:0;
+    const pl = px!=null&&avg>0 ? (px/avg-1)*100 : null;
+    const day = px!=null&&pxPrev ? (px/pxPrev-1)*100 : null;
+    return {...p, currency:cur, price:px, avg, valCzk, pl, day};
+  }).sort((a,b)=>(b.valCzk||0)-(a.valCzk||0));
+}
+
+function dividendSummary(prov){
+  const yr=todayStr().slice(0,4); let total=0, thisYear=0;
+  for(const t of txFor(prov)){
+    if(t.type!=="DIVIDEND") continue;
+    const czk=(t.total||0)*(fxAt(txCurrency(t),t.date)||0);
+    total+=czk; if(t.date.slice(0,4)===yr) thisYear+=czk;
+  }
+  return {total, thisYear};
+}
+
+/* změna ČISTÉHO ZISKU (hodnota − vloženo) za období; vklady/výběry výsledek nezkreslují */
+function periodChange(s, days){
+  const v=s.value, inv=s.invested, n=v.length;
+  if(n<2) return null;
+  const f=firstNonZero(v);
+  const i = days==null ? f : Math.max(f, n-1-days);
+  if(i>=n-1 && days!=null) return null;
+  const profit = (v[n-1]-inv[n-1]) - (v[i]-inv[i]);
+  // %: vůči kapitálu na začátku okna + vkladům během období (ty taky "pracovaly")
+  const base = v[i] + Math.max(0, inv[n-1]-inv[i]);
+  const safeBase = base>0 ? base : (inv[n-1]>0 ? inv[n-1] : null);
+  return {abs:profit, pct: safeBase ? profit/safeBase*100 : null, fromIdx:i};
+}
+function firstNonZero(arr){ for(let i=0;i<arr.length;i++) if(arr[i]>0) return i; return arr.length-1; }
+
+/* ================= INTRADENNÍ (1D) ================= */
+async function buildIntraday(prov){
+  if(INTRA && INTRA.prov===prov && Date.now()-INTRA.t<PRICE_TTL) return INTRA.points;
+  const positions = computePositions(prov);
+  if(!positions.length) return [];
+  const today=todayStr(), yest=addDays(today,-1);
+  const grids={}; const tickers=[...new Set(positions.map(p=>p.ticker))];
+  const dayStart = (()=>{ const n=new Date(); return new Date(n.getFullYear(),n.getMonth(),n.getDate()).getTime()/1000; })();
+  const nowSec=Date.now()/1000;
+  await Promise.all(tickers.map(async tk=>{
+    try{
+      const res = await fetchChart(tk, "1d", "5m", true);
+      let div=1; const c0=res.meta.currency;
+      if(c0==="GBp"||c0==="GBX"||c0==="ZAc") div=100;
+      // Crypto: Yahoo dává ceny v USD, ale crypto pozice/řada jsou v CZK.
+      // Přepočteme celou intradenní mřížku kurzem, aby „zisk dnes" i 1D graf seděly s hodnotou.
+      const isCrypto = (META[tk] && META[tk].crypto) || CRYPTO_TICKERS.has(tk);
+      const cmul = isCrypto ? (fxAt("USD", today)||0) : 1;
+      const conv = v => v==null ? null : (v/div)*cmul;
+      const ts=res.timestamp||[], cl=(res.indicators.quote[0].close||[]).map(conv);
+      const ctp=res.meta.currentTradingPeriod||{};
+      const regS=ctp.regular?ctp.regular.start:null, regE=ctp.regular?ctp.regular.end:null;
+      let prev=(res.meta.chartPreviousClose!=null ? (res.meta.chartPreviousClose/div)*cmul : priceAt(tk,yest));
+      const kts=[], kcl=[]; let lastPre=null, lastPost=null;
+      for(let i=0;i<ts.length;i++){
+        const t=ts[i], v=cl[i];
+        if(t<dayStart){ // včerejšek: závěr přepsat jen kandlí z regulérní seance (ne after-market)
+          if(v!=null && (regS==null || (t>=regS-86400 && t<=(regE||0)-86400))) prev=v;
+          continue;
+        }
+        if(regS!=null && t<regS){ if(v!=null) lastPre=v; continue; }    // dnešní pre-market
+        if(regE!=null && t>=regE){ if(v!=null) lastPost=v; continue; }  // dnešní after-market
+        kts.push(t); kcl.push(v);
+      }
+      if(regE!=null && nowSec>=regE && lastPost!=null) EXT[tk]={state:"after", price:lastPost};
+      else if(regS!=null && nowSec<regS && lastPre!=null) EXT[tk]={state:"pre", price:lastPre};
+      else delete EXT[tk];
+      // bez dnešních svíček (trh zavřený / neobchodováno) -> použije se denní řada, ne stará seance
+      grids[tk] = kts.length ? {ts:kts, cl:kcl, prev} : null;
+    }catch(e){ grids[tk]=null; }
+  }));
+  // promítnout poslední intradenní ceny do denní série (sjednocení s dlaždicemi a pozicemi)
+  for(const tk of tickers){
+    const g=grids[tk]; if(!g) continue;
+    let lastPx=null;
+    for(let j=g.cl.length-1;j>=0;j--){ if(g.cl[j]!=null){ lastPx=g.cl[j]; break; } }
+    const d=DAILY[tk]; if(!d || !d.dates.length) continue;
+    // (grid je u crypto už převedený na CZK při stavbě, takže zde žádný další převod)
+    // včerejší závěr z intradenního API (chartPreviousClose) je autoritativní —
+    // denní řada z Yahoo bývá po víkendu o den pozadu, proto ji srovnáme
+    if(g.prev!=null){
+      const li=d.dates[d.dates.length-1]===today ? d.dates.length-2 : d.dates.length-1;
+      if(li>=0) d.closes[li]=g.prev;
+    }
+    if(lastPx==null) continue;
+    if(d.dates[d.dates.length-1]===today) d.closes[d.closes.length-1]=lastPx;
+    else { d.dates.push(today); d.closes.push(lastPx); }
+  }
+  SERIES={}; // přepočítat série s čerstvými cenami
+  const allTs=new Set();
+  for(const tk of tickers){ if(grids[tk]) grids[tk].ts.forEach(t=>allTs.add(t)); }
+  const tsArr=[...allTs].sort((a,b)=>a-b);
+  if(!tsArr.length) return [];
+  const qtyMap={}, fxMap={};
+  for(const p of positions){ qtyMap[p.ticker]=(qtyMap[p.ticker]||0)+p.qty; fxMap[p.ticker]=fxAt(p.currency,today)||0; }
+  const lastIdx={}, points=[];
+  for(const t of tsArr){
+    let v=0;
+    for(const tk of tickers){
+      const g=grids[tk]; const q=qtyMap[tk]*fxMap[tk];
+      if(!g){ const p=priceAt(tk,today); if(p!=null) v+=q*p; continue; }
+      let i=lastIdx[tk]==null?-1:lastIdx[tk];
+      while(i+1<g.ts.length && g.ts[i+1]<=t) i++;
+      lastIdx[tk]=i;
+      let price=null;
+      for(let j=i;j>=0;j--){ if(g.cl[j]!=null){ price=g.cl[j]; break; } }
+      if(price==null) price=g.prev!=null?g.prev:priceAt(tk,yest);
+      if(price!=null) v+=q*price;
+    }
+    points.push({t, v});
+  }
+  // referenční hodnota = „základ dne" každé pozice:
+  //  - kusy držené od včera: včerejší závěr × včerejší kurz
+  //  - kusy koupené dnes: skutečná nákupní cena (jinak by se dnešní nákup počítal jako zisk/ztráta)
+  const today2=todayStr();
+  const boughtToday={};
+  for(const t of txFor(prov)){
+    if(t.type!=="BUY" || t.date!==today2) continue;
+    const fx=fxAt(txCurrency(t),today2)||0;
+    const cash=(t.total!=null?t.total:(t.quantity*(t.price||0)))*fx;
+    const b=boughtToday[t.ticker]||(boughtToday[t.ticker]={qty:0, cost:0});
+    b.qty+=t.quantity; b.cost+=cash;
+  }
+  let ref=0;
+  for(const p of positions){
+    const bt=boughtToday[p.ticker];
+    // graf přepočítává celý den DNEŠNÍM kurzem (fxMap výše), proto i ref musí použít dnešní kurz,
+    // jinak by se zisk dnes rozcházel s grafem o pohyb měny mezi včerem a dneškem
+    const fxT=fxAt(p.currency,today)||0;
+    const g=grids[p.ticker];
+    const prev = (g && g.prev!=null) ? g.prev : priceAt(p.ticker,yest);
+    if(bt && bt.qty>0){
+      const avgBuy = bt.cost/bt.qty;
+      const todayQty=Math.min(p.qty, bt.qty);
+      const heldQty=Math.max(0, p.qty - bt.qty);
+      ref += heldQty*(prev!=null?prev*fxT:0) + todayQty*avgBuy;
+    } else if(prev!=null){
+      ref += p.qty*prev*fxT;
+    }
+  }
+  INTRA={prov, t:Date.now(), points, ref, grids};
+  return points;
+}
+
+/* ================= RENDER ================= */
+const PERIOD_DAYS = {"1D":1, "1T":7, "1M":31, "6M":183, "1R":366, "MAX":null};
+const PERIOD_LBL = {"1D":"zisk dnes", "1T":"zisk za poslední týden", "1M":"zisk za poslední měsíc", "6M":"zisk za posledních 6 měsíců", "YTD":"zisk od začátku roku", "1R":"zisk za poslední rok", "MAX":"zisk za celou dobu"};
+function ytdDays(){ return Math.max(1, Math.floor((new Date(todayStr()) - new Date(todayStr().slice(0,4)+"-01-01"))/864e5)); }
+function periodDays(p){ return p==="YTD" ? ytdDays() : PERIOD_DAYS[p]; }
+let chartMode = "value"; // value | profit
+const PROV_SHORT = {XTB:"XTB", REVOLUT:"REV", CONSEQ:"CSQ", DEGIRO:"DGR", IBKR:"IBKR", TRADING212:"T212", REVOLUT_CRYPTO:"CRYPTO", FREEDOM24:"F24"};
+const PROV_NAME = {XTB:"XTB", REVOLUT:"Revolut", CONSEQ:"Conseq", DEGIRO:"Degiro", IBKR:"IBKR", TRADING212:"Trading 212", REVOLUT_CRYPTO:"Revolut crypto", FREEDOM24:"Freedom 24"};
+const CUR_SYM = {USD:"$", EUR:"€", GBP:"£", CZK:"Kč", JPY:"¥", CHF:"CHF", DKK:"kr", SEK:"kr", NOK:"kr", PLN:"zł", CAD:"C$", AUD:"A$", HKD:"HK$"};
+const fmtCur = (n,cur) => PRIVATE ? MASK : (n==null ? "—" : fmtNum(n)+"\u00A0"+(CUR_SYM[cur]||cur||""));
+const PALETTE = ["#6E9BFF","#34D399","#A78BFA","#2DD4BF","#F59E0B","#F87171","#F472B6","#93C5FD","#FCD34D","#86EFAC","#C4B5FD","#5EEAD4"];
+
+function series(prov){ return SERIES[prov] || (SERIES[prov]=computeSeries(prov)); }
+
+function render(){
+  const s = series(curProv);
+  const n = s.value.length;
+  const val = n ? s.value[n-1] : 0;
+  $("#heroValue").textContent = fmtKc(val);
+  renderHeroExt(val);
+  $("#heroPeriodLbl").textContent = PERIOD_LBL[curPeriod];
+  renderCards(s);
+  renderDivLine();
+  if(curPeriod==="1D") renderIntraday();
+  else {
+    const ch = periodChange(s, periodDays(curPeriod));
+    setHeroChange(ch);
+    drawDailyChart(s, ch ? ch.fromIdx : 0);
+    $("#chartNote").textContent="";
+  }
+  renderView();
+}
+/* Souhrnný pre/after-market pohyb celého portfolia: sečte rozdíly mimoburzovních
+   cen proti poslednímu závěru u všech držených pozic. Zobrazí se jen když data jsou. */
+function extPortfolio(prov){
+  const pos=computePositions(prov);
+  const today=todayStr();
+  let delta=0, base=0, pre=0, post=0;
+  for(const p of pos){
+    const e=EXT[p.ticker];
+    if(!e || !(p.price>0) || p.valCzk==null) continue;
+    const fx=fxAt(p.currency||"USD", today)||0;
+    delta += p.qty*(e.price-p.price)*fx;
+    base  += p.valCzk;
+    if(e.state==="pre") pre++; else post++;
+  }
+  if(!base || Math.abs(delta)<0.5) return null;
+  return {state: pre>=post?"pre":"after", delta, pct: delta/base*100, count: pre+post};
+}
+function renderHeroExt(val){
+  const el=$("#heroExt"); if(!el) return;
+  const e=extPortfolio(curProv);
+  if(!e){ el.innerHTML=""; return; }
+  const lbl=e.state==="pre"?"pre-market":"after-market";
+  el.innerHTML=`<span style="color:var(--faint)">${lbl}</span> `+
+    `<b class="num ${cls(e.delta)}">${fmtKc(val+e.delta)}</b> `+
+    `<span class="num ${cls(e.delta)}">${fmtSign(e.delta)} (${fmtPct(e.pct)})</span>`;
+  el.title=`Odhad hodnoty portfolia podle ${lbl} cen (${e.count} ${e.count===1?"titul":"titulů"} s daty) — mimo řádné obchodní hodiny.`;
+}
+function setHeroChange(ch){
+  const el=$("#heroChange");
+  if(!ch){ el.textContent="—"; el.className="num flat"; return; }
+  el.textContent = ch.pct==null ? fmtSign(ch.abs) : `${fmtSign(ch.abs)} (${fmtPct(ch.pct)})`;
+  el.className = "num "+cls(ch.abs);
+}
+function renderCards(s){
+  const total = s.value.length ? s.value[s.value.length-1] : 0;
+  const inv = s.invested.length ? s.invested[s.invested.length-1] : 0;
+  // „Dnes (od včera)" = stejný výpočet jako zisk nad grafem: od předchozího závěru
+  // (chartPreviousClose) dnešním kurzem, vč. overnight gapu/pre-marketu. Když intradenní
+  // data nejsou k dispozici, padáme zpět na denní změnu.
+  let dnesCh=null;
+  if(INTRA && INTRA.prov===curProv && INTRA.points && INTRA.points.length && INTRA.ref>0){
+    const last=INTRA.points[INTRA.points.length-1].v;
+    const abs=last-INTRA.ref;
+    dnesCh={abs, pct: abs/INTRA.ref*100};
+  } else {
+    dnesCh=periodChange(s,1);
+  }
+  const defs = [["Týden",7],["Měsíc",31],["Od začátku roku",ytdDays()],["Rok",366]];
+  let html = `<div class="card"><div class="lbl">Dnes (od včera)</div>
+      <div class="val num ${dnesCh?cls(dnesCh.abs):"flat"}">${dnesCh?fmtPct(dnesCh.pct):"—"}</div>
+      <div class="abs num">${dnesCh?fmtSign(dnesCh.abs):""}</div></div>`;
+  html += defs.map(([lbl,d])=>{
+    const ch = periodChange(s,d);
+    return `<div class="card"><div class="lbl">${lbl}</div>
+      <div class="val num ${ch?cls(ch.abs):"flat"}">${ch?fmtPct(ch.pct):"—"}</div>
+      <div class="abs num">${ch?fmtSign(ch.abs):""}</div></div>`;
+  }).join("");
+  const pl = total-inv, plPct = inv>0 ? (total/inv-1)*100 : null;
+  html += `<div class="card"><div class="lbl">Celkem P/L</div>
+    <div class="val num ${cls(pl)}">${fmtPct(plPct)}</div>
+    <div class="abs num">${fmtSign(pl)} · vloženo ${fmtKc(inv)}</div></div>`;
+  $("#cards").innerHTML = html;
+}
+function renderDivLine(){
+  const d = dividendSummary(curProv);
+  $("#divLine").innerHTML = d.total>0.5
+    ? `Dividendy: <b class="num">${fmtKc(d.thisYear)}</b> letos · <b class="num">${fmtKc(d.total)}</b> celkem`
+    : "";
+}
+
+/* ---- denní graf ---- */
+function drawDailyChart(s, fromIdx){
+  const start = Math.max(fromIdx, firstNonZero(s.value));
+  const labels = CAL.slice(start);
+  const fmt = d=>{ const dt=new Date(d+"T12:00:00"); return dt.getDate()+". "+(dt.getMonth()+1)+"."; };
+  const fmtTip = d=>{ const dt=new Date(d+"T12:00:00"); return dt.getDate()+". "+(dt.getMonth()+1)+". "+dt.getFullYear(); };
+  if(chartMode==="profit"){
+    const profit = s.value.slice(start).map((v,k)=>v - s.invested[start+k]);
+    drawChart($("#chart"), labels, profit, {fmtX:fmt, fmtTip, refLine:0, isProfit:true});
+  } else {
+    drawChart($("#chart"), labels, s.value.slice(start), {invested:s.invested.slice(start), fmtX:fmt, fmtTip});
+  }
+}
+async function renderIntraday(silent){
+  if(!silent) $("#chartNote").innerHTML = '<span class="spin"></span> načítám dnešní průběh…';
+  try{
+    const pts = await buildIntraday(curProv);
+    // EXT (pre/after-market) se plní až tady — obnovíme tabulku pozic i údaj u hlavní hodnoty
+    const av=$$("#viewNav button").find(b=>b.classList.contains("active"));
+    if(av && av.dataset.v==="pozice") renderPositions();
+    { const sX=series(curProv); renderHeroExt(sX.value.length?sX.value[sX.value.length-1]:0); }
+    if(curPeriod!=="1D") return;
+    if(!pts.length){ $("#chartNote").textContent="Dnešní intradenní data nejsou k dispozici."; return; }
+    const ref = INTRA.ref || pts[0].v;
+    const last = pts[pts.length-1].v;
+    // ref už zahrnuje dnešní nákupy v nákupní ceně a vylučuje dnes uzavřené pozice,
+    // takže zisk dnes = aktuální hodnota − základ dne (žádné separátní invDelta)
+    const profitAbs = last - ref;
+    setHeroChange({abs:profitAbs, pct: ref>0 ? profitAbs/ref*100 : null});
+    const fmtT = t=>{ const d=new Date(t*1000); return d.getHours()+":"+String(d.getMinutes()).padStart(2,"0"); };
+    if(chartMode==="profit") drawChart($("#chart"), pts.map(p=>p.t), pts.map(p=>p.v-ref), {fmtX:fmtT, refLine:0, isProfit:true});
+    else drawChart($("#chart"), pts.map(p=>p.t), pts.map(p=>p.v), {fmtX:fmtT, refLine:ref});
+    $("#chartNote").textContent="";
+    const s2=series(curProv);
+    const v2=s2.value.length?s2.value[s2.value.length-1]:0;
+    $("#heroValue").textContent=fmtKc(v2);
+    renderHeroExt(v2);
+    // přepočítat i horní "zisk dnes" z čerstvých cen (po minutové aktualizaci)
+    setHeroChange({abs:profitAbs, pct: ref>0 ? profitAbs/ref*100 : null});
+    renderCards(s2);
+    const vb=$$("#viewNav button").find(b=>b.classList.contains("active"));
+    if(vb && vb.dataset.v==="pozice") renderPositions(); // doplnit pre/after ceny
+  }catch(e){ $("#chartNote").textContent="Intradenní data se nepodařilo načíst ("+e.message+")."; }
+}
+
+/* ---- obecné kreslení čárového grafu ---- */
+function drawChart(el, labels, value, o){
+  o=o||{};
+  const invested=o.invested||null, fmtX=o.fmtX||(x=>String(x)), refLine=o.refLine, isProfit=o.isProfit;
+  const fmtV=o.fmtV||fmtKc;
+  const defAxis = v => {
+    if(PRIVATE) return MASK;
+    const a=Math.abs(v), s=v<0?"−":"";
+    if(a>=1e6) return s+(a/1e6).toLocaleString("cs-CZ",{maximumFractionDigits:2})+" mil.";
+    if(a>=1e4) return s+Math.round(a/1e3).toLocaleString("cs-CZ")+" tis.";
+    return s+Math.round(a).toLocaleString("cs-CZ")+" Kč";
+  };
+  const fmtAxis = PRIVATE ? (()=>MASK) : (o.fmtAxis||defAxis);
+  el.style.position="relative";
+  const W=el.clientWidth||680, H=o.height||230, pL=6, pR=6, pT=14, pB=20;
+  if(value.length<2){ el.innerHTML='<div class="chart-note" style="padding-top:80px">Málo dat pro graf.</div>'; return; }
+  let lo=Infinity, hi=-Infinity;
+  for(const v of value){ if(v<lo)lo=v; if(v>hi)hi=v; }
+  if(invested) for(const v of invested){ if(v<lo)lo=v; if(v>hi)hi=v; }
+  if(refLine!=null){ if(refLine<lo)lo=refLine; if(refLine>hi)hi=refLine; }
+  if(o.markers) for(const m of o.markers){ if(m.v<lo)lo=m.v; if(m.v>hi)hi=m.v; }
+  if(hi-lo<1e-9){ hi+=1; lo-=1; }
+  const lo0=lo;
+  // Když je rozptyl titěrný vůči absolutní hodnotě (téměř plochý den),
+  // přidej vzduch vztažený k hodnotě, ať drobné pohyby nevypadají jako velké schody.
+  const mid=(hi+lo)/2;
+  const minSpan=Math.abs(mid)*0.012;           // ~1,2 % hodnoty jako minimální výška grafu
+  if(mid!==0 && (hi-lo)<minSpan){
+    const half=minSpan/2;
+    lo=mid-half; hi=mid+half;
+  }
+  const pad=(hi-lo)*0.08; lo-=pad; hi+=pad;
+  if(lo0>=0 && lo<0) lo=0;
+  const X=i=>pL+(W-pL-pR)*i/(value.length-1);
+  const Y=v=>pT+(H-pT-pB)*(1-(v-lo)/(hi-lo));
+  const path=a=>a.map((v,i)=>(i?"L":"M")+X(i).toFixed(1)+","+Y(v).toFixed(1)).join("");
+  const up = value[value.length-1] >= (refLine!=null?refLine:value[0]);
+  const col = o.color || (up ? "var(--green)" : "var(--red)");
+  let svg = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">`;
+  for(let g=0;g<4;g++){ const y=pT+(H-pT-pB)*g/3;
+    svg+=`<line x1="${pL}" y1="${y}" x2="${W-pR}" y2="${y}" stroke="var(--border)" stroke-width="1"/>`;
+    svg+=`<text x="${pL}" y="${y-4}" font-size="11" fill="var(--faint)" class="num">${fmtAxis(hi-(hi-lo)*g/3)}</text>`;
+  }
+  if(refLine!=null) svg+=`<line x1="${pL}" y1="${Y(refLine)}" x2="${W-pR}" y2="${Y(refLine)}" stroke="var(--faint)" stroke-width="1" stroke-dasharray="3,4"/>`;
+  svg+=`<path d="${path(value)} L${X(value.length-1)},${H-pB} L${X(0)},${H-pB} Z" fill="${col}" opacity="0.07"/>`;
+  if(invested) svg+=`<path d="${path(invested)}" fill="none" stroke="var(--inv)" stroke-width="1.5" stroke-dasharray="5,4" opacity="0.8"/>`;
+  svg+=`<path d="${path(value)}" fill="none" stroke="${col}" stroke-width="2"/>`;
+  if(o.markers) for(const m of o.markers)
+    svg+=`<circle cx="${X(m.i)}" cy="${Y(m.v)}" r="4" fill="${m.color}" stroke="var(--bg)" stroke-width="1.5"/>`;
+  svg+=`<circle cx="${X(value.length-1)}" cy="${Y(value[value.length-1])}" r="3.5" fill="${col}"/>`;
+  const nT = Math.max(2, Math.min(8, Math.round(W/110)));
+  let prevLbl=null;
+  for(let k=0;k<nT;k++){
+    const i = Math.round(k*(value.length-1)/(nT-1));
+    const lbl = fmtX(labels[i]);
+    if(lbl===prevLbl) continue; prevLbl=lbl;
+    const anchor = k===0?"start":k===nT-1?"end":"middle";
+    if(k>0&&k<nT-1) svg+=`<line x1="${X(i)}" y1="${H-pB}" x2="${X(i)}" y2="${H-pB+4}" stroke="var(--faint)" stroke-width="1"/>`;
+    svg+=`<text x="${X(i)}" y="${H-5}" font-size="11" fill="var(--faint)" text-anchor="${anchor}">${lbl}</text>`;
+  }
+  svg+=`<line class="chx-cur" x1="0" y1="${pT}" x2="0" y2="${H-pB}" stroke="var(--text)" stroke-width="1" opacity="0"/>`;
+  svg+=`</svg><div class="chx-tip" style="position:absolute; top:0; left:0; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:5px 9px; font-size:12px; pointer-events:none; display:none; white-space:nowrap; z-index:5"></div>`;
+  el.innerHTML=svg;
+  const svgEl=el.querySelector("svg"), tip=el.querySelector(".chx-tip"), curLine=el.querySelector(".chx-cur");
+  function move(clientX){
+    const r=svgEl.getBoundingClientRect();
+    const x=(clientX-r.left)/r.width*W;
+    let i=Math.round((x-pL)/(W-pL-pR)*(value.length-1));
+    i=Math.max(0,Math.min(value.length-1,i));
+    curLine.setAttribute("x1",X(i)); curLine.setAttribute("x2",X(i)); curLine.setAttribute("opacity","0.35");
+    tip.style.display="block";
+    let txt = isProfit
+      ? `<b class="num ${cls(value[i])}">${fmtSign(value[i])}</b>`
+      : `<b class="num">${fmtV(value[i])}</b>`;
+    txt += `<br><span style="color:var(--muted)">${(o.fmtTip||fmtX)(labels[i])}`;
+    if(invested){
+      const p = value[i]-invested[i];
+      txt += ` · vloženo ${fmtKc(invested[i])}</span><br><span class="num ${cls(p)}">zisk ${fmtSign(p)}</span>`;
+    } else txt += "</span>";
+    tip.innerHTML=txt;
+    const tw=tip.offsetWidth;
+    let px=X(i)/W*r.width - tw/2;
+    px=Math.max(0,Math.min(r.width-tw,px));
+    tip.style.left=px+"px"; tip.style.top="-2px";
+  }
+  function hide(){ tip.style.display="none"; curLine.setAttribute("opacity","0"); }
+  svgEl.addEventListener("mousemove",e=>move(e.clientX));
+  svgEl.addEventListener("mouseleave",hide);
+  svgEl.addEventListener("touchstart",e=>move(e.touches[0].clientX),{passive:true});
+  svgEl.addEventListener("touchmove",e=>move(e.touches[0].clientX),{passive:true});
+  svgEl.addEventListener("touchend",hide);
+
+  /* ---- měření mezi dvěma body (klik + klik) ---- */
+  const NS="http://www.w3.org/2000/svg";
+  let mSel=[], mEls=[], mBox=null;
+  const idxAt=clientX=>{
+    const r=svgEl.getBoundingClientRect();
+    const x=(clientX-r.left)/r.width*W;
+    let i=Math.round((x-pL)/(W-pL-pR)*(value.length-1));
+    return Math.max(0,Math.min(value.length-1,i));
+  };
+  function mClear(){ mEls.forEach(x=>x.remove()); mEls=[]; if(mBox){mBox.remove(); mBox=null;} mSel=[]; }
+  function mPin(i){
+    const c=document.createElementNS(NS,"circle");
+    c.setAttribute("cx",X(i)); c.setAttribute("cy",Y(value[i])); c.setAttribute("r","4.5");
+    c.setAttribute("fill","var(--text)"); c.setAttribute("stroke","var(--bg)"); c.setAttribute("stroke-width","1.5");
+    svgEl.appendChild(c); mEls.push(c);
+  }
+  function mShow(){
+    const a=Math.min(mSel[0],mSel[1]), b=Math.max(mSel[0],mSel[1]);
+    if(a===b){ mClear(); return; }
+    const ln=document.createElementNS(NS,"line");
+    ln.setAttribute("x1",X(a)); ln.setAttribute("y1",Y(value[a]));
+    ln.setAttribute("x2",X(b)); ln.setAttribute("y2",Y(value[b]));
+    ln.setAttribute("stroke","var(--text)"); ln.setAttribute("stroke-width","1");
+    ln.setAttribute("stroke-dasharray","4,4"); ln.setAttribute("opacity","0.5");
+    svgEl.appendChild(ln); mEls.push(ln);
+    const va=value[a], vb=value[b], d=vb-va;
+    const sgn=v=>(v>=0?"+":"−")+fmtV(Math.abs(v));
+    const pct = Math.abs(va)>1e-9 ? d/Math.abs(va)*100 : null;
+    let html=`<span style="color:var(--muted)">${(o.fmtTip||fmtX)(labels[a])} → ${(o.fmtTip||fmtX)(labels[b])}</span>`+
+      `<span data-mclose style="cursor:pointer; color:var(--faint); margin-left:8px">✕</span>`+
+      `<br><b class="num ${cls(d)}">${sgn(d)}${pct!=null?` (${fmtNum(pct,1)} %)`:""}</b>`;
+    if(invested){
+      const dInv=invested[b]-invested[a], net=d-dInv;
+      html+=`<br><span style="color:var(--muted)">vklady ${sgn(dInv)}</span> · <span class="num ${cls(net)}">zisk ${sgn(net)}</span>`;
+    }
+    mBox=document.createElement("div");
+    mBox.style.cssText="position:absolute; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:6px 10px; font-size:12px; white-space:nowrap; z-index:6;";
+    mBox.innerHTML=html;
+    el.appendChild(mBox);
+    const r=svgEl.getBoundingClientRect();
+    const midPx=(X(a)+X(b))/2/W*r.width - mBox.offsetWidth/2;
+    mBox.style.left=Math.max(0,Math.min(r.width-mBox.offsetWidth,midPx))+"px";
+    mBox.style.top="-2px";
+    mBox.querySelector("[data-mclose]").addEventListener("click",e=>{ e.stopPropagation(); mClear(); });
+  }
+  svgEl.addEventListener("click",e=>{
+    const i=idxAt(e.clientX);
+    if(mSel.length>=2) mClear();
+    mSel.push(i); mPin(i);
+    if(mSel.length===2) mShow();
+  });
+}
+
+/* ---- pohledy ---- */
+function renderView(){
+  const v=$$("#viewNav button").find(b=>b.classList.contains("active")).dataset.v;
+  $$("#content section").forEach(s=>s.style.display="none");
+  $("#v-"+v).style.display="block";
+  if(v==="pozice") renderPositions();
+  else if(v==="obchody") renderRealized();
+  else if(v==="alokace") renderAlloc();
+  else if(v==="transakce") renderTxTable();
+  else if(v==="watchlist") renderWatchlist();
+  else if(v==="nastaveni"){ renderTickerMap(); renderCash(); renderCryptoReal(); renderProvOrder(); fillTaxYears(); }
+}
+let posSort = {key:"valCzk", dir:-1};
+const POS_COLS = [["ticker","Titul",""],["qty","Ks","r"],["avg","Prům. nákup. cena","r hide-m"],
+  ["price","Aktuální cena","r hide-m"],["valCzk","Hodnota","r"],["day","Dnes","r"],["pl","P/L","r"]];
+/* mimoburzovní pohyb v % vůči poslednímu závěru, barevně */
+function extPct(p){
+  const e=EXT[p.ticker];
+  if(!e || p.price==null || !(p.price>0)) return "";
+  const pct=(e.price/p.price-1)*100;
+  return `<div class="sub num ${cls(pct)}" title="${e.state==="pre"?"pre-market":"after-market"} pohyb vůči poslednímu závěru">${e.state==="pre"?"pre":"after"} ${fmtPct(pct)}</div>`;
+}
+function dispName(p){
+  if(p.provider!=="CONSEQ" || !p.raw) return p.ticker;
+  return p.raw.length>24 ? p.raw.slice(0,23)+"…" : p.raw;
+}
+// Logo titulu: zkusí CDN (podle základního symbolu bez přípony burzy),
+// při chybě se plynule ukáže barevné kolečko s iniciálami (barva z hashe tickeru).
+function logoHtml(ticker, variant){
+  const base=String(ticker||"").toUpperCase().replace(/\.[A-Z]+$/,"").replace(/-USD$/,"");
+  if(!base) return "";
+  let h=0; for(let i=0;i<base.length;i++) h=(h*31+base.charCodeAt(i))>>>0;
+  const hue=h%360;
+  const ini=escapeHtml(base.slice(0,2));
+  const sz = variant==="lg" ? "&size=80" : variant==="row" ? "&size=80" : "&size=40";
+  const cls2 = variant ? " "+variant : "";
+  const url=`https://assets.parqet.com/logos/symbol/${encodeURIComponent(base)}?format=png${sz}`;
+  return `<img class="tlogo${cls2}" src="${url}" alt="" loading="lazy"
+    onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='inline-block'"
+    ><span class="tlogo-fb${cls2}" style="background:hsl(${hue},45%,42%)">${ini}</span>`;
+}
+function renderPositions(){
+  const pos=computePositions(curProv);
+  if(!pos.length){ $("#posTable").innerHTML="<tr><td style='color:var(--muted); border:none'>Žádné otevřené pozice.</td></tr>"; return; }
+  const {key,dir}=posSort;
+  pos.sort((a,b)=>{
+    if(key==="ticker") return dir*String(a.ticker).localeCompare(String(b.ticker),"cs");
+    const va=a[key]==null?-Infinity:a[key], vb=b[key]==null?-Infinity:b[key];
+    return dir*(va-vb);
+  });
+  let h="<tr>"+POS_COLS.map(([k,lbl,c])=>{
+    const active=posSort.key===k;
+    return `<th class="${c} sortable${active?" sorted":""}" data-sort="${k}">${lbl}${active?(dir===1?" ↑":" ↓"):""}</th>`;
+  }).join("")+"</tr>";
+  for(const p of pos){
+    const badge = (curProv==="ALL"||curProv.includes("+")) ? `<span class="badge ${p.provider}">${PROV_SHORT[p.provider]}</span>` : "";
+    h+=`<tr>
+      <td><div class="trow">${logoHtml(p.ticker,"row")}<div class="tcol"><span class="tick clickable" data-ht="${escapeHtml(p.ticker)}" data-hp="${p.provider}" title="${escapeHtml(p.raw||p.ticker)} — zobrazit transakce">${escapeHtml(dispName(p))}</span>${badge}<div class="sub">${p.currency}</div></div></div></td>
+      <td class="r num">${fmtNum(p.qty,4)}</td>
+      <td class="r num hide-m">${fmtCur(p.avg, p.currency)}</td>
+      <td class="r num hide-m">${fmtCur(p.price, p.currency)}</td>
+      <td class="r num">${fmtKc(p.valCzk)}</td>
+      <td class="r num ${p.day!=null?cls(p.day):"flat"}">${fmtPct(p.day)}${extPct(p)}</td>
+      <td class="r num ${p.pl!=null?cls(p.pl):"flat"}">${fmtPct(p.pl)}</td></tr>`;
+  }
+  // hotovost jako poslední řádek (není to pozice, proto stojí mimo computePositions)
+  const cashCzk=cashNow(curProv);
+  if(Math.abs(cashCzk)>0.5){
+    h+=`<tr><td><div class="trow">
+        <span class="tlogo-fb row" style="display:inline-block; background:var(--surface2); color:var(--muted); font-size:12px">Kč</span>
+        <div class="tcol"><span class="tick">Hotovost</span><div class="sub">volné peníze</div></div></div></td>
+      <td class="r num">—</td>
+      <td class="r num hide-m">—</td>
+      <td class="r num hide-m">—</td>
+      <td class="r num">${fmtKc(cashCzk)}</td>
+      <td class="r num flat">—</td>
+      <td class="r num flat">—</td></tr>`;
+  }
+  $("#posTable").innerHTML=h;
+}
+const SECTOR_CZ = {
+  "Technology":"Technologie", "Financial Services":"Finanční služby", "Healthcare":"Zdravotnictví",
+  "Consumer Cyclical":"Spotřební cyklické", "Consumer Defensive":"Spotřební necyklické",
+  "Industrials":"Průmysl", "Energy":"Energetika", "Utilities":"Utility", "Basic Materials":"Materiály",
+  "Communication Services":"Komunikační služby", "Real Estate":"Nemovitosti"
+};
+async function loadSector(tk){
+  const c = lsGet("sec:"+tk, 7*864e5);
+  if(c!==undefined && c!==null){ SECTORS[tk] = c==="~none" ? null : c; return; }
+  let val=null;
+  try{
+    const u=`${CONFIG.PROXY_URL}?mode=search&q=${encodeURIComponent(tk)}`;
+    const r=await fetch(u,{headers:{Authorization:`Bearer ${CONFIG.SUPABASE_ANON_KEY}`}});
+    const j=await r.json();
+    const qs=j.quotes||[];
+    const q=qs.find(x=>(x.symbol||"").toUpperCase()===tk.toUpperCase()) || qs[0];
+    if(q){
+      if(q.quoteType==="ETF") val="ETF";
+      else if(q.quoteType==="MUTUALFUND") val="Fond";
+      else val=q.sectorDisp||q.sector||null;
+    }
+  }catch(e){}
+  SECTORS[tk]=val; lsSet("sec:"+tk, val==null?"~none":val);
+}
+function sectorLabel(p){
+  const s=SECTORS[p.ticker];
+  if(s==="ETF") return "ETF";
+  if(s==="Fond") return "Fondy";
+  if(s) return SECTOR_CZ[s]||s;
+  return p.provider==="CONSEQ" ? "Fondy" : "Ostatní";
+}
+/* Země titulu: sídlo firmy u známých ADR, jinak země burzy dle přípony; krypto zvlášť */
+const COUNTRY_OVERRIDES = {
+  BABA:"Čína", PDD:"Čína", ZEPP:"Čína", TSM:"Tchaj-wan", NU:"Brazílie", MELI:"Argentina",
+  GRAB:"Singapur", NVO:"Dánsko", PILBF:"Česko", ASML:"Nizozemsko", "ASML.AS":"Nizozemsko",
+  SE:"Singapur", SHOP:"Kanada", SPOT:"Švédsko", ARM:"Velká Británie"
+};
+const SUFFIX_COUNTRY = {DE:"Německo", F:"Německo", L:"Velká Británie", AS:"Nizozemsko", PA:"Francie",
+  MI:"Itálie", MC:"Španělsko", PR:"Česko", SW:"Švýcarsko", CO:"Dánsko", ST:"Švédsko", OL:"Norsko",
+  HE:"Finsko", VI:"Rakousko", TO:"Kanada", WA:"Polsko", BD:"Maďarsko", LS:"Portugalsko", BR:"Belgie",
+  IR:"Irsko", AT:"Řecko"};
+const ISIN_COUNTRY = {IE:"Irsko", LU:"Lucembursko", CZ:"Česko", US:"Spojené státy", DE:"Německo",
+  FR:"Francie", NL:"Nizozemsko", GB:"Velká Británie", CH:"Švýcarsko", DK:"Dánsko", AT:"Rakousko"};
+function countryLabel(p){
+  const tk=p.ticker;
+  if((META[tk]&&META[tk].crypto) || CRYPTO_TICKERS.has(tk) || /-USD$/.test(tk)) return "Kryptoměny";
+  if(COUNTRY_OVERRIDES[tk]) return COUNTRY_OVERRIDES[tk];
+  const base=tk.replace(/\.[A-Z]+$/,"");
+  if(COUNTRY_OVERRIDES[base]) return COUNTRY_OVERRIDES[base];
+  // Conseq: ticker tvaru ISIN.SG -> země z ISIN prefixu (domicil fondu)
+  const isin=tk.match(/^([A-Z]{2})[A-Z0-9]{10}\.SG$/);
+  if(isin) return ISIN_COUNTRY[isin[1]] || isin[1];
+  const m=tk.match(/\.([A-Z]+)$/);
+  if(m) return SUFFIX_COUNTRY[m[1]] || ("Burza ."+m[1]);
+  return "Spojené státy";
+}
+function renderAlloc(){
+  const pos=computePositions(curProv);
+  if(curAlloc==="sector"){ renderSectorAlloc(pos); return; }
+  const groups={}, detail={};
+  for(const p of pos){
+    const k = curAlloc==="ticker"?dispName(p) : curAlloc==="currency"?p.currency : curAlloc==="country"?countryLabel(p) : PROV_NAME[p.provider];
+    groups[k]=(groups[k]||0)+(p.valCzk||0);
+    (detail[k]=detail[k]||[]).push({tk:p.ticker, name:dispName(p), prov:p.provider, val:p.valCzk||0});
+  }
+  const cashA=cashNow(curProv);
+  if(Math.abs(cashA)>0.5) groups[curAlloc==="currency"?"CZK (hotovost)":"Hotovost"]=(groups[curAlloc==="currency"?"CZK (hotovost)":"Hotovost"]||0)+cashA;
+  drawAlloc(groups, curAlloc==="ticker"||curAlloc==="country", detail);
+}
+async function renderSectorAlloc(pos){
+  const need=[...new Set(pos.filter(p=>SECTORS[p.ticker]===undefined && !p.ticker.startsWith("!")).map(p=>p.ticker))];
+  if(need.length){
+    $("#donut").innerHTML=""; $("#allocLegend").innerHTML='<div style="padding:24px 0"><span class="spin"></span>&ensp;Zjišťuji sektory…</div>';
+    await Promise.all(need.map(loadSector));
+    if(curAlloc!=="sector") return; // mezitím přepnuto jinam
+  }
+  const groups={}, detail={};
+  for(const p of pos) {
+    const k=sectorLabel(p);
+    groups[k]=(groups[k]||0)+(p.valCzk||0);
+    (detail[k]=detail[k]||[]).push({tk:p.ticker, name:dispName(p), prov:p.provider, val:p.valCzk||0});
+  }
+  const cashS=cashNow(curProv);
+  if(Math.abs(cashS)>0.5) groups["Hotovost"]=(groups["Hotovost"]||0)+cashS;
+  drawAlloc(groups, true, detail);
+}
+let ALLOC_STATE={items:[], total:1, detail:{}, open:null};
+function drawAlloc(groups, mergeSmall, detail){
+  detail=detail||{};
+  let items=Object.entries(groups).sort((a,b)=>b[1]-a[1]);
+  const total=items.reduce((s,[,v])=>s+v,0)||1;
+  if(mergeSmall && items.length>9){
+    const restKeys=items.slice(8).map(([k])=>k);
+    const rest=items.slice(8).reduce((s,[,v])=>s+v,0);
+    items=items.slice(0,8); items.push(["Ostatní",rest]);
+    detail["Ostatní"]=restKeys.flatMap(k=>detail[k]||[]);
+  }
+  // donut
+  const cx=95, cy=95, R=80, r=52; let a0=-Math.PI/2, svg="";
+  items.forEach(([k,v],i)=>{
+    const a1=a0+v/total*2*Math.PI;
+    const big=(a1-a0)>Math.PI?1:0;
+    const p=(a,rad)=>`${cx+rad*Math.cos(a)},${cy+rad*Math.sin(a)}`;
+    if(v>0) svg+=`<path d="M${p(a0,R)} A${R},${R} 0 ${big} 1 ${p(a1,R)} L${p(a1,r)} A${r},${r} 0 ${big} 0 ${p(a0,r)} Z" fill="${PALETTE[i%PALETTE.length]}" stroke="var(--bg)" stroke-width="2"/>`;
+    a0=a1;
+  });
+  svg+=`<text x="${cx}" y="${cy-4}" text-anchor="middle" font-size="12" fill="var(--muted)">celkem</text>
+        <text x="${cx}" y="${cy+15}" text-anchor="middle" font-size="14" font-weight="600" fill="var(--text)" class="num">${fmtKc(total)}</text>`;
+  $("#donut").innerHTML=svg;
+  ALLOC_STATE={items, total, detail, open:null};
+  redrawAllocLegend();
+}
+function redrawAllocLegend(){
+  const {items, total, detail, open}=ALLOC_STATE;
+  $("#allocLegend").innerHTML=items.map(([k,v],i)=>{
+    const has=(detail[k]||[]).length>0;
+    let row=`<div class="alloc-row${has?" clickable":""}"${has?` data-ag="${escapeHtml(k)}" title="Klik zobrazí tituly ve skupině"`:""}>
+      <span class="dot" style="background:${PALETTE[i%PALETTE.length]}"></span>
+      <span>${escapeHtml(k)}${has?` <span style="color:var(--faint); font-size:11px">(${detail[k].length})</span>`:""}</span>
+      <span class="pct num">${fmtKc(v)} · ${fmtNum(v/total*100,1)} %</span></div>`;
+    if(open===k && has){
+      const rows=detail[k].slice().sort((a,b)=>b.val-a.val).map(d=>
+        `<div class="alloc-row" style="padding-left:26px; font-size:12.5px; color:var(--muted)">
+          <span style="display:flex; align-items:center; gap:0">${logoHtml(d.tk)}${escapeHtml(d.name)}<span class="badge ${d.prov}" style="margin-left:6px">${PROV_SHORT[d.prov]}</span></span>
+          <span class="pct num">${fmtKc(d.val)} · ${fmtNum(v>0?d.val/v*100:0,1)} %</span></div>`).join("");
+      row+=rows;
+    }
+    return row;
+  }).join("");
+}
+function renderTxTable(){
+  const txs=[...txFor(curProv)].sort((a,b)=>b.date.localeCompare(a.date));
+  if(!txs.length){ $("#txTable").innerHTML="<tr><td style='color:var(--muted); border:none'>Žádné transakce.</td></tr>"; return; }
+  const TYPE={BUY:["Nákup","up"],SELL:["Prodej","down"],DIVIDEND:["Dividenda",""]};
+  let h=`<tr><th>Datum</th><th>Typ</th><th>Titul</th><th class="r">Ks</th><th class="r hide-m">Cena</th><th class="r">Částka</th><th></th></tr>`;
+  for(const t of txs){
+    const [lbl,c]=TYPE[t.type];
+    const cur=txCurrency(t);
+    h+=`<tr>
+      <td class="num">${t.date.split("-").reverse().join(". ")}</td>
+      <td class="${c}">${lbl}<span class="badge ${t.provider}">${PROV_SHORT[t.provider]}</span></td>
+      <td class="tick">${escapeHtml(t.ticker)}</td>
+      <td class="r num">${t.quantity?fmtNum(t.quantity,4):"—"}</td>
+      <td class="r num hide-m">${t.price!=null?fmtNum(t.price):"—"}</td>
+      <td class="r num">${t.total!=null?fmtNum(t.total)+" "+cur:"—"}</td>
+      <td class="r"><button class="del" data-del="${t.id}" title="Smazat">×</button></td></tr>`;
+  }
+  $("#txTable").innerHTML=h;
+}
+function fillTaxYears(){
+  const sel=$("#taxYear"); const ys=taxYears();
+  if(!ys.length){ sel.innerHTML="<option>—</option>"; return; }
+  const prefer=String(new Date().getFullYear()-1);
+  sel.innerHTML=ys.map(y=>`<option value="${y}"${y===prefer||(!ys.includes(prefer)&&y===ys[0])?" selected":""}>${y}</option>`).join("");
+}
+/* ================= WATCHLIST ================= */
+function targetHit(w, px){
+  if(w.target==null || px==null) return false;
+  return (w.added_price!=null && w.target < w.added_price) ? px<=w.target : px>=w.target;
+}
+// +1 = čekáme na růst k cíli, -1 = cíl je pod nákupem (čekáme na propad)
+function targetDir(w){ return (w.added_price!=null && w.target!=null && w.target < w.added_price) ? -1 : 1; }
+
+/* Dnešní intradenní ceny titulů z watchlistu (5m svíčky vč. pre/after-marketu).
+   Drží se odděleně od DAILY — u crypto je DAILY přepočtené na CZK kvůli pozicím,
+   kdežto watchlist (cena i cíl) pracuje v měně titulu. */
+async function loadWatchIntraday(tickers){
+  const dayStart=(()=>{ const n=new Date(); return new Date(n.getFullYear(),n.getMonth(),n.getDate()).getTime()/1000; })();
+  const nowSec=Date.now()/1000;
+  await Promise.all([...new Set(tickers)].map(async tk=>{
+    if(!tk || tk.startsWith("!")) return;
+    const key=`wpx:${tk}`;
+    const c=lsGet(key, WPX_TTL);
+    if(c){ WPX[tk]=c; return; }
+    try{
+      const res=await fetchChart(tk, "1d", "5m", true);
+      const c0=res.meta.currency;
+      const div=(c0==="GBp"||c0==="GBX"||c0==="ZAc") ? 100 : 1;
+      const q=res.indicators.quote[0]||{};
+      const ts=res.timestamp||[], cl=q.close||[], hiA=q.high||[], loA=q.low||[];
+      let px=null, hi=null, lo=null;
+      for(let i=0;i<ts.length;i++){
+        if(ts[i]<dayStart) continue;                       // včerejší svíčky nezajímají
+        const v = cl[i]==null ? null : cl[i]/div;
+        if(v==null) continue;
+        px=v;                                              // poslední známá dnešní cena (vč. pre/after)
+        const h = hiA[i]!=null ? hiA[i]/div : v;
+        const l = loA[i]!=null ? loA[i]/div : v;
+        hi = hi==null ? h : Math.max(hi,h);
+        lo = lo==null ? l : Math.min(lo,l);
+      }
+      if(px==null){                                        // dnes se neobchodovalo -> aspoň poslední kotace
+        const m=res.meta.regularMarketPrice;
+        if(m!=null){ px=m/div; hi=px; lo=px; }
+      }
+      if(px==null) return;
+      const ctp=res.meta.currentTradingPeriod||{};
+      const regS=ctp.regular?ctp.regular.start:null, regE=ctp.regular?ctp.regular.end:null;
+      const state = (regE!=null && nowSec>=regE) ? "after" : (regS!=null && nowSec<regS) ? "pre" : "open";
+      WPX[tk]={px, hi, lo, state};
+      lsSet(key, WPX[tk]);
+    }catch(e){}
+  }));
+}
+// aktuální cena titulu z watchlistu — intradenní, když je k dispozici
+function watchPrice(tk){
+  const q=WPX[tk];
+  return (q && q.px!=null) ? q.px : priceAt(tk, todayStr());
+}
+/* Zásah cíle: buď je cíl splněný teď, nebo se ho cena dnes dotkla a zase odskočila.
+   Vrací null, nebo {px, ext, via:"now"|"today", state}. */
+function targetHitToday(w){
+  if(w.target==null) return null;
+  const q=WPX[w.ticker], px=watchPrice(w.ticker);
+  if(targetHit(w, px)) return {px, via:"now", state:q?q.state:null};
+  if(q){
+    const ext = targetDir(w)>0 ? q.hi : q.lo;
+    if(targetHit(w, ext)) return {px, ext, via:"today", state:q.state};
+  }
+  return null;
+}
+let watchTab="mine";
+async function moveWatch(id, dir){
+  // pracujeme jen s vlastními položkami (pohled „Můj"), seřazené podle aktuálního pořadí
+  const mine = WATCH.filter(w=>w.user_id===USER.id).sort((a,b)=>{
+    const sa=a.sort_order, sb2=b.sort_order;
+    if(sa!=null && sb2!=null) return sa-sb2;
+    if(sa!=null) return -1; if(sb2!=null) return 1;
+    return (a.created_at||"").localeCompare(b.created_at||"");
+  });
+  const i = mine.findIndex(w=>w.id===id);
+  if(i<0) return;
+  const j = i+dir;
+  if(j<0 || j>=mine.length) return;
+  [mine[i], mine[j]] = [mine[j], mine[i]];
+  const changed=[];
+  mine.forEach((w,k)=>{ if(w.sort_order!==k){ w.sort_order=k; changed.push(w); } });
+  renderWatchlist();
+  try{
+    await Promise.all(changed.map(w=>updateWatch(w.id, {sort_order:w.sort_order})));
+  }catch(err){ showErr(err.message); }
+}
+async function renderWatchlist(){
+  const tbl=$("#watchTable"), note=$("#watchNote");
+  try{
+    if(WATCH===null){
+      note.innerHTML='<p style="color:var(--muted); font-size:13px"><span class="spin"></span>&ensp;Načítám watchlist…</p>';
+      WATCH=await loadWatch();
+    }
+  }catch(e){
+    note.innerHTML='<div class="notice err">Watchlist se nepodařilo načíst — spusť v Supabase skript <code>sdileny_watchlist.sql</code>. ('+escapeHtml(e.message)+')</div>';
+    return;
+  }
+  $$("#watchTabs .pill").forEach(b=>b.classList.toggle("active", b.dataset.wtab===watchTab));
+  const byOrder = (a,b)=>{
+    const sa=a.sort_order, sb2=b.sort_order;
+    if(sa!=null && sb2!=null) return sa-sb2;
+    if(sa!=null) return -1; if(sb2!=null) return 1;
+    return (a.created_at||"").localeCompare(b.created_at||"");
+  };
+  const mine = WATCH.filter(w=>w.user_id===USER.id).sort(byOrder);
+  const shared = WATCH.filter(w=>w.user_id!==USER.id && w.shared);  // cizí sdílené
+  const list = watchTab==="mine" ? mine : shared;
+
+  if(!list.length){
+    note.innerHTML = watchTab==="mine"
+      ? '<div class="empty" style="margin:8px 0">Watchlist je prázdný — přidej první titul polem nahoře.</div>'
+      : '<div class="empty" style="margin:8px 0">Zatím tu nikdo nic nesdílí. Sdílet titul můžeš ikonou 🔒/👁 ve svém watchlistu.</div>';
+    tbl.innerHTML=""; return;
+  }
+  const missing=list.filter(w=>!DAILY[w.ticker]).map(w=>w.ticker);
+  // intradenní ceny stahujeme jen pro tituly s cílem — kvůli přesnému 🎯 (vč. pre/after-marketu)
+  const missIntra=list.filter(w=>w.target!=null && !WPX[w.ticker]).map(w=>w.ticker);
+  if(missing.length || missIntra.length){
+    note.innerHTML='<p style="color:var(--muted); font-size:13px"><span class="spin"></span>&ensp;Stahuji ceny…</p>';
+    await Promise.all(missing.map(tk=>loadDaily(tk, addDays(todayStr(),-370)).catch(()=>{})));
+    if(missIntra.length) await loadWatchIntraday(missIntra);
+  }
+  note.innerHTML="";
+  const today=todayStr();
+  const ownerCol = watchTab==="shared" ? `<th class="hide-m">Sdílí</th>` : "";
+  let h=`<tr><th>Titul</th><th class="r">Cena</th><th class="r">Dnes</th><th class="r hide-m">Od přidání</th><th class="r">Cíl</th>${ownerCol}<th></th></tr>`;
+  for(const w of list){
+    const cur=(META[w.ticker]&&META[w.ticker].currency)||"";
+    const px=watchPrice(w.ticker), prev=priceAt(w.ticker,addDays(today,-1));
+    const day=(px!=null&&prev)?(px/prev-1)*100:null;
+    const since=(px!=null&&w.added_price>0)?(px/w.added_price-1)*100:null;
+    const hitInfo=targetHitToday(w), hit=!!hitInfo;
+    const hitTitle = !hit ? "" : hitInfo.via==="now" ? "Cílová cena dosažena" : "Cílové ceny se cena dnes dotkla";
+    const ownerCell = watchTab==="shared"
+      ? `<td class="hide-m sub">${escapeHtml((w.owner_email||"").split("@")[0])}</td>` : "";
+    // akce: ve „Můj" šipky pořadí + přepínač sdílení + cíl + smazat; ve „Sdílené" jen náhled
+    const idxInList = list.indexOf(w);
+    const actions = watchTab==="mine"
+      ? `<button class="del" data-wup="${w.id}" title="Posunout nahoru" ${idxInList===0?"disabled style=\"opacity:.25\"":""}>↑</button>
+         <button class="del" data-wdown="${w.id}" title="Posunout dolů" ${idxInList===list.length-1?"disabled style=\"opacity:.25\"":""}>↓</button>
+         <button class="del" data-wshare="${w.id}" title="${w.shared?"Sdíleno — klik zruší sdílení":"Soukromé — klik sdílí s ostatními"}">${w.shared?"👁":"🔒"}</button>
+         <button class="del" data-wdel="${w.id}" title="Odebrat">×</button>`
+      : "";
+    const targetCell = watchTab==="mine"
+      ? `${w.target!=null?fmtCur(w.target,cur):"—"} <button class="del" data-wtarget="${w.id}" title="Nastavit cílovou cenu">✎</button>`
+      : (w.target!=null?fmtCur(w.target,cur):"—");
+    h+=`<tr>
+      <td><div class="trow">${logoHtml(w.ticker,"row")}<div class="tcol"><span class="tick clickable" data-wht="${w.id}">${escapeHtml(w.ticker)}</span>${hit?` <span title="${hitTitle}"${hitInfo.via==="today"?' style="opacity:.55"':""}>🎯</span>`:""}${w.shared&&watchTab==="mine"?' <span title="Sdíleno" style="color:var(--t212)">•</span>':""}<div class="sub" style="max-width:160px; overflow:hidden; text-overflow:ellipsis">${escapeHtml(w.note||"")}</div></div></div></td>
+      <td class="r num">${px!=null?fmtCur(px,cur):"—"}</td>
+      <td class="r num ${day!=null?cls(day):"flat"}">${fmtPct(day)}</td>
+      <td class="r num hide-m ${since!=null?cls(since):"flat"}">${fmtPct(since)}<div class="sub">${w.added_date?w.added_date.split("-").reverse().join(". "):""}</div></td>
+      <td class="r num ${hit?"up":""}">${targetCell}</td>
+      ${ownerCell}
+      <td class="r">${actions}</td></tr>`;
+  }
+  tbl.innerHTML=h;
+}
+async function addWatch(){
+  const inp=$("#watchInput"); let q=inp.value.trim();
+  if(!q) return;
+  // převést „národní" přípony burz na Yahoo formát (CSPX.UK -> CSPX.L, .DE, .NL->.AS…)
+  // stejně jako u importu z XTB; děláme to jen když to vypadá jako ticker s příponou
+  const qYahoo = /^[A-Za-z0-9.\-]+\.[A-Za-z]{2}$/.test(q) ? xtbToYahoo(q) : q;
+  const btn=$("#watchAddBtn"); btn.disabled=true;
+  try{
+    if(WATCH===null) WATCH=await loadWatch();
+    // zkus nejdřív převedený tvar, pak původní zadání
+    let qs=[], used=qYahoo;
+    for(const cand of (qYahoo!==q ? [qYahoo, q] : [q])){
+      const r=await fetch(`${CONFIG.PROXY_URL}?mode=search&q=${encodeURIComponent(cand)}`,
+        {headers:{Authorization:`Bearer ${CONFIG.SUPABASE_ANON_KEY}`}});
+      const j=await r.json();
+      qs=(j.quotes||[]).filter(x=>x.symbol && ["EQUITY","ETF","MUTUALFUND","CRYPTOCURRENCY","INDEX"].includes(x.quoteType));
+      if(qs.length){ used=cand; break; }
+    }
+    const pick=qs.find(x=>x.symbol.toUpperCase()===used.toUpperCase()) || qs.find(x=>x.symbol.toUpperCase()===qYahoo.toUpperCase()) || qs[0];
+    if(!pick){ toast(`„${q}" se nepodařilo najít. Zkus symbol z Yahoo Finance (např. CSPX.L místo CSPX.UK).`); btn.disabled=false; return; }
+    if(WATCH.some(w=>w.ticker===pick.symbol && w.user_id===USER.id)){ toast(`${pick.symbol} už ve watchlistu je.`); btn.disabled=false; return; }
+    await loadDaily(pick.symbol, addDays(todayStr(),-370)).catch(()=>{});
+    const px=priceAt(pick.symbol, todayStr());
+    const maxOrder = WATCH.filter(w=>w.user_id===USER.id).reduce((m,w)=>Math.max(m, w.sort_order!=null?w.sort_order:-1), -1);
+    const res=await insertWatch({user_id:USER.id, owner_email:USER.email, ticker:pick.symbol, note:pick.shortname||pick.longname||null,
+      added_date:todayStr(), added_price:px, target:null, shared:false, sort_order:maxOrder+1});
+    WATCH.push(res[0]);
+    toast(`Přidáno: ${pick.symbol}${pick.shortname?" — "+pick.shortname:""}`);
+    inp.value="";
+    renderWatchlist();
+  }catch(e){ showErr("Watchlist: "+e.message); }
+  btn.disabled=false;
+}
+/* ---- upozornění na dosažené cílové ceny (po přihlášení / spuštění) ----
+   Hlídá jen vlastní watchlist. Okno se ukáže nejvýš jednou denně; když ale
+   týž den cíle dosáhne další titul, ukáže se znovu (s celým seznamem). */
+const targetAlertKey = () => `targetAlert:${USER?USER.id:"anon"}`;
+function targetAlertSeen(){
+  try{
+    const v=JSON.parse(localStorage.getItem(targetAlertKey()));
+    if(v && v.date===todayStr()) return v.tickers||[];
+  }catch(e){}
+  return null;                       // null = dnes se ještě neukázalo
+}
+function targetAlertMark(tickers){
+  try{ localStorage.setItem(targetAlertKey(), JSON.stringify({date:todayStr(), tickers})); }catch(e){}
+}
+async function checkTargetAlerts(){
+  if(!USER) return;
+  try{ if(WATCH===null) WATCH=await loadWatch(); }
+  catch(e){ return; }                // watchlist se nenačetl — upozornění prostě přeskočíme
+  const mine=WATCH.filter(w=>w.user_id===USER.id && w.target!=null);
+  if(!mine.length) return;
+  const missing=mine.filter(w=>!DAILY[w.ticker]).map(w=>w.ticker);
+  if(missing.length) await Promise.all(missing.map(tk=>loadDaily(tk, addDays(todayStr(),-370)).catch(()=>{})));
+  await loadWatchIntraday(mine.map(w=>w.ticker));             // dnešní ceny vč. pre/after-marketu
+  const hits=mine.map(w=>({w, hit:targetHitToday(w)})).filter(x=>x.hit);
+  if(!hits.length) return;
+  const seen=targetAlertSeen();
+  if(seen && hits.every(x=>seen.includes(x.w.ticker))) return;   // dnes už ukázáno a nic nového
+  showTargetAlert(hits);
+  targetAlertMark(hits.map(x=>x.w.ticker));
+  const av=$$("#viewNav button").find(b=>b.classList.contains("active"));
+  if(av && av.dataset.v==="watchlist") renderWatchlist();   // ať 🎯 v tabulce sedí s oknem
+}
+function showTargetAlert(hits){
+  const n=hits.length;
+  $("#targetSub").textContent = n===1
+    ? "Jeden titul z tvého watchlistu dosáhl cílové ceny."
+    : n<5 ? `${n} tituly z tvého watchlistu dosáhly cílové ceny.`
+          : `${n} titulů z tvého watchlistu dosáhlo cílové ceny.`;
+  const STATE_LBL={pre:"pre-market", after:"after-market", open:""};
+  let h=`<tr><th>Titul</th><th class="r">Cena</th><th class="r">Cíl</th><th class="r hide-m">Od přidání</th></tr>`;
+  for(const {w, hit} of hits){
+    const cur=(META[w.ticker]&&META[w.ticker].currency)||"";
+    const px=hit.px;
+    const since=(px!=null&&w.added_price>0)?(px/w.added_price-1)*100:null;
+    // cíl splněný teď vs. dnes se ho cena jen dotkla a odskočila
+    const note = hit.via==="today"
+      ? `<div class="sub">dnes až na ${fmtCur(hit.ext,cur)}</div>`
+      : (STATE_LBL[hit.state] ? `<div class="sub">${STATE_LBL[hit.state]}</div>` : "");
+    h+=`<tr>
+      <td><div class="trow">${logoHtml(w.ticker,"row")}<div class="tcol"><span class="tick">${escapeHtml(w.ticker)}</span><div class="sub" style="max-width:150px; overflow:hidden; text-overflow:ellipsis">${escapeHtml(w.note||"")}</div></div></div></td>
+      <td class="r num ${hit.via==="now"?"up":""}">${px!=null?fmtCur(px,cur):"—"}${note}</td>
+      <td class="r num">${fmtCur(w.target,cur)}</td>
+      <td class="r num hide-m ${since!=null?cls(since):"flat"}">${fmtPct(since)}</td></tr>`;
+  }
+  $("#targetTable").innerHTML=h;
+  $("#targetModal").classList.add("open");
+}
+$("#targetClose").addEventListener("click",()=>$("#targetModal").classList.remove("open"));
+$("#targetModal").addEventListener("click",e=>{ if(e.target.id==="targetModal") $("#targetModal").classList.remove("open"); });
+$("#targetGo").addEventListener("click",()=>{
+  $("#targetModal").classList.remove("open");
+  const nav=$$("#viewNav button").find(b=>b.dataset.v==="watchlist");
+  if(nav){ nav.click(); nav.scrollIntoView({block:"nearest", inline:"center"}); $("#v-watchlist").scrollIntoView({behavior:"smooth", block:"start"}); }
+});
+
+async function showWatchDetail(w){
+  histState={ticker:w.ticker, provider:"WATCH", tab:"chart", period:"6M", watch:w};
+  $("#histModal").classList.add("open");
+  if(!DAILY[w.ticker]){
+    $("#histBody").innerHTML='<p style="color:var(--muted)"><span class="spin"></span>&ensp;Načítám…</p>';
+    await loadDaily(w.ticker, addDays(todayStr(),-370)).catch(()=>{});
+  }
+  renderHist();
+}
+/* ================= ADMINISTRACE ================= */
+let IS_ADMIN=false;
+async function renderAdmin(){
+  if(!IS_ADMIN) return;
+  try{
+    const rows=await loadAllowed();
+    const me=(USER&&USER.email||"").toLowerCase();
+    let h=`<tr><th>E-mail</th><th></th></tr>`;
+    for(const r of rows){
+      const self=r.email===me;
+      h+=`<tr><td>${escapeHtml(r.email)}${self?' <span class="sub" style="color:var(--faint)">(ty)</span>':""}</td>
+        <td class="r">${self?"":`<button class="del" data-allow-del="${escapeHtml(r.email)}" title="Odebrat">×</button>`}</td></tr>`;
+    }
+    $("#adminTable").innerHTML=h;
+  }catch(e){ showErr("Administrace: "+e.message); }
+}
+async function adminAddEmail(){
+  const inp=$("#adminEmail"), email=inp.value.trim().toLowerCase();
+  if(!email||!email.includes("@")){ toast("Zadej platný e-mail."); return; }
+  try{ await addAllowed(email); inp.value=""; toast("Přidáno: "+email); renderAdmin(); }
+  catch(e){
+    if(/duplicate key|23505|allowed_emails_pkey/i.test(e.message)){
+      inp.value=""; toast("Tento e-mail už na seznamu je.");
+    } else showErr("Nepodařilo se přidat: "+e.message);
+  }
+}
+
+function fmtHeld(days){
+  return days<90 ? Math.round(days)+" dní"
+       : days<365 ? Math.round(days/30.44)+" měs."
+       : (days/365.25).toLocaleString("cs-CZ",{maximumFractionDigits:1})+" r";
+}
+function renderRealized(){
+  const rows=computeRealized(txFor(curProv));
+  if(!rows.length){
+    $("#realTable").innerHTML="";
+    $("#realSummary").innerHTML='<div class="empty" style="margin:8px 0">Žádné realizované obchody.</div>';
+    return;
+  }
+  // agregace dílčích FIFO lotů na úroveň prodeje
+  const map={};
+  for(const r of rows){
+    const k=r.provider+"|"+r.ticker+"|"+r.sellDate;
+    const m=map[k]=map[k]||{sellDate:r.sellDate, ticker:r.ticker, raw:r.raw, provider:r.provider, qty:0, income:0, cost:0, wHeld:0, warn:false};
+    m.qty+=r.qty; m.income+=r.income; m.cost+=r.cost;
+    if(r.buyDate) m.wHeld += r.qty*((new Date(r.sellDate)-new Date(r.buyDate))/864e5);
+    m.warn=m.warn||!!r.warn;
+  }
+  const trades=Object.values(map).map(m=>({...m, profit:m.income-m.cost,
+      pct:m.cost>0?(m.income/m.cost-1)*100:null, held:m.qty>0?m.wHeld/m.qty:0}))
+    .sort((a,b)=>b.sellDate.localeCompare(a.sellDate));
+  const tot=trades.reduce((s,t)=>s+t.profit,0);
+  const wins=trades.filter(t=>t.profit>0).length;
+  const div=dividendSummary(curProv);
+  $("#realSummary").innerHTML=`<div class="cards" style="margin:6px 0 4px">
+    <div class="card"><div class="lbl">Realizovaný zisk</div><div class="val num ${cls(tot)}">${fmtSign(tot)}</div><div class="abs num">${trades.length} obchodů</div></div>
+    <div class="card"><div class="lbl">Úspěšnost</div><div class="val num">${fmtNum(wins/trades.length*100,0)} %</div><div class="abs num">${wins} ziskových z ${trades.length}</div></div>
+    <div class="card"><div class="lbl">Průměr na obchod</div><div class="val num ${cls(tot/trades.length)}">${fmtSign(tot/trades.length)}</div><div class="abs"></div></div>
+    <div class="card"><div class="lbl">Dividendy</div><div class="val num" style="color:var(--text)">${fmtKc(div.total)}</div><div class="abs">celkem přijato</div></div>
+  </div>
+  <p style="font-size:12px; color:var(--faint); margin-bottom:10px">FIFO párování, kurz ke dni obchodu, bez poplatků brokera. Klik na titul otevře detail.</p>`;
+  const byYear={};
+  for(const t of trades){ const y=t.sellDate.slice(0,4); byYear[y]=(byYear[y]||0)+t.profit; }
+  const multi = curProv==="ALL"||curProv.includes("+");
+  let h=`<tr><th>Prodáno</th><th>Titul</th><th class="r">Ks</th><th class="r hide-m">Drženo</th><th class="r">Zisk</th><th class="r">Zisk %</th></tr>`;
+  let curYear=null;
+  for(const t of trades){
+    const y=t.sellDate.slice(0,4);
+    if(y!==curYear){ curYear=y;
+      h+=`<tr><td colspan="6" style="padding-top:16px"><b>${y}</b> <span class="num ${cls(byYear[y])}" style="font-size:12.5px">${fmtSign(byYear[y])}</span></td></tr>`;
+    }
+    const name = t.provider==="CONSEQ"&&t.raw ? (t.raw.length>20?t.raw.slice(0,19)+"…":t.raw) : t.ticker;
+    h+=`<tr${t.warn?' title="K části prodeje chybí nákup v importované historii — zisk může být nepřesný"':''}>
+      <td class="num">${t.sellDate.split("-").reverse().join(". ")}</td>
+      <td><span class="tick clickable" data-ht="${escapeHtml(t.ticker)}" data-hp="${t.provider}">${escapeHtml(name)}</span>${multi?`<span class="badge ${t.provider}">${PROV_SHORT[t.provider]}</span>`:""}${t.warn?' <span style="color:var(--csq)" title="chybí část nákupní historie">⚠</span>':""}</td>
+      <td class="r num">${fmtNum(t.qty,4)}</td>
+      <td class="r num hide-m">${fmtHeld(t.held)}</td>
+      <td class="r num ${cls(t.profit)}">${fmtSign(t.profit)}</td>
+      <td class="r num ${t.pct!=null?cls(t.pct):"flat"}">${fmtPct(t.pct)}</td></tr>`;
+  }
+  $("#realTable").innerHTML=h;
+}
+function renderCash(){
+  const avail=availableProviders();
+  const list=provOrder().filter(p=>avail.has(p));
+  const sec=$("#cashSection");
+  if(!list.length){ sec.style.display="none"; return; }
+  sec.style.display="block";
+  const cfg=cashCfg();
+  const today=todayStr();
+  $("#cashRows").innerHTML=list.map(p=>{
+    const c=cfg[p]||{};
+    const amt=isFinite(+c.amount)?+c.amount:"";
+    const cur=c.currency||"CZK";
+    const dt=c.date||today;
+    const now=c.date?cashAt(p, today):null;
+    const hint=now!=null?`nyní ${fmtKc(now)}`:"nezadáno";
+    return `<div class="map-row" style="flex-wrap:wrap">
+      <span class="badge ${p}" style="min-width:52px">${PROV_SHORT[p]}</span>
+      <input class="cashAmt" data-p="${p}" type="text" inputmode="decimal" value="${amt}" placeholder="0"
+        style="background:var(--bg); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:6px 10px; font-size:13px; font-family:inherit; width:110px">
+      <select class="cashCur" data-p="${p}" style="background:var(--bg); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:6px 8px; font-size:13px; font-family:inherit">
+        ${["CZK","USD","EUR","GBP","PLN"].map(x=>`<option value="${x}"${x===cur?" selected":""}>${x}</option>`).join("")}
+      </select>
+      <input class="cashDate" data-p="${p}" type="date" value="${dt}"
+        style="background:var(--bg); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:6px 8px; font-size:13px; font-family:inherit">
+      <span style="color:var(--faint); font-size:11.5px">${hint}</span>
+    </div>`;
+  }).join("");
+}
+function renderCryptoReal(){
+  const sec=$("#cryptoRealSection");
+  // crypto tickery z importu (jen Revolut crypto)
+  const tickers=[...new Set(TX.filter(t=>t.provider==="REVOLUT_CRYPTO").map(t=>t.ticker))].sort();
+  if(!tickers.length){ sec.style.display="none"; return; }
+  sec.style.display="block";
+  const real=cryptoReal()||{};
+  // dopočtené množství z historie (pro nápovědu)
+  const calc={};
+  for(const p of computePositionsRaw("REVOLUT_CRYPTO")) calc[p.ticker]=p.qty;
+  $("#cryptoRealRows").innerHTML = tickers.map(tk=>{
+    const sym=tk.replace(/-USD$/,"");
+    const cur = Object.prototype.hasOwnProperty.call(real,tk) ? real[tk] : (calc[tk]!=null?+calc[tk].toFixed(8):0);
+    const hint = calc[tk]!=null ? `z historie: ${(+calc[tk].toFixed(6))}` : "";
+    return `<div class="map-row">
+      <span class="raw" style="min-width:54px">${escapeHtml(sym)}</span>
+      <input class="cryptoRealInp" data-tk="${escapeHtml(tk)}" type="text" inputmode="decimal" value="${cur}"
+        style="background:var(--bg); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:6px 10px; font-size:13px; font-family:inherit; width:130px">
+      <span style="color:var(--faint); font-size:11.5px">${hint}</span>
+    </div>`;
+  }).join("");
+}
+
+// varianta computePositions BEZ ručního override (pro nápovědu „z historie")
+function computePositionsRaw(prov){
+  const txs = txFor(prov).filter(t=>t.type!=="DIVIDEND");
+  const pos={};
+  for(const t of txs){
+    const key=t.ticker+"|"+t.provider;
+    const p = pos[key] = pos[key]||{ticker:t.ticker, qty:0};
+    if(t.type==="BUY") p.qty+=t.quantity; else p.qty-=t.quantity;
+  }
+  return Object.values(pos);
+}
+
+function renderTickerMap(){
+  const map={};
+  for(const t of TX) map[t.ticker]=t.raw_symbol||t.ticker;
+  const errSet=new Set(priceErrors.map(e=>e.ticker));
+  $("#tickerMap").innerHTML = Object.entries(map).sort().map(([yh,raw])=>`
+    <div class="map-row">
+      <span class="raw">${escapeHtml(raw)}</span><span style="color:var(--faint)">→</span>
+      <input value="${escapeHtml(yh)}" data-old="${escapeHtml(yh)}">
+      ${errSet.has(yh)?'<span style="color:var(--red); font-size:12px">cena se nenačetla</span>':""}
+      <button class="btn" style="padding:5px 10px; font-size:12px" data-remap="${escapeHtml(yh)}">Uložit</button>
+    </div>`).join("") || "<p style='font-size:13px;color:var(--muted)'>Žádné tickery.</p>";
+}
+
+/* ================= IMPORT ================= */
+let _xlsxP=null;
+function ensureXLSX(){
+  if(window.XLSX) return Promise.resolve();
+  if(_xlsxP) return _xlsxP;
+  _xlsxP=new Promise((res,rej)=>{
+    const s=document.createElement("script");
+    s.src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+    s.onload=res;
+    s.onerror=()=>rej(new Error("Nepodařilo se načíst knihovnu pro čtení XLSX."));
+    document.head.appendChild(s);
+  });
+  return _xlsxP;
+}
+/* soubor -> pole tabulek (řádky buněk); u XLSX najde list(y) s cash operacemi */
+async function fileToTables(f){
+  if(/\.xlsx?$/i.test(f.name)){
+    await ensureXLSX();
+    const wb = XLSX.read(await f.arrayBuffer(), {type:"array", cellDates:true});
+    const tables=[];
+    for(const name of wb.SheetNames){
+      const rows = XLSX.utils.sheet_to_json(wb.Sheets[name], {header:1, raw:false, defval:"", dateNF:"yyyy-mm-dd"});
+      const hi = rows.findIndex(r=>{
+        const low=r.map(c=>String(c).trim().toLowerCase());
+        const xtb = (low.includes("symbol")||low.includes("ticker")) && low.some(c=>c==="comment"||c.startsWith("koment"))
+                 && low.some(c=>c==="amount"||c.startsWith("částka")||c.startsWith("castka"));
+        const csq = low.includes("isin") && low.some(c=>c.startsWith("typ operace"));
+        const dgr = low.includes("isin") && low.includes("produkt")
+                 && low.some(c=>c==="počet"||c==="pocet");
+        const ib  = low.includes("buy/sell") && low.includes("symbol");
+        const f24 = low.some(c=>c==="operace") && low.includes("ticker")
+                 && low.some(c=>c.startsWith("datum"))
+                 && low.some(c=>c.startsWith("id/orderid")||c.startsWith("id/order")||c==="order id"||c==="číslo"||c==="cislo");
+        return xtb || csq || dgr || ib || f24;
+      });
+      if(hi>-1) tables.push(rows.slice(hi).map(r=>r.map(c=>String(c==null?"":c))));
+    }
+    if(!tables.length) throw new Error(`V „${f.name}" jsem nenašel list s transakcemi — čekám XTB cash operace, Conseq výpis, nebo Freedom 24 (list „Trades").`);
+    return tables;
+  }
+  return [parseCSV(await f.text())];
+}
+let pendingImport=null;
+async function handleFiles(files){
+  const all=[]; const notes=[]; let skippedTotal=0;
+  for(const f of files){
+    try{
+      const tables=await fileToTables(f);
+      const cnt={BUY:0,SELL:0,DIVIDEND:0}; let prov=null;
+      for(const rows of tables){
+        const {provider, txs, skipped}=parseStatement(rows, f.name);
+        all.push(...txs); skippedTotal+=skipped; prov=provider;
+        for(const t of txs) cnt[t.type]++;
+      }
+      notes.push(`<p><b>${escapeHtml(f.name)}</b> → ${prov}: ${cnt.BUY}× nákup, ${cnt.SELL}× prodej, ${cnt.DIVIDEND}× dividenda</p>`);
+    }catch(e){ notes.push(`<p style="color:var(--red)">${escapeHtml(e.message)}</p>`); }
+  }
+  if(skippedTotal) notes.push(`<p>${skippedTotal} řádků přeskočeno (vklady, poplatky, úroky…).</p>`);
+  notes.push(`<p style="margin-top:8px">Duplicitní záznamy se automaticky přeskočí, import lze bezpečně opakovat.</p>`);
+  pendingImport=all;
+  $("#importSummary").innerHTML=notes.join("");
+  $("#impConfirm").style.display=all.length?"":"none";
+  $("#importModal").classList.add("open");
+}
+async function doImport(){
+  if(!pendingImport||!pendingImport.length) return;
+  const rows=pendingImport.map(t=>{
+    const {uid, ...rest}=t;
+    return {...rest, user_id:USER.id, import_hash: uid || hash([t.provider,t.date,t.type,t.raw_symbol,t.quantity,t.price,t.total].join("|"))};
+  });
+  // dedupe v rámci souboru
+  const seen=new Set(); let uniq=rows.filter(r=>!seen.has(r.import_hash)&&seen.add(r.import_hash));
+  // Freedom 24 legacy: dřívější importy ukládaly hash "F24:cislo/orderid", nové "F24:cislo".
+  // Porovnáváme jen část před lomítkem, ať se stejný obchod nenaimportuje podruhé.
+  const f24InDb=new Set(TX.filter(t=>t.provider==="FREEDOM24"&&t.import_hash&&t.import_hash.startsWith("F24:"))
+                          .map(t=>t.import_hash.split("/")[0]));
+  uniq=uniq.filter(r=>!(r.provider==="FREEDOM24" && f24InDb.has(String(r.import_hash).split("/")[0])));
+  $("#impConfirm").disabled=true;
+  try{
+    const res=await insertTx(uniq);
+    $("#importModal").classList.remove("open");
+    toast(`Importováno ${res.length} nových transakcí (${uniq.length-res.length} duplicit přeskočeno).`);
+    await refreshAll(true);
+  }catch(e){ showErr("Import selhal: "+e.message); }
+  $("#impConfirm").disabled=false;
+}
+
+
+/* ================= DETAIL TITULU ================= */
+let PE_CACHE={};
+async function loadPE(tk){
+  if(tk in PE_CACHE) return PE_CACHE[tk];
+  // platné P/E drží 12 h; prázdný výsledek jen 1 h (ať se brzy zkusí znovu)
+  const cVal=lsGet("pe:"+tk, 12*3600*1000);
+  if(cVal!==undefined && cVal!==null && cVal!=="~none"){ PE_CACHE[tk]=cVal; return cVal; }
+  const cNone=lsGet("pe:"+tk, 3600*1000);
+  if(cNone==="~none"){ PE_CACHE[tk]=null; return null; }
+  let pe=null;
+  try{
+    const r=await fetch(`${CONFIG.PROXY_URL}?mode=quote&symbol=${encodeURIComponent(tk)}`,
+      {headers:{Authorization:`Bearer ${CONFIG.SUPABASE_ANON_KEY}`}});
+    const j=await r.json();
+    let raw = (j && typeof j.pe==="number") ? j.pe : null;     // nový tvar {pe}
+    if(raw==null){                                              // starý tvar quoteSummary
+      const res=j&&j.quoteSummary&&j.quoteSummary.result&&j.quoteSummary.result[0];
+      if(res){ const sd=res.summaryDetail||{}, ks=res.defaultKeyStatistics||{};
+        raw=(sd.trailingPE&&sd.trailingPE.raw)||(ks.trailingPE&&ks.trailingPE.raw)||null; }
+    }
+    if(raw && raw>0 && raw<10000) pe=raw;
+  }catch(e){}
+  PE_CACHE[tk]=pe; lsSet("pe:"+tk, pe==null?"~none":pe);
+  return pe;
+}
+let histState=null;
+function showHistory(ticker, provider){
+  if(!TX.some(t=>t.ticker===ticker && t.provider===provider)) return;
+  histState={ticker, provider, tab:"chart", period:"6M"};
+  $("#histModal").classList.add("open");
+  renderHist();
+}
+function histTxs(){
+  return TX.filter(t=>t.ticker===histState.ticker && t.provider===histState.provider)
+           .sort((a,b)=>b.date.localeCompare(a.date));
+}
+function renderHist(){
+  const {ticker, provider, tab}=histState;
+  if(provider==="WATCH"){
+    const w=histState.watch;
+    const cur=(META[ticker]&&META[ticker].currency)||"";
+    $("#histTitle").innerHTML=`${escapeHtml(w.note||ticker)} <span class="badge WATCH">${escapeHtml(ticker)}</span>`;
+    $("#histLogo").innerHTML=logoHtml(ticker, "lg");
+    const today=todayStr(), px=priceAt(ticker,today), prev=priceAt(ticker,addDays(today,-1));
+    const day=(px!=null&&prev)?(px/prev-1)*100:null;
+    const since=(px!=null&&w.added_price>0)?(px/w.added_price-1)*100:null;
+    let head = px!=null ? `<b class="num" style="color:var(--text); font-size:16px">${fmtCur(px,cur)}</b>` : "";
+    if(day!=null) head+=` <span class="num ${cls(day)}">${fmtPct(day)} dnes</span>`;
+    head+=`<br>sledováno od ${w.added_date?w.added_date.split("-").reverse().join(". "):"—"}`;
+    if(since!=null) head+=` · od přidání <span class="num ${cls(since)}">${fmtPct(since)}</span>`;
+    if(w.target!=null) head+=` · cíl <span class="num ${targetHit(w,px)?"up":""}" >${fmtCur(w.target,cur)}</span>`;
+    head += `<br><span style="font-size:12.5px; color:var(--muted)">P/E <span id="histPE" class="num">…</span></span>`;
+    $("#histHead").innerHTML=head;
+    loadPE(ticker).then(pe=>{ const el=$("#histPE"); if(el) el.textContent = pe!=null ? fmtNum(pe,1) : "—"; });
+    $("#histTabs").style.display="none";
+    renderHistChart([], cur);
+    return;
+  }
+  $("#histTabs").style.display="";
+  const txs=histTxs();
+  const trade=txs.find(t=>t.type!=="DIVIDEND");
+  const cur=trade?txCurrency(trade):((META[ticker]&&META[ticker].currency)||"");
+  const name=provider==="CONSEQ"&&txs[0].raw_symbol?txs[0].raw_symbol:ticker;
+  $("#histTitle").innerHTML=`${escapeHtml(name)} <span class="badge ${provider}">${PROV_SHORT[provider]}</span>`;
+  $("#histLogo").innerHTML=logoHtml(ticker, "lg");
+  // hlavička: aktuální cena + denní změna + souhrn pozice
+  const today=todayStr(), px=priceAt(ticker,today), pxPrev=priceAt(ticker,addDays(today,-1));
+  const day=(px!=null&&pxPrev)?(px/pxPrev-1)*100:null;
+  const pos=computePositions(provider).find(p=>p.ticker===ticker);
+  let head = px!=null ? `<b class="num" style="color:var(--text); font-size:16px">${fmtCur(px,cur)}</b>` : "";
+  if(day!=null){
+    const dayKc = (pos && pxPrev) ? (px-pxPrev)*pos.qty*(fxAt(cur,today)||0) : null;
+    head += ` <span class="num ${cls(day)}">${fmtPct(day)}${dayKc!=null?" · "+fmtSign(dayKc):""} dnes</span>`;
+  }
+  if(EXT[ticker] && px>0){ const ep=(EXT[ticker].price/px-1)*100;
+    head += ` <span class="num ${cls(ep)}" style="font-size:12px">· ${EXT[ticker].state==="pre"?"pre-market":"after-market"} ${fmtPct(ep)}</span>`; }
+  head += pos
+    ? `<br>${fmtNum(pos.qty,4)} ks · prům. nákup ${fmtCur(pos.avg,cur)} · hodnota <b class="num" style="color:var(--text)">${fmtKc(pos.valCzk)}</b> · P/L <span class="num ${pos.pl!=null?cls(pos.pl):"flat"}">${fmtPct(pos.pl)}${(()=>{ const plKc = (pos.valCzk!=null && pos.avg>0) ? pos.valCzk - pos.qty*pos.avg*(fxAt(cur,today)||0) : null; return plKc!=null ? " · "+fmtSign(plKc) : ""; })()}</span>`
+    : "<br>Pozice uzavřena";
+  head += `<br><span style="font-size:12.5px; color:var(--muted)">P/E <span id="histPE" class="num">…</span></span>`;
+  $("#histHead").innerHTML=head;
+  loadPE(ticker).then(pe=>{
+    const el=$("#histPE"); if(!el) return;
+    el.textContent = pe!=null ? fmtNum(pe,1) : "—";
+  });
+  $$("#histTabs .pill").forEach(b=>b.classList.toggle("active", b.dataset.htab===tab));
+  if(tab==="chart") renderHistChart(txs, cur);
+  else renderHistTx(txs, cur);
+}
+async function renderHistChart(txs, cur){
+  const {ticker}=histState;
+  const periods=["1D","1M","6M","YTD","1R","MAX"];
+  let h=`<div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:6px">
+    <div class="pills">${periods.map(p=>`<button class="pill${p===histState.period?" active":""}" data-hper="${p}">${p==="MAX"?"Max":p}</button>`).join("")}${histState.period!=="1D"?`<button class="pill${histState.spx?" active":""}" data-hspx title="Porovnat výkonnost s indexem S&P 500">vs S&P 500</button>`:""}</div>
+    <span id="histPct" class="num" style="font-size:13px"></span></div>
+    <div id="histChart" style="height:200px"></div>
+    <div id="histLegend" style="font-size:11.5px; color:var(--faint); margin-top:6px"></div>`;
+  $("#histBody").innerHTML=h;
+  if(histState.period==="1D"){ await renderHistChart1D(ticker, cur); return; }
+  const d=DAILY[ticker];
+  $("#histLegend").innerHTML=`<span style="color:var(--green)">●</span> nákup &nbsp;<span style="color:var(--red)">●</span> prodej · ceny v ${escapeHtml(cur)}`;
+  if(!d || d.dates.length<2){
+    $("#histChart").innerHTML='<div class="chart-note" style="padding-top:80px">Pro tento titul nejsou cenová data.</div>';
+    $("#histPct").textContent=""; return;
+  }
+  const days=periodDays(histState.period);
+  const from = days==null ? d.dates[0] : addDays(todayStr(), -days);
+  let i0=d.dates.findIndex(x=>x>=from); if(i0<0) i0=0;
+  if(d.dates.length-i0<2) i0=Math.max(0, d.dates.length-2);
+  const labels=d.dates.slice(i0), vals=d.closes.slice(i0);
+  // změna za období
+  const chPct=(vals[vals.length-1]/vals[0]-1)*100;
+  const pctEl=$("#histPct");
+  pctEl.textContent=`${fmtPct(chPct)} za období`;
+  pctEl.className="num "+cls(chPct);
+  if(histState.spx){
+    // porovnání s S&P 500: obě řady jako % výkonnost od začátku období
+    const reqT=histState.ticker, reqP=histState.period;
+    try{
+      if(!DAILY["^GSPC"] || DAILY["^GSPC"].dates[0]>labels[0]) await loadDaily("^GSPC", labels[0]);
+    }catch(e){}
+    if(histState.ticker!==reqT || histState.period!==reqP || !histState.spx) return;
+    if(DAILY["^GSPC"] && DAILY["^GSPC"].dates.length){
+      let last=null;
+      const spxRaw=labels.map(dt=>{ const p=priceAt("^GSPC",dt); if(p!=null) last=p; return last; });
+      const spxBase=spxRaw.find(v=>v!=null);
+      const tickPct=vals.map(v=>(v/vals[0]-1)*100);
+      const spxPct=spxRaw.map(v=>v!=null&&spxBase?(v/spxBase-1)*100:0);
+      const spxCh=spxPct[spxPct.length-1];
+      pctEl.innerHTML=`<span class="${cls(chPct)}">${escapeHtml(histState.ticker)} ${fmtPct(chPct)}</span> · <span class="${cls(spxCh)}">S&P 500 ${fmtPct(spxCh)}</span>`;
+      const pf=v=>fmtNum(v,1)+" %";
+      const fmtL=x=>{ const dt=new Date(x+"T12:00:00"); return dt.getDate()+". "+(dt.getMonth()+1)+"."; };
+      const fmtTipL=x=>{ const dt=new Date(x+"T12:00:00"); return dt.getDate()+". "+(dt.getMonth()+1)+". "+dt.getFullYear(); };
+      drawChart($("#histChart"), labels, tickPct, {fmtX:fmtL, fmtTip:fmtTipL, fmtV:pf, fmtAxis:pf, color:"var(--accent)", invested:spxPct, refLine:0, height:200});
+      $("#histLegend").innerHTML=`<span style="color:var(--accent)">▬</span> ${escapeHtml(histState.ticker)} &nbsp;<span style="color:var(--inv)">┅</span> S&P 500 · výkonnost v % od začátku období`;
+      return;
+    }
+    $("#histLegend").innerHTML='Data indexu S&P 500 se nepodařilo načíst.';
+  }
+  // markery obchodů
+  const markers=[];
+  for(const t of txs){
+    if(t.type==="DIVIDEND" || t.date<labels[0]) continue;
+    let mi=labels.length-1;
+    for(let j=0;j<labels.length;j++){ if(labels[j]>t.date){ mi=Math.max(0,j-1); break; } if(j===labels.length-1) mi=j; }
+    markers.push({i:mi, v:t.price!=null?t.price:vals[mi], color:t.type==="BUY"?"var(--green)":"var(--red)"});
+  }
+  const axF=v=>fmtNum(v, Math.abs(v)>=100?0:2)+"\u00A0"+(CUR_SYM[cur]||cur||"");
+  const fmt=x=>{ const dt=new Date(x+"T12:00:00"); return dt.getDate()+". "+(dt.getMonth()+1)+"."; };
+  const fmtTip=x=>{ const dt=new Date(x+"T12:00:00"); return dt.getDate()+". "+(dt.getMonth()+1)+". "+dt.getFullYear(); };
+  drawChart($("#histChart"), labels, vals, {fmtX:fmt, fmtTip, fmtV:v=>fmtCur(v,cur), fmtAxis:axF, color:"var(--accent)", markers, height:200});
+}
+async function renderHistChart1D(ticker, cur){
+  const reqTicker=histState.ticker, reqProv=histState.provider;
+  const chartEl=$("#histChart");
+  chartEl.innerHTML='<div class="chart-note" style="padding-top:80px"><span class="spin"></span> načítám dnešní průběh…</div>';
+  $("#histPct").textContent="";
+  $("#histLegend").textContent=`ceny v ${cur}`;
+  const stale=()=> histState.ticker!==reqTicker || histState.provider!==reqProv || histState.period!=="1D";
+  try{
+    const res=await fetchChart(ticker, "1d", "5m", true);
+    if(stale()) return;
+    let div=1; const c0=res.meta.currency;
+    if(c0==="GBp"||c0==="GBX"||c0==="ZAc") div=100;
+    const isCrypto=(META[ticker]&&META[ticker].crypto) || CRYPTO_TICKERS.has(ticker);
+    const cmul = isCrypto ? (fxAt("USD", todayStr())||1) : 1;
+    const ts=res.timestamp||[];
+    const cl=(res.indicators.quote[0].close||[]).map(v=>v==null?null:(v/div)*cmul);
+    const pts=ts.map((t,i)=>({t, v:cl[i]})).filter(p=>p.v!=null);
+    if(pts.length<2){
+      chartEl.innerHTML='<div class="chart-note" style="padding-top:80px">Dnešní intradenní data nejsou k dispozici (trh je nejspíš zavřený).</div>';
+      return;
+    }
+    const labels=pts.map(p=>p.t), vals=pts.map(p=>p.v);
+    const chPct=(vals[vals.length-1]/vals[0]-1)*100;
+    const pctEl=$("#histPct");
+    pctEl.textContent=`${fmtPct(chPct)} dnes`;
+    pctEl.className="num "+cls(chPct);
+    const fmtT=t=>{ const dt=new Date(t*1000); return dt.getHours()+":"+String(dt.getMinutes()).padStart(2,"0"); };
+    const axF=v=>fmtNum(v, Math.abs(v)>=100?0:2)+"\u00A0"+(CUR_SYM[cur]||cur||"");
+    drawChart(chartEl, labels, vals, {fmtX:fmtT, fmtV:v=>fmtCur(v,cur), fmtAxis:axF, color:"var(--accent)", height:200});
+    $("#histLegend").textContent=`ceny v ${cur}`;
+  }catch(e){
+    if(stale()) return;
+    chartEl.innerHTML=`<div class="chart-note" style="padding-top:80px">Dnešní data se nepodařilo načíst (${escapeHtml(e.message)}).</div>`;
+  }
+}
+function renderHistTx(txs, cur){
+  const TYPE={BUY:["Nákup","up"],SELL:["Prodej","down"],DIVIDEND:["Dividenda",""]};
+  let bought=0, sold=0, buyCost=0, divCzk=0;
+  for(const t of txs){
+    if(t.type==="BUY"){ bought+=t.quantity; buyCost+=t.quantity*(t.price||0); }
+    else if(t.type==="SELL") sold+=t.quantity;
+    else divCzk+=(t.total||0)*(fxAt(txCurrency(t),t.date)||0);
+  }
+  let sum=`Nakoupeno <b class="num" style="color:var(--text)">${fmtNum(bought,4)} ks</b>`+
+    (bought>0?` · prům. ${fmtCur(buyCost/bought,cur)}`:"")+
+    (sold>0?` · prodáno <b class="num" style="color:var(--text)">${fmtNum(sold,4)} ks</b>`:"")+
+    (divCzk>0.5?` · dividendy <b class="num" style="color:var(--text)">${fmtKc(divCzk)}</b>`:"");
+  // Výsledek celkem za titul: realizované prodeje (FIFO, historické kurzy)
+  // + nerealizovaný zisk držených kusů (stejný výpočet jako P/L v hlavičce) + dividendy
+  let sum2="";
+  if(bought>0){
+    const realCzk = computeRealized(txs).reduce((s,r)=>s+r.income-r.cost, 0);
+    const pos = histState.provider!=="WATCH" ? computePositions(histState.provider).find(p=>p.ticker===histState.ticker) : null;
+    let unrealCzk = 0;
+    if(pos && pos.valCzk!=null && pos.avg>0){
+      unrealCzk = pos.valCzk - pos.qty*pos.avg*(fxAt(pos.currency||cur, todayStr())||0);
+    }
+    const totalCzk = realCzk + unrealCzk + divCzk;
+    const parts=[];
+    if(Math.abs(realCzk)>0.5) parts.push(`realizované <span class="num ${cls(realCzk)}">${fmtSign(realCzk)}</span>`);
+    if(pos) parts.push(`nerealizované <span class="num ${cls(unrealCzk)}">${fmtSign(unrealCzk)}</span>`);
+    if(divCzk>0.5) parts.push(`dividendy <span class="num up">${fmtSign(divCzk)}</span>`);
+    sum2=`<div style="font-size:13px; color:var(--muted); margin-bottom:8px">Výsledek celkem <b class="num ${cls(totalCzk)}">${fmtSign(totalCzk)}</b>${parts.length?" · "+parts.join(" · "):""}</div>`;
+  }
+  let h=`<div style="font-size:13px; color:var(--muted); margin-bottom:4px">${sum}</div>${sum2}
+    <div class="tbl-scroll" style="max-height:48vh; overflow-y:auto"><table>
+    <tr><th>Datum</th><th>Typ</th><th class="r">Ks</th><th class="r">Cena</th><th class="r">Částka</th></tr>`;
+  for(const t of txs){
+    const [lbl,c]=TYPE[t.type];
+    h+=`<tr><td class="num">${t.date.split("-").reverse().join(". ")}</td><td class="${c}">${lbl}</td>
+      <td class="r num">${t.quantity?fmtNum(t.quantity,4):"—"}</td>
+      <td class="r num">${t.price!=null?fmtNum(t.price):"—"}</td>
+      <td class="r num">${t.total!=null?fmtNum(t.total)+" "+txCurrency(t):"—"}</td></tr>`;
+  }
+  $("#histBody").innerHTML=h+"</table></div>";
+}
+
+/* ================= DAŇOVÝ PODKLAD (ČR) ================= *//* ================= DAŇOVÝ PODKLAD (ČR) ================= */
+/* FIFO párování všech prodejů s nákupy (celá historie) */
+function computeRealized(txs){
+  const sorted=txs.filter(t=>t.type!=="DIVIDEND").slice().sort((a,b)=>a.date.localeCompare(b.date)||String(a.id).localeCompare(String(b.id)));
+  const lots={}; const out=[];
+  for(const t of sorted){
+    const key=t.provider+"|"+t.ticker, cur=txCurrency(t);
+    lots[key]=lots[key]||[];
+    const unit = t.price!=null ? t.price : ((t.total||0)/(t.quantity||1));
+    if(t.type==="BUY"){ lots[key].push({date:t.date, qty:t.quantity, price:unit, cur}); continue; }
+    let rem=t.quantity;
+    while(rem>1e-9 && lots[key].length){
+      const lot=lots[key][0], take=Math.min(rem, lot.qty);
+      out.push({sellDate:t.date, buyDate:lot.date, ticker:t.ticker, raw:t.raw_symbol, provider:t.provider, qty:take, cur,
+        income: take*unit*(fxAt(cur,t.date)||0),
+        cost:   take*lot.price*(fxAt(lot.cur,lot.date)||0)});
+      lot.qty-=take; rem-=take;
+      if(lot.qty<=1e-9) lots[key].shift();
+    }
+    if(rem>1e-9) out.push({sellDate:t.date, buyDate:null, ticker:t.ticker, raw:t.raw_symbol, provider:t.provider, qty:rem, cur,
+      income:rem*unit*(fxAt(cur,t.date)||0), cost:0, warn:true});
+  }
+  return out;
+}
+/* daňový podklad pro daný rok (staví na computeRealized) */
+function buildTaxData(year){
+  const y=String(year);
+  // varianta A: crypto se do daňového podkladu nezahrnuje (jiná daňová pravidla v ČR)
+  const taxableTx = TX.filter(t=>t.provider!=="REVOLUT_CRYPTO");
+  const sales = computeRealized(taxableTx).filter(r=>r.sellDate.slice(0,4)===y).map(r=>({
+    date:r.sellDate, buyDate:r.buyDate||"nedohledáno", ticker:r.ticker, provider:r.provider, qty:r.qty, cur:r.cur,
+    income:r.income, cost:r.cost, warn:r.warn,
+    exempt: r.buyDate ? ((new Date(r.sellDate)-new Date(r.buyDate))/(365.25*864e5))>=3 : false
+  }));
+  const divs = taxableTx.filter(t=>t.type==="DIVIDEND" && t.date.slice(0,4)===y).map(t=>{
+    const cur=txCurrency(t), fx=fxAt(cur,t.date)||0;
+    return {date:t.date, ticker:t.ticker, provider:t.provider, amount:t.total||0, cur, fx, czk:(t.total||0)*fx};
+  }).sort((a,b)=>a.date.localeCompare(b.date));
+  const tax = sales.filter(s=>!s.exempt), ex = sales.filter(s=>s.exempt);
+  const sum = a=>a.reduce((x,s)=>x+s,0);
+  const S = {
+    incomeTax: sum(tax.map(s=>s.income)), costTax: sum(tax.map(s=>s.cost)),
+    incomeEx:  sum(ex.map(s=>s.income)),
+    divCzk:    sum(divs.map(d=>d.czk)),
+    warns:     sales.some(s=>s.warn)
+  };
+  S.profit = S.incomeTax - S.costTax;
+  S.base = Math.max(0, S.profit);
+  S.under100k = S.incomeTax <= 100000;
+  return {sales, divs, S};
+}
+function taxYears(){
+  const ys=new Set();
+  for(const t of TX) if(t.type==="SELL"||t.type==="DIVIDEND") ys.add(t.date.slice(0,4));
+  return [...ys].sort().reverse();
+}
+const txF2 = n => n.toLocaleString("cs-CZ",{minimumFractionDigits:2, maximumFractionDigits:2});
+
+async function exportTaxXlsx(year){
+  await ensureXLSX();
+  const {sales,divs,S}=buildTaxData(year);
+  const wb=XLSX.utils.book_new();
+  const r2 = n=>Math.round(n*100)/100;
+  const souhrn=[
+    ["Daňový podklad za rok", Number(year)],
+    [],
+    ["PRODEJE CENNÝCH PAPÍRŮ (§10)"],
+    ["Úhrn příjmů z prodejů NEsplňujících časový test 3 let (Kč)", r2(S.incomeTax)],
+    ["Úhrn výdajů (nabývací ceny) k těmto prodejům (Kč)", r2(S.costTax)],
+    ["Zisk / ztráta (Kč)", r2(S.profit)],
+    ["Dílčí základ daně §10 (ztrátu nelze uplatnit, min. 0)", r2(S.base)],
+    ["Příjmy osvobozené časovým testem 3 let (Kč)", r2(S.incomeEx)],
+    ["Test limitu 100 000 Kč (§4/1/w)", S.under100k ? "Úhrn neosvobozených příjmů nepřekročil 100 000 Kč — příjmy jsou od daně osvobozeny" : "Limit překročen — příjmy se uvádějí v přiznání"],
+    [],
+    ["DIVIDENDY (§8)"],
+    ["Úhrn přijatých dividend (Kč)", r2(S.divCzk)],
+    [],
+    ["POZNÁMKY"],
+    ["Přepočty měn: denní kurzy ECB (Frankfurter). Pro přiznání lze použít jednotný kurz GFŘ nebo kurzy ČNB — částky se mohou mírně lišit."],
+    ["Výdaje = nabývací cena FIFO bez poplatků brokera; poplatky lze případně doplnit z výpisů."],
+    ["Dividendy XTB jsou v hrubé výši, sražená daň v zahraničí (pro zápočet) viz daňový přehled brokera. U Revolutu ověř hrubou/čistou částku ve výpisu."],
+    ["Vygenerováno aplikací Portfolio — podklad, nikoli daňové poradenství."]
+  ];
+  if(S.warns) souhrn.splice(9,0,["UPOZORNĚNÍ","U některých prodejů se nepodařilo dohledat nákup (import nepokrývá celou historii) — výdaj je 0, doplň ručně."]);
+  const prodeje=[["Datum prodeje","Datum nabytí","Titul","Broker","Ks","Měna","Příjem (Kč)","Výdaj (Kč)","Zisk/ztráta (Kč)","Časový test 3 roky"]];
+  for(const s of sales) prodeje.push([s.date, s.buyDate, s.ticker, s.provider, r2(s.qty), s.cur, r2(s.income), r2(s.cost), r2(s.income-s.cost), s.exempt?"osvobozeno":"ne"]);
+  const dividendy=[["Datum","Titul","Broker","Částka","Měna","Kurz","Kč"]];
+  for(const d of divs) dividendy.push([d.date, d.ticker, d.provider, r2(d.amount), d.cur, r2(d.fx), r2(d.czk)]);
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(souhrn), "Souhrn");
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(prodeje), "Prodeje");
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(dividendy), "Dividendy");
+  XLSX.writeFile(wb, `danovy_podklad_${year}.xlsx`);
+}
+
+function exportTaxPdf(year){
+  const {sales,divs,S}=buildTaxData(year);
+  const esc=escapeHtml;
+  const salesRows = sales.map(s=>`<tr${s.warn?' style="color:#a00"':''}><td class="l">${s.date}</td><td class="l">${esc(s.buyDate)}</td><td class="l">${esc(s.ticker)}</td><td class="l">${s.provider}</td><td>${fmtNum(s.qty,4)}</td><td>${txF2(s.income)}</td><td>${txF2(s.cost)}</td><td>${txF2(s.income-s.cost)}</td><td class="l">${s.exempt?"osvobozeno":"ne"}</td></tr>`).join("") || '<tr><td class="l" colspan="9">Žádné prodeje v tomto roce.</td></tr>';
+  const divRows = divs.map(d=>`<tr><td class="l">${d.date}</td><td class="l">${esc(d.ticker)}</td><td class="l">${d.provider}</td><td>${txF2(d.amount)} ${d.cur}</td><td>${txF2(d.fx)}</td><td>${txF2(d.czk)}</td></tr>`).join("") || '<tr><td class="l" colspan="6">Žádné dividendy v tomto roce.</td></tr>';
+  const html = `<!DOCTYPE html><html lang="cs"><head><meta charset="utf-8"><title>Daňový podklad ${year}</title>
+<style>body{font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#000;margin:28px}
+h1{font-size:18px;margin:0 0 2px} .sub{color:#555;font-size:11px;margin-bottom:16px}
+h2{font-size:14px;margin:20px 0 6px} table{border-collapse:collapse;width:100%;font-size:10.5px}
+th,td{border:1px solid #aaa;padding:3px 6px;text-align:right} th{background:#eee} .l{text-align:left}
+.sumtbl td{font-size:12px} .sumtbl td:first-child{text-align:left} .b{font-weight:bold}
+.note{font-size:9.5px;color:#444;margin-top:16px;line-height:1.5}
+@media print{ .noprint{display:none} }</style></head><body>
+<h1>Daňový podklad za rok ${year}</h1>
+<div class="sub">Prodeje cenných papírů (§10 ZDP) a dividendy (§8 ZDP) · vygenerováno ${new Date().toLocaleDateString("cs-CZ")}<br>
+<b>Kryptoměny nejsou v tomto podkladu zahrnuty</b> — v ČR podléhají jiným daňovým pravidlům, řeš je samostatně.</div>
+<h2>Souhrn</h2>
+<table class="sumtbl">
+<tr><td>Úhrn příjmů z prodejů nesplňujících časový test 3 let</td><td>${txF2(S.incomeTax)} Kč</td></tr>
+<tr><td>Úhrn výdajů (nabývací ceny, FIFO)</td><td>${txF2(S.costTax)} Kč</td></tr>
+<tr class="b"><td>Zisk / ztráta z prodejů</td><td>${txF2(S.profit)} Kč</td></tr>
+<tr class="b"><td>Dílčí základ daně §10 (min. 0)</td><td>${txF2(S.base)} Kč</td></tr>
+<tr><td>Příjmy osvobozené časovým testem 3 let</td><td>${txF2(S.incomeEx)} Kč</td></tr>
+<tr><td>Test 100 000 Kč (§4 odst. 1 písm. w)</td><td class="l" style="text-align:right">${S.under100k?"nepřekročeno — osvobozeno":"překročeno"}</td></tr>
+<tr class="b"><td>Úhrn přijatých dividend (§8)</td><td>${txF2(S.divCzk)} Kč</td></tr>
+</table>
+${S.warns?'<p style="color:#a00;font-size:11px">Upozornění: u některých prodejů nebyl v importované historii dohledán nákup — výdaj je uveden 0 Kč, doplň ručně.</p>':''}
+<h2>Prodeje (${sales.length})</h2>
+<table><tr><th class="l">Prodáno</th><th class="l">Nabyto</th><th class="l">Titul</th><th class="l">Broker</th><th>Ks</th><th>Příjem (Kč)</th><th>Výdaj (Kč)</th><th>Zisk/ztráta</th><th class="l">Časový test</th></tr>${salesRows}</table>
+<h2>Dividendy (${divs.length})</h2>
+<table><tr><th class="l">Datum</th><th class="l">Titul</th><th class="l">Broker</th><th>Částka</th><th>Kurz</th><th>Kč</th></tr>${divRows}</table>
+<p class="note">Přepočty měn denními kurzy ECB; pro přiznání lze použít jednotný kurz GFŘ nebo kurzy ČNB, částky se mohou mírně lišit. Výdaje jsou nabývací ceny metodou FIFO bez poplatků brokera. Dividendy XTB v hrubé výši — sraženou daň pro zápočet doplň z daňového přehledu brokera; u Revolutu ověř, zda výpis uvádí hrubou částku. Tento dokument je podklad, nikoli daňové poradenství.</p>
+<button class="noprint" onclick="window.print()" style="margin-top:14px;padding:8px 16px">Vytisknout / uložit jako PDF</button>
+</body></html>`;
+  const w=window.open("","_blank");
+  if(!w){ showErr("Prohlížeč zablokoval nové okno — povol pop-up pro tuhle stránku."); return; }
+  w.document.write(html); w.document.close();
+  setTimeout(()=>{ try{w.print();}catch(e){} }, 400);
+}
+
+/* ================= LOAD & INIT ================= */
+async function loadAllData(){
+  priceErrors=[]; META={}; DAILY={}; FX={}; SERIES={}; INTRA=null; EXT={};
+  if(!TX.length) return;
+  const first={};
+  for(const t of TX) if(!first[t.ticker]||t.date<first[t.ticker]) first[t.ticker]=t.date;
+  $("#loadingMsg").textContent="Stahuji ceny…";
+  await Promise.all(Object.keys(first).map(async tk=>{
+    if(tk.startsWith("!")) return; // označeno jako delistované — nestahovat
+    try{ await loadDaily(tk, first[tk]); }
+    catch(e){ priceErrors.push({ticker:tk, msg:e.message}); }
+  }));
+  // fondy, které Yahoo nevede: syntetická cenová řada z cen vlastních transakcí
+  for(const e of [...priceErrors]){
+    const txs=TX.filter(t=>t.ticker===e.ticker && t.provider==="CONSEQ" && t.price!=null && t.type!=="DIVIDEND");
+    if(!txs.length) continue;
+    const sorted=txs.slice().sort((a,b)=>a.date.localeCompare(b.date));
+    DAILY[e.ticker]={dates:sorted.map(t=>t.date), closes:sorted.map(t=>t.price)};
+    META[e.ticker]={currency: sorted[0].currency||"USD", approx:true};
+    priceErrors.splice(priceErrors.indexOf(e),1);
+  }
+  // Conseq: historie před začátkem Yahoo dat se doplní cenami z transakcí
+  for(const tk of new Set(TX.filter(t=>t.provider==="CONSEQ").map(t=>t.ticker))){
+    const d=DAILY[tk]; if(!d || !d.dates.length) continue;
+    const pre=TX.filter(t=>t.ticker===tk && t.price!=null && t.type!=="DIVIDEND" && t.date<d.dates[0])
+                .sort((a,b)=>a.date.localeCompare(b.date));
+    if(pre.length){
+      d.dates=[...pre.map(t=>t.date), ...d.dates];
+      d.closes=[...pre.map(t=>t.price), ...d.closes];
+    }
+  }
+  const curs=new Set();
+  for(const tk in META) curs.add(META[tk].currency);
+  for(const t of TX) if(t.currency) curs.add(t.currency);
+  curs.delete(CONFIG.BASE_CURRENCY);
+  $("#loadingMsg").textContent="Stahuji kurzy…";
+  const minDate=TX[0].date;
+  await Promise.all([...curs].map(c=>loadFx(c,minDate).catch(e=>priceErrors.push({ticker:c,msg:e.message}))));
+  // Crypto: Yahoo dává BTC-USD v USD. Převedeme cenovou řadu na CZK kurzem (po dnech),
+  // aby crypto pozice byla konzistentně v CZK (transakce z Revolutu jsou v CZK).
+  for(const tk of CRYPTO_TICKERS){
+    const d=DAILY[tk]; if(!d || !d.dates.length) continue;
+    d.closes=d.closes.map((c,i)=> c!=null ? c*(fxAt("USD", d.dates[i])||0) : null);
+    META[tk]=Object.assign(META[tk]||{}, {currency:"CZK", crypto:true});
+  }
+  buildCalendar();
+  if(priceErrors.length)
+    showErr("Nepodařilo se načíst data pro: "+priceErrors.map(e=>e.ticker).join(", ")+". Zkontroluj mapování tickerů v Nastavení.");
+  else $("#errBox").style.display="none";
+}
+async function refreshAll(clearPx, deferRender){
+  if(clearPx) for(const k of Object.keys(localStorage)) if(k.startsWith("px:")) localStorage.removeItem(k);
+  $("#loading").style.display="block"; $("#content").style.display="none"; $("#emptyState").style.display="none";
+  try{
+    $("#loadingMsg").textContent="Načítám transakce…";
+    TX=await loadTx();
+    if(!TX.length){ $("#loading").style.display="none"; $("#emptyState").style.display="block"; return; }
+    // automatická oprava tickerů v databázi podle vestavěného mapování
+    const mig=[...new Set(TX.map(t=>t.ticker))].filter(tk=>SYMBOL_OVERRIDES[tk] && SYMBOL_OVERRIDES[tk]!==tk);
+    if(mig.length){
+      for(const tk of mig){ await remapTicker(tk, SYMBOL_OVERRIDES[tk]); localStorage.removeItem("px:"+tk); }
+      TX=await loadTx();
+      toast("Opraveno mapování: "+mig.join(", "));
+    }
+    await loadAllData();
+    // omez výběr brokerů na ty, které mají data (po importu nového brokera apod.)
+    const avail=availableProviders();
+    const pruned=new Set([...selProvs].filter(p=>avail.has(p)));
+    selProvs = pruned.size ? pruned : new Set(avail);
+    curProv=provKey();
+    $("#loading").style.display="none"; $("#content").style.display="block";
+    updateProvTabs();
+    if(!deferRender) render();
+  }catch(e){
+    $("#loading").style.display="none";
+    showErr("Chyba: "+e.message);
+  }
+}
+
+/* ================= UDÁLOSTI ================= */
+$("#provTabs").addEventListener("click",e=>{
+  const b=e.target.closest(".tab"); if(!b || b.style.display==="none") return;
+  const p=b.dataset.prov;
+  const avail=availableProviders();
+  if(p==="ALL") selProvs=new Set(avail);
+  else if([...selProvs].filter(x=>avail.has(x)).length===avail.size) selProvs=new Set([p]); // z Celkem -> jen jeden
+  else if(selProvs.has(p)){ if([...selProvs].filter(x=>avail.has(x)).length>1) selProvs.delete(p); }
+  else selProvs.add(p);
+  curProv=provKey(); INTRA=null;
+  updateProvTabs(); render();
+});
+function availableProviders(){ return new Set(TX.map(t=>t.provider)); }
+function updateProvTabs(){
+  const avail=availableProviders();
+  const all=selProvs.size && [...selProvs].every(p=>avail.has(p)) && selProvs.size===avail.size;
+  $$("#provTabs .tab").forEach(t=>{
+    const p=t.dataset.prov;
+    if(p==="ALL"){ t.style.display = avail.size>1 ? "" : "none"; t.classList.toggle("active", all); return; }
+    if(!avail.has(p)){ t.style.display="none"; t.classList.remove("active"); return; }
+    t.style.display="";
+    t.classList.toggle("active", !all && selProvs.has(p));
+  });
+}
+$("#periodPills").addEventListener("click",e=>{
+  const b=e.target.closest(".pill"); if(!b) return;
+  $$("#periodPills .pill").forEach(t=>t.classList.remove("active")); b.classList.add("active");
+  curPeriod=b.dataset.p; render();
+});
+$("#modePills").addEventListener("click",e=>{
+  const b=e.target.closest(".pill"); if(!b) return;
+  $$("#modePills .pill").forEach(t=>t.classList.remove("active")); b.classList.add("active");
+  chartMode=b.dataset.m;
+  $("#chartLegend").style.display = chartMode==="value" ? "" : "none";
+  render();
+});
+$("#viewNav").addEventListener("click",e=>{
+  const b=e.target.closest("button"); if(!b) return;
+  $$("#viewNav button").forEach(t=>t.classList.remove("active")); b.classList.add("active");
+  renderView();
+});
+$("#v-alokace .alloc-switch").addEventListener("click",e=>{
+  const b=e.target.closest(".pill"); if(!b) return;
+  $$(".alloc-switch .pill").forEach(t=>t.classList.remove("active")); b.classList.add("active");
+  curAlloc=b.dataset.a; renderAlloc();
+});
+$("#posTable").addEventListener("click",e=>{
+  const th=e.target.closest("th[data-sort]"); if(!th) return;
+  const k=th.dataset.sort;
+  if(posSort.key===k) posSort.dir*=-1;
+  else posSort={key:k, dir: k==="ticker"?1:-1};
+  renderPositions();
+});
+$("#watchAddBtn").addEventListener("click",addWatch);
+$("#watchTabs").addEventListener("click",e=>{
+  const b=e.target.closest(".pill"); if(!b) return;
+  watchTab=b.dataset.wtab; renderWatchlist();
+});
+$("#watchInput").addEventListener("keydown",e=>{ if(e.key==="Enter") addWatch(); });
+$("#btnImport").addEventListener("click",()=>$("#fileInput").click());
+$("#fileInput").addEventListener("change",e=>{ if(e.target.files.length) handleFiles([...e.target.files]); e.target.value=""; });
+$("#impCancel").addEventListener("click",()=>$("#importModal").classList.remove("open"));
+$("#histClose").addEventListener("click",()=>$("#histModal").classList.remove("open"));
+$("#histModal").addEventListener("click",e=>{
+  const tb=e.target.closest("[data-htab]");
+  if(tb){ histState.tab=tb.dataset.htab; renderHist(); return; }
+  const pp=e.target.closest("[data-hper]");
+  if(pp){ histState.period=pp.dataset.hper; renderHist(); return; }
+  const sx=e.target.closest("[data-hspx]");
+  if(sx){ histState.spx=!histState.spx; renderHist(); return; }
+});
+$("#histModal").addEventListener("click",e=>{ if(e.target.id==="histModal") $("#histModal").classList.remove("open"); });
+$("#allocLegend").addEventListener("click",e=>{
+  const row=e.target.closest("[data-ag]"); if(!row) return;
+  const k=row.dataset.ag;
+  ALLOC_STATE.open = ALLOC_STATE.open===k ? null : k;
+  redrawAllocLegend();
+});
+$("#impConfirm").addEventListener("click",doImport);
+$("#btnRefresh").addEventListener("click", async ()=>{
+  WPX={};
+  for(const k of Object.keys(localStorage)) if(k.startsWith("wpx:")) localStorage.removeItem(k);
+  await refreshAll(true);
+  checkTargetAlerts();          // s čerstvými cenami znovu prověř cíle z watchlistu
+});
+function applyPrivacyUI(){
+  $("#btnPrivacy").classList.toggle("primary", PRIVATE);
+  $("#btnPrivacy").textContent = PRIVATE ? "🙈" : "👁";
+  $("#btnPrivacy").title = PRIVATE ? "Soukromý režim zapnut — klik zobrazí částky" : "Soukromý režim — skrýt částky";
+}
+$("#btnPrivacy").addEventListener("click",()=>{
+  PRIVATE=!PRIVATE;
+  try{ localStorage.setItem("private", PRIVATE?"1":"0"); }catch(e){}
+  applyPrivacyUI();
+  if($("#content").style.display!=="none") render();
+  const v=$$("#viewNav button").find(b=>b.classList.contains("active"));
+  if(v) renderView();
+});
+$("#btnClearCache").addEventListener("click",()=>{
+  for(const k of Object.keys(localStorage)) if(k.startsWith("px:")||k.startsWith("fx:")||k.startsWith("pe:")||k.startsWith("wpx:")) localStorage.removeItem(k);
+  WPX={};
+  toast("Cache vyčištěna."); refreshAll(false);
+});
+document.body.addEventListener("click",async e=>{
+  const tk=e.target.closest("[data-ht]");
+  if(tk){ showHistory(tk.dataset.ht, tk.dataset.hp); return; }
+  const wht=e.target.closest("[data-wht]");
+  if(wht){ const w=WATCH.find(x=>x.id===wht.dataset.wht); if(w) showWatchDetail(w); return; }
+  const wmove=e.target.closest("[data-wup]")||e.target.closest("[data-wdown]");
+  if(wmove){
+    const dir = e.target.closest("[data-wup]") ? -1 : 1;
+    const id = wmove.dataset.wup || wmove.dataset.wdown;
+    await moveWatch(id, dir);
+    return;
+  }
+  const wsh=e.target.closest("[data-wshare]");
+  if(wsh){
+    const w=WATCH.find(x=>x.id===wsh.dataset.wshare); if(!w) return;
+    const nv=!w.shared;
+    try{ await updateWatch(w.id,{shared:nv}); w.shared=nv; toast(nv?"Titul je teď sdílený.":"Sdílení zrušeno."); renderWatchlist(); }
+    catch(err){ showErr(err.message); }
+    return;
+  }
+  const wdel=e.target.closest("[data-wdel]");
+  if(wdel && confirm("Odebrat z watchlistu?")){
+    try{ await deleteWatch(wdel.dataset.wdel); WATCH=WATCH.filter(x=>x.id!==wdel.dataset.wdel); renderWatchlist(); }
+    catch(err){ showErr(err.message); }
+    return;
+  }
+  const wt=e.target.closest("[data-wtarget]");
+  if(wt){
+    const w=WATCH.find(x=>x.id===wt.dataset.wtarget); if(!w) return;
+    const cur=(META[w.ticker]&&META[w.ticker].currency)||"";
+    const inp=prompt(`Cílová cena pro ${w.ticker} (${cur}), prázdné = smazat:`, w.target!=null?w.target:"");
+    if(inp===null) return;
+    const val=inp.trim()===""?null:parseNum(inp);
+    try{ await updateWatch(w.id,{target:val}); w.target=val; renderWatchlist(); }
+    catch(err){ showErr(err.message); }
+    return;
+  }
+  const del=e.target.closest("[data-del]");
+  if(del && confirm("Smazat tuto transakci?")){
+    try{ await deleteTx(del.dataset.del); toast("Smazáno."); await refreshAll(false); }
+    catch(err){ showErr(err.message); }
+  }
+  const wipe=e.target.closest("[data-wipe]");
+  if(wipe && confirm(`Opravdu smazat všechna data ${wipe.dataset.wipe}? Akce je nevratná.`)){
+    try{ await wipeProvider(wipe.dataset.wipe); toast("Smazáno."); await refreshAll(false); }
+    catch(err){ showErr(err.message); }
+  }
+  const taxBtn=e.target.closest("[data-tax]");
+  if(taxBtn){
+    const year=$("#taxYear").value;
+    if(!year||year==="—"){ toast("Žádná data k exportu."); return; }
+    try{ taxBtn.dataset.tax==="xlsx" ? await exportTaxXlsx(year) : exportTaxPdf(year); }
+    catch(err){ showErr("Export selhal: "+err.message); }
+  }
+  const rm=e.target.closest("[data-remap]");
+  if(rm){
+    const input=rm.parentElement.querySelector("input");
+    const oldT=input.dataset.old, newT=input.value.trim().toUpperCase();
+    if(!newT||newT===oldT){ toast("Beze změny."); return; }
+    try{
+      const res=await remapTicker(oldT,newT);
+      const n=Array.isArray(res)?res.length:0;
+      localStorage.removeItem("px:"+oldT);
+      if(n>0){ toast(`${oldT} → ${newT} (${n} transakcí)`); await refreshAll(false); }
+      else toast(`Nic se nezměnilo — ticker ${oldT} nenalezen.`);
+    }catch(err){ showErr("Mapování selhalo: "+err.message); }
+  }
+});
+["dragenter","dragover"].forEach(ev=>document.addEventListener(ev,e=>{e.preventDefault(); $("#dropZone").classList.add("on");}));
+["dragleave","drop"].forEach(ev=>$("#dropZone").addEventListener(ev,e=>{e.preventDefault(); $("#dropZone").classList.remove("on");}));
+$("#dropZone").addEventListener("drop",e=>{ if(e.dataTransfer.files.length) handleFiles([...e.dataTransfer.files]); });
+let rsz; window.addEventListener("resize",()=>{ clearTimeout(rsz); rsz=setTimeout(()=>{
+  if($("#content").style.display==="none") return;
+  if(document.activeElement && document.activeElement.tagName==="INPUT") return; // needit při psaní
+  const v=$$("#viewNav button").find(b=>b.classList.contains("active"));
+  if(v && v.dataset.v==="nastaveni") return; // nastavení nepřekreslovat (rozepsané mapování)
+  render();
+},200); });
+
+/* start */
+$("#appVer").textContent=APP_VERSION;
+$("#footVer").textContent=FOOTER_VERSION;
+try{ PRIVATE = localStorage.getItem("private")==="1"; }catch(e){}
+applyPrivacyUI();
+initTheme();
+console.log("Portfolio verze", APP_VERSION, "·", FOOTER_VERSION);
+$("#footVer").style.cursor="pointer";
+$("#footVer").title="Klik = seznam změn · dvojklik = diagnostika";
+function renderChangelog(){
+  $("#changelogBody").innerHTML = CHANGELOG.map(c=>`
+    <div style="margin-bottom:14px">
+      <div style="font-weight:600; font-size:14px">${c.v} <span style="color:var(--faint); font-weight:400; font-size:12.5px">· ${c.d}</span></div>
+      <ul style="margin:6px 0 0; padding-left:18px; color:var(--muted); font-size:13.5px; line-height:1.6">
+        ${c.items.map(i=>`<li>${i}</li>`).join("")}
+      </ul>
+    </div>`).join("");
+}
+let clogTimer=null;
+$("#footVer").addEventListener("click", ()=>{
+  if(clogTimer) return;
+  clogTimer=setTimeout(()=>{
+    clogTimer=null;
+    renderChangelog();
+    $("#changelogModal").classList.add("open");
+  }, 250);
+});
+$("#changelogClose").addEventListener("click", ()=>$("#changelogModal").classList.remove("open"));
+$("#changelogModal").addEventListener("click", e=>{ if(e.target.id==="changelogModal") $("#changelogModal").classList.remove("open"); });
+$("#footVer").addEventListener("dblclick", async ()=>{
+  if(clogTimer){ clearTimeout(clogTimer); clogTimer=null; }
+  toast("Počítám diagnostiku…");
+  INTRA=null; await buildIntraday(curProv);
+  const today=todayStr(), yest=addDays(today,-1);
+  const rows=[]; let hL=0,hR=0,tT=0,tY=0;
+  for(const p of computePositions(curProv)){
+    const tk=p.ticker, g=INTRA.grids[tk];
+    let last=null; if(g){ for(let j=g.cl.length-1;j>=0;j--){ if(g.cl[j]!=null){last=g.cl[j];break;} } }
+    const prev=(g&&g.prev!=null)?g.prev:priceAt(tk,yest);
+    const dT=priceAt(tk,today), dY=priceAt(tk,yest);
+    const fxT=fxAt(p.currency,today)||0, fxY=fxAt(p.currency,yest)||0;
+    const a=p.qty*((last!=null?last:dT)||0)*fxT, b=p.qty*(prev||0)*fxY;
+    const c=p.qty*(dT||0)*fxT, d=p.qty*(dY||0)*fxY;
+    hL+=a; hR+=b; tT+=c; tY+=d;
+    rows.push({ticker:tk, ks:p.qty, intraPosledni:last, intraZaver:prev, dnesDenni:dT, vceraDenni:dY,
+      kurzDnes:fxT, kurzVcera:fxY, heroKc:Math.round(a-b), dlazdiceKc:Math.round(c-d), rozdilKc:Math.round((a-b)-(c-d))});
+  }
+  rows.sort((x,y)=>Math.abs(y.rozdilKc)-Math.abs(x.rozdilKc));
+  console.table(rows);
+  console.log("HERO zisk dnes:", Math.round(hL-hR), "Kč | DLAŽDICE Dnes:", Math.round(tT-tY), "Kč | rozdíl:", Math.round((hL-hR)-(tT-tY)), "Kč");
+  toast("Hotovo — tabulka je v konzoli (F12 → Konzole).");
+});
+
+/* ================= VZHLED (světlý/tmavý) ================= */
+function applyTheme(mode){
+  if(mode==="auto") document.documentElement.removeAttribute("data-theme");
+  else document.documentElement.setAttribute("data-theme", mode);
+  // sladit barvu lišty prohlížeče s aktuálním pozadím
+  const m=document.querySelector('meta[name="theme-color"]');
+  if(m){ const bg=getComputedStyle(document.documentElement).getPropertyValue("--bg").trim(); if(bg) m.setAttribute("content", bg); }
+}
+function initTheme(){
+  let mode="auto";
+  try{ mode=localStorage.getItem("theme")||"auto"; }catch(e){}
+  applyTheme(mode);
+  const sel=$("#setTheme"); if(sel) sel.value=mode;
+}
+function setTheme(mode){
+  try{ localStorage.setItem("theme", mode); }catch(e){}
+  applyTheme(mode);
+}
+
+/* ================= NASTAVENÍ ZOBRAZENÍ ================= */
+let SETTINGS={default_period:"1D", default_mode:"value", default_provs:"ALL"};
+// mapa skutečného množství crypto: { "BTC-USD": 0.036, "ETH-USD": 0, ... }
+function cryptoReal(){
+  try{
+    const v=SETTINGS.crypto_real;
+    if(!v) return null;
+    return typeof v==="string" ? JSON.parse(v) : v;
+  }catch(e){ return null; }
+}
+// hotovost u brokerů: { "XTB": {amount, currency, date}, ... }
+function cashCfg(){
+  try{
+    const v=SETTINGS.cash;
+    if(!v) return {};
+    return (typeof v==="string" ? JSON.parse(v) : v) || {};
+  }catch(e){ return {}; }
+}
+/* Hotovost brokera k datu d (v CZK). Vychází z ručně zadaného stavu k danému dni
+   a dál se dopočítává z obchodů (nákup ubírá, prodej přidává) a z dividend.
+   Pro dny PŘED zadaným datem vrací 0 — kolik hotovosti jsi měl dřív, nevíme. */
+function cashAt(prov, d){
+  const cfg=cashCfg();
+  const provs = prov==="ALL" ? PROVIDERS : String(prov).split("+");
+  let sum=0;
+  for(const p of provs){
+    const c=cfg[p];
+    if(!c || !c.date || !isFinite(+c.amount)) continue;
+    if(d < c.date) continue;
+    // základ přepočtený kurzem ke dni, ke kterému byl zadán
+    let bal = (+c.amount) * (fxAt(c.currency||CONFIG.BASE_CURRENCY, c.date)||1);
+    for(const t of TX){
+      if(t.provider!==p || t.date<=c.date || t.date>d) continue;
+      const fx=fxAt(txCurrency(t), t.date)||0;
+      const val=(t.total!=null?t.total:(t.quantity*(t.price||0)))*fx;
+      if(t.type==="BUY") bal-=val;
+      else bal+=val;              // SELL i DIVIDEND hotovost zvyšují
+    }
+    sum+=bal;
+  }
+  return sum;
+}
+/* dividendy vyplacené po dni zadání hotovosti (kvůli „vloženo" — dividenda není vklad) */
+function divSinceBaseline(prov, d){
+  const cfg=cashCfg();
+  const provs = prov==="ALL" ? PROVIDERS : String(prov).split("+");
+  let sum=0;
+  for(const p of provs){
+    const c=cfg[p];
+    if(!c || !c.date || !isFinite(+c.amount)) continue;
+    if(d < c.date) continue;
+    for(const t of TX){
+      if(t.provider!==p || t.type!=="DIVIDEND" || t.date<=c.date || t.date>d) continue;
+      sum += (t.total||0)*(fxAt(txCurrency(t), t.date)||0);
+    }
+  }
+  return sum;
+}
+function cashNow(prov){ return cashAt(prov, todayStr()); }
+function provOrder(){
+  let o=[];
+  try{ o=JSON.parse(SETTINGS.prov_order||"[]"); }catch(e){}
+  o=o.filter(p=>PROVIDERS.includes(p));
+  for(const p of PROVIDERS) if(!o.includes(p)) o.push(p);
+  return o;
+}
+function applyProvOrder(){
+  const wrap=$("#provTabs"); if(!wrap) return;
+  for(const p of provOrder()){
+    const b=wrap.querySelector(`[data-prov="${p}"]`);
+    if(b) wrap.appendChild(b);   // ALL zůstává první, ostatní se řadí za něj
+  }
+}
+function renderProvOrder(){
+  const avail=availableProviders();
+  const vis=provOrder().filter(p=>avail.has(p));
+  if(!vis.length){ $("#provOrderRows").innerHTML='<p style="font-size:13px; color:var(--faint)">Zatím žádní brokeři — nejdřív naimportuj transakce.</p>'; return; }
+  $("#provOrderRows").innerHTML=vis.map((p,i)=>`
+    <div class="alloc-row"><span class="badge ${p}">${PROV_SHORT[p]}</span><span>${PROV_NAME[p]}</span>
+      <span class="pct">
+        <button class="del" data-pup="${p}" ${i===0?'disabled style="opacity:.25"':''}>↑</button>
+        <button class="del" data-pdown="${p}" ${i===vis.length-1?'disabled style="opacity:.25"':''}>↓</button>
+      </span></div>`).join("");
+}
+async function moveProv(p, dir){
+  const avail=availableProviders();
+  const order=provOrder();
+  const vis=order.filter(x=>avail.has(x));
+  const i=vis.indexOf(p), j=i+dir;
+  if(i<0||j<0||j>=vis.length) return;
+  [vis[i],vis[j]]=[vis[j],vis[i]];
+  const newOrder=vis.concat(order.filter(x=>!avail.has(x)));
+  SETTINGS.prov_order=JSON.stringify(newOrder);
+  applyProvOrder(); renderProvOrder();
+  try{ await persistSetting({prov_order:SETTINGS.prov_order}); }catch(e){ showErr(e.message); }
+}
+document.addEventListener("click",e=>{
+  const up=e.target.closest("[data-pup]"), dn=e.target.closest("[data-pdown]");
+  if(up) moveProv(up.dataset.pup,-1);
+  else if(dn) moveProv(dn.dataset.pdown,1);
+});
+function fillSettingsUI(){
+  const pers=[["1D","1D"],["1T","1T"],["1M","1M"],["6M","6M"],["YTD","YTD"],["1R","1R"],["MAX","Max"]];
+  $("#setPeriod").innerHTML=pers.map(([v,l])=>`<option value="${v}">${l}</option>`).join("");
+  $("#setMode").innerHTML=`<option value="value">Hodnota</option><option value="profit">Zisk</option>`;
+  const provOpts=[["ALL","Celkem (vše)"],...PROVIDERS.map(p=>[p,PROV_NAME[p]]),["XTB+REVOLUT","XTB + Revolut"],["XTB+REVOLUT+FREEDOM24","XTB + Revolut + Freedom 24"]];
+  $("#setProvs").innerHTML=provOpts.map(([v,l])=>`<option value="${v}">${l}</option>`).join("");
+  $("#setPeriod").value=SETTINGS.default_period;
+  $("#setMode").value=SETTINGS.default_mode;
+  $("#setProvs").value=SETTINGS.default_provs;
+}
+async function persistSetting(patch){
+  Object.assign(SETTINGS, patch);
+  try{ await saveSettings(patch); toast("Nastavení uloženo."); }catch(e){ showErr("Uložení selhalo: "+e.message); }
+}
+$("#setPeriod").addEventListener("change",e=>persistSetting({default_period:e.target.value}));
+$("#setMode").addEventListener("change",e=>persistSetting({default_mode:e.target.value}));
+$("#setProvs").addEventListener("change",e=>persistSetting({default_provs:e.target.value}));
+$("#setTheme").addEventListener("change",e=>{ setTheme(e.target.value); toast("Vzhled změněn."); });
+$("#cashSave").addEventListener("click", async ()=>{
+  const map={};
+  for(const inp of $$(".cashAmt")){
+    const p=inp.dataset.p;
+    const raw=String(inp.value).replace(/\s/g,"").replace(",",".");
+    if(raw==="") continue;
+    const v=parseFloat(raw);
+    if(isNaN(v)) continue;
+    const cur=($$(".cashCur").find(s=>s.dataset.p===p)||{}).value||"CZK";
+    const dt=($$(".cashDate").find(s=>s.dataset.p===p)||{}).value||todayStr();
+    map[p]={amount:v, currency:cur, date:dt};
+  }
+  try{
+    await persistSetting({cash: JSON.stringify(map)});
+    SETTINGS.cash=JSON.stringify(map);
+    SERIES={};
+    render();
+    renderCash();
+    toast("Hotovost uložena.");
+  }catch(e){ showErr(e.message); }
+});
+$("#cryptoRealSave").addEventListener("click", async ()=>{
+  const map={};
+  for(const inp of $$(".cryptoRealInp")){
+    const tk=inp.dataset.tk;
+    const v=parseFloat(String(inp.value).replace(",","."));
+    if(!isNaN(v) && v>=0) map[tk]=v;
+  }
+  try{
+    await persistSetting({crypto_real: JSON.stringify(map)});
+    await loadAllData();
+    updateProvTabs();
+    render();
+    renderCryptoReal();
+    toast("Skutečný stav crypto uložen.");
+  }catch(e){ showErr(e.message); }
+});
+$("#adminAdd").addEventListener("click",adminAddEmail);
+$("#adminEmail").addEventListener("keydown",e=>{ if(e.key==="Enter") adminAddEmail(); });
+document.body.addEventListener("click",async e=>{
+  const ad=e.target.closest("[data-allow-del]");
+  if(ad && confirm(`Odebrat ${ad.dataset.allowDel} ze seznamu povolených?`)){
+    try{ await delAllowed(ad.dataset.allowDel); toast("Odebráno."); renderAdmin(); }
+    catch(err){ showErr(err.message); }
+  }
+});
+
+function applySettings(){
+  applyProvOrder();
+  curPeriod=SETTINGS.default_period||"1D";
+  chartMode=SETTINGS.default_mode||"value";
+  const avail=availableProviders();
+  const dp=SETTINGS.default_provs||"ALL";
+  let want = dp==="ALL" ? new Set(avail) : new Set(dp.split("+").filter(p=>avail.has(p)));
+  if(!want.size) want=new Set(avail);
+  selProvs=want;
+  curProv=provKey();
+  $$("#periodPills .pill").forEach(t=>t.classList.toggle("active", t.dataset.p===curPeriod));
+  $$("#modePills .pill").forEach(t=>t.classList.toggle("active", t.dataset.m===chartMode));
+  $("#chartLegend").style.display = chartMode==="value" ? "" : "none";
+  updateProvTabs();
+}
+
+/* ================= MINUTOVÁ AKTUALIZACE ================= */
+let liveBusy=false;
+setInterval(async ()=>{
+  if(curPeriod!=="1D" || document.hidden || liveBusy) return;
+  if($("#content").style.display==="none") return;
+  liveBusy=true;
+  try{ INTRA=null; await renderIntraday(true); }catch(e){}
+  liveBusy=false;
+}, 60000);
+
+/* ================= AUTH FLOW ================= */
+function showAuth(){ $("#authScreen").style.display="flex"; $("#appWrap").style.display="none"; }
+function showApp(){ $("#authScreen").style.display="none"; $("#appWrap").style.display="block"; }
+$("#authSend").addEventListener("click", async ()=>{
+  const email=$("#authEmail").value.trim().toLowerCase();
+  if(!email || !email.includes("@")){ $("#authErr").style.display="block"; $("#authErr").textContent="Zadej platný e-mail."; return; }
+  $("#authErr").style.display="none"; $("#authSend").disabled=true; $("#authSend").textContent="Odesílám…";
+  try{
+    await sendMagicLink(email);
+    $("#authSentEmail").textContent=email;
+    $("#authForm").style.display="none"; $("#authSent").style.display="block";
+  }catch(e){
+    $("#authErr").style.display="block";
+    $("#authErr").textContent = /not allowed|allowlist|povolených/i.test(e.message)
+      ? "Tento e-mail nemá přístup. Požádej správce o přidání na seznam." : "Chyba: "+e.message;
+  }
+  $("#authSend").disabled=false; $("#authSend").textContent="Poslat přihlašovací e-mail";
+});
+$("#authEmail").addEventListener("keydown",e=>{ if(e.key==="Enter") $("#authSend").click(); });
+$("#authBack").addEventListener("click",()=>{ $("#authForm").style.display="block"; $("#authSent").style.display="none"; });
+$("#authVerify").addEventListener("click", async ()=>{
+  const email=$("#authSentEmail").textContent.trim();
+  const token=$("#authCode").value.replace(/\D/g,"");
+  if(token.length<6){ $("#authErr").style.display="block"; $("#authErr").textContent="Zadej celý kód z e-mailu (6–8 číslic)."; return; }
+  $("#authErr").style.display="none"; $("#authVerify").disabled=true; $("#authVerify").textContent="Ověřuji…";
+  try{
+    await verifyCode(email, token);
+    boot();
+  }catch(e){
+    $("#authErr").style.display="block";
+    $("#authErr").textContent = /expired|invalid/i.test(e.message)
+      ? "Kód je neplatný nebo vypršel. Nech si poslat nový." : "Chyba: "+e.message;
+  }
+  $("#authVerify").disabled=false; $("#authVerify").textContent="Přihlásit kódem";
+});
+$("#authCode").addEventListener("keydown",e=>{ if(e.key==="Enter") $("#authVerify").click(); });
+$("#btnLogout").addEventListener("click",()=>{ if(confirm("Odhlásit se?")) logout(); });
+$("#onboardSkip").addEventListener("click",()=>$("#onboard").classList.remove("open"));
+$("#onboardImport").addEventListener("click",()=>{ $("#onboard").classList.remove("open"); $("#fileInput").click(); });
+
+async function boot(){
+  if(CONFIG.SUPABASE_URL.includes("XXX")||CONFIG.SUPABASE_ANON_KEY==="XXX"){
+    showApp(); $("#setupNotice").style.display="block"; return;
+  }
+  if(!window.supabase){ showApp(); showErr("Nepodařilo se načíst přihlašovací knihovnu (zkontroluj připojení)."); return; }
+  const sess = await currentSession();
+  // odstranit token z URL po magic-link návratu
+  if(window.location.hash.includes("access_token")) history.replaceState(null,"",window.location.pathname);
+  if(!sess){ showAuth(); return; }
+  showApp();
+  try{
+    const s=await loadSettings();
+    if(s && s.length) SETTINGS=Object.assign(SETTINGS, s[0]);
+  }catch(e){}
+  fillSettingsUI();
+  // admin?
+  try{ IS_ADMIN = await checkAdmin()===true; }catch(e){ IS_ADMIN=false; }
+  if(IS_ADMIN){ $("#adminSection").style.display="block"; renderAdmin(); }
+  await refreshAll(false, true);  // načti data; výběr brokerů aplikuj až podle nich
+  applySettings();
+  render();
+  // onboarding: žádné transakce -> uvítací overlay
+  if(!TX.length) $("#onboard").classList.add("open");
+  else checkTargetAlerts();          // watchlist: upozornění na dosažené cílové ceny
+}
+sbClient().auth.onAuthStateChange((event)=>{ if(event==="SIGNED_IN" && $("#authScreen").style.display!=="none") boot(); });
+boot();
+</script>
+</body>
+</html>

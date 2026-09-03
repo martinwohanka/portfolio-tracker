@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0E1116">
+<meta name="theme-color" content="#101315">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -13,89 +13,120 @@
 <link rel="icon" type="image/png" sizes="512x512" href="icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>/* aplikuj uložený vzhled co nejdřív, ať neproblikne tmavá */
 try{ var _t=localStorage.getItem("theme"); if(_t==="light"||_t==="dark") document.documentElement.setAttribute("data-theme",_t); }catch(e){}</script>
 <style>
 :root{
-  --bg:#0E1116; --surface:#151A22; --surface2:#1B2230; --border:#232B38;
-  --text:#E8ECF4; --muted:#8A94A6; --faint:#5A6478;
-  --green:#34D399; --red:#F87171; --accent:#6E9BFF;
-  --inv:#A78BFA; --xtb:#EF4444; --rev:#3B82F6; --csq:#EAB308; --dgr:#2DD4BF; --ibk:#EC4899; --t212:#A78BFA; --rvcr:#F97316; --f24:#22C55E;
-  --radius:12px;
+  --bg:#101315; --surface:#171B1E; --surface2:#1C2124; --border:#242A2F;
+  --line-soft:#1D2225; --chip:#1C2124;
+  --text:#EBEEF0; --muted:#98A2AA; --faint:#69737B;
+  --green:#3FCF8E; --red:#F0716B; --accent:#D9C39A; --on-accent:#171208;
+  --inv:#69737B; --xtb:#E5484D; --rev:#3987E5; --csq:#C98500; --dgr:#199E70; --ibk:#D55181; --t212:#9085E9; --rvcr:#D95926; --f24:#3FCF8E;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 28px -12px rgba(0,0,0,.65);
+  --radius:14px;
+  --font-ui:"Archivo",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --font-num:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
 }
 /* Světlá paleta — aplikuje se přes data-theme="light" (ruční volba)
    nebo přes prefers-color-scheme, když je theme="auto" (data-theme není nastaveno) */
 :root[data-theme="light"]{
-  --bg:#F4F6FA; --surface:#FFFFFF; --surface2:#EEF1F6; --border:#D9DEE8;
-  --text:#1A2030; --muted:#5A6478; --faint:#9AA3B5;
-  --green:#0EA371; --red:#DC4C53; --accent:#3B6FE0;
-  --inv:#7C5CE0; --xtb:#DC2626; --rev:#2563EB; --csq:#CA8A04; --dgr:#0D9488; --ibk:#DB2777; --t212:#7C5CE0; --rvcr:#EA580C; --f24:#16A34A;
+  --bg:#F6F4F0; --surface:#FFFFFF; --surface2:#F1EEE8; --border:#E4E0D8;
+  --line-soft:#EDEAE3; --chip:#F1EEE8;
+  --text:#16191B; --muted:#5E666D; --faint:#8B939A;
+  --green:#0E9C6B; --red:#D0453F; --accent:#8A6E3A; --on-accent:#FFFDF7;
+  --inv:#8B939A; --xtb:#D0453F; --rev:#2A78D6; --csq:#B07C00; --dgr:#1BAF7A; --ibk:#C25C86; --t212:#4A3AA7; --rvcr:#EB6834; --f24:#0E9C6B;
+  --shadow:0 1px 2px rgba(30,26,18,.06), 0 10px 30px -14px rgba(30,26,18,.22);
 }
 @media (prefers-color-scheme: light){
   :root:not([data-theme]){
-    --bg:#F4F6FA; --surface:#FFFFFF; --surface2:#EEF1F6; --border:#D9DEE8;
-    --text:#1A2030; --muted:#5A6478; --faint:#9AA3B5;
-    --green:#0EA371; --red:#DC4C53; --accent:#3B6FE0;
-    --inv:#7C5CE0; --xtb:#DC2626; --rev:#2563EB; --csq:#CA8A04; --dgr:#0D9488; --ibk:#DB2777; --t212:#7C5CE0; --rvcr:#EA580C; --f24:#16A34A;
+    --bg:#F6F4F0; --surface:#FFFFFF; --surface2:#F1EEE8; --border:#E4E0D8;
+    --line-soft:#EDEAE3; --chip:#F1EEE8;
+    --text:#16191B; --muted:#5E666D; --faint:#8B939A;
+    --green:#0E9C6B; --red:#D0453F; --accent:#8A6E3A; --on-accent:#FFFDF7;
+    --inv:#8B939A; --xtb:#D0453F; --rev:#2A78D6; --csq:#B07C00; --dgr:#1BAF7A; --ibk:#C25C86; --t212:#4A3AA7; --rvcr:#EB6834; --f24:#0E9C6B;
+    --shadow:0 1px 2px rgba(30,26,18,.06), 0 10px 30px -14px rgba(30,26,18,.22);
   }
 }
 *{box-sizing:border-box; margin:0; padding:0;}
 html{-webkit-text-size-adjust:100%;}
 body{
   background:var(--bg); color:var(--text);
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  font-family:var(--font-ui);
   font-size:15px; line-height:1.5; min-height:100vh;
   padding-bottom:max(2rem, env(safe-area-inset-bottom));
 }
-.num, h1, h2, .hero-value, .tab, .pill{font-family:"Space Grotesk",-apple-system,sans-serif; font-feature-settings:"tnum";}
+h1, h2{letter-spacing:-.02em;}
+/* čísla monospace — sloupce se srovnají pod sebe jako ve výpisu od brokera */
+.num{font-family:var(--font-num); font-variant-numeric:tabular-nums; letter-spacing:-.01em;}
 .wrap{max-width:860px; margin:0 auto; padding:0 16px;}
 
 header{display:flex; align-items:center; justify-content:space-between; padding:18px 0 6px; padding-top:calc(18px + env(safe-area-inset-top));}
-header h1{font-size:20px; font-weight:600; letter-spacing:.02em;}
+header h1{font-size:19px; font-weight:700; letter-spacing:-.02em;}
 header h1 span{color:var(--accent);}
 .hdr-actions{display:flex; gap:8px;}
 .btn{
-  background:var(--surface); border:1px solid var(--border); color:var(--text);
+  background:transparent; border:1px solid var(--border); color:var(--muted);
   border-radius:10px; padding:8px 14px; font-size:13px; cursor:pointer;
   font-family:inherit; display:inline-flex; align-items:center; gap:6px;
 }
-.btn:hover{background:var(--surface2);}
-.btn.primary{background:var(--accent); border-color:var(--accent); color:#0B1020; font-weight:600;}
-.btn.danger{color:var(--red); border-color:#3a2330;}
+.btn:hover{background:var(--surface2); color:var(--text); border-color:var(--faint);}
+.btn.primary{background:var(--text); border-color:var(--text); color:var(--bg); font-weight:600;}
+.btn.primary:hover{background:var(--text); color:var(--bg); opacity:.88;}
+.btn.danger{color:var(--red); border-color:var(--border);}
+.btn.danger:hover{color:var(--red); border-color:var(--red);}
+.btn:focus-visible, .tab:focus-visible, .pill:focus-visible, nav.views button:focus-visible{
+  outline:2px solid var(--accent); outline-offset:2px;
+}
 .btn:disabled{opacity:.5; cursor:default;}
 .btn.icon{padding:8px 10px; font-size:15px; line-height:1; justify-content:center; min-width:38px;}
 .btn.icon svg{display:block;}
 
 .tabs{display:flex; gap:6px; margin:14px 0 4px; overflow-x:auto; scrollbar-width:none;}
 .tabs::-webkit-scrollbar{display:none;}
+/* broker = tečka s názvem; vybraný má výplň a výraznější rámeček.
+   Plné barevné pilulky přebíjely zbytek obrazovky. */
 .tab{
   border:1px solid var(--border); background:transparent; color:var(--muted);
-  border-radius:999px; padding:7px 16px; font-size:13px; cursor:pointer; white-space:nowrap;
+  border-radius:999px; padding:6px 14px; font-size:12.5px; cursor:pointer; white-space:nowrap;
+  font-family:inherit; display:inline-flex; align-items:center; gap:7px;
 }
-.tab.active{background:var(--accent); border-color:var(--accent); color:#0B1020; font-weight:600;}
-.tab.xtb.active{background:var(--xtb); border-color:var(--xtb);}
-.tab.rev.active{background:var(--rev); border-color:var(--rev);}
-.tab.csq.active{background:var(--csq); border-color:var(--csq);}
-.tab.dgr.active{background:var(--dgr); border-color:var(--dgr);}
-.tab.ibk.active{background:var(--ibk); border-color:var(--ibk);}
-.tab.t212.active{background:var(--t212); border-color:var(--t212);}
-.tab.rvcr.active{background:var(--rvcr); border-color:var(--rvcr);}
-.tab.f24.active{background:var(--f24); border-color:var(--f24);}
+.tab:hover{color:var(--text);}
+.tab.active{background:var(--surface2); border-color:var(--faint); color:var(--text); font-weight:600;}
+.tab.xtb::before, .tab.rev::before, .tab.csq::before, .tab.dgr::before,
+.tab.ibk::before, .tab.t212::before, .tab.rvcr::before, .tab.f24::before{
+  content:""; width:7px; height:7px; border-radius:50%; flex:none; background:currentColor;
+}
+.tab.xtb::before{color:var(--xtb);} .tab.rev::before{color:var(--rev);}
+.tab.csq::before{color:var(--csq);} .tab.dgr::before{color:var(--dgr);}
+.tab.ibk::before{color:var(--ibk);} .tab.t212::before{color:var(--t212);}
+.tab.rvcr::before{color:var(--rvcr);} .tab.f24::before{color:var(--f24);}
 
-.hero{margin:18px 0 6px;}
-.hero-value{font-size:clamp(30px,6vw,40px); font-weight:600; letter-spacing:-.01em;}
-.hero-sub{display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; margin-top:2px; font-size:14px;}
+/* Hodnota, stav trhu a graf tvoří jedinou vyzdviženou plochu.
+   Všechno ostatní zůstává ploché — dřív měly stejnou váhu všechny bloky. */
+.panel{
+  background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+  box-shadow:var(--shadow); padding:18px 18px 10px; margin:16px 0 20px;
+}
+.hero{margin:0 0 6px;}
+.hero-value{
+  font-family:var(--font-ui); font-variant-numeric:tabular-nums;
+  font-size:clamp(32px,6vw,44px); font-weight:600; letter-spacing:-.035em; line-height:1.05;
+}
+.hero-sub{display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; margin-top:4px; font-size:14px;}
 .up{color:var(--green);} .down{color:var(--red);} .flat{color:var(--muted);}
 
-.chart-head{display:flex; align-items:center; justify-content:space-between; margin:14px 0 6px; gap:8px; flex-wrap:wrap;}
+.chart-head{display:flex; align-items:center; justify-content:space-between; margin:18px 0 6px; gap:8px; flex-wrap:wrap;}
 .pills{display:flex; gap:4px;}
+.pills{background:var(--chip); border-radius:9px; padding:2px;}
 .pill{
-  border:none; background:transparent; color:var(--faint); border-radius:8px;
-  padding:5px 11px; font-size:13px; cursor:pointer;
+  border:none; background:transparent; color:var(--muted); border-radius:7px;
+  padding:5px 10px; font-size:12.5px; cursor:pointer; font-family:inherit;
+  font-variant-numeric:tabular-nums;
 }
-.pill.active{background:var(--surface2); color:var(--text); font-weight:600;}
+.pill:hover{color:var(--text);}
+.pill.active{background:var(--surface); color:var(--text); font-weight:600; box-shadow:0 1px 2px rgba(0,0,0,.18);}
 .legend{display:flex; gap:14px; font-size:12px; color:var(--muted);}
 .legend i{display:inline-block; width:14px; height:0; border-top:2px solid var(--green); vertical-align:middle; margin-right:5px;}
 .legend i.inv{border-top-style:dashed; border-color:var(--inv);}
@@ -104,40 +135,60 @@ header h1 span{color:var(--accent);}
 #chart svg{width:100%; height:100%; display:block;}
 .chart-note{font-size:12px; color:var(--faint); text-align:center; padding:6px 0;}
 
-.cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px; margin:16px 0;}
-.card{background:var(--surface); border-radius:var(--radius); padding:12px 14px;}
-.card .lbl{font-size:12px; color:var(--muted);}
-.card .val{font-size:18px; font-weight:600; margin-top:2px;}
-.card .abs{font-size:12px; color:var(--faint); margin-top:1px;}
+/* Pás statistik oddělený vlásovými linkami — mřížka stejných karet
+   dělala ze všech údajů stejně důležitou věc. */
+.cards{
+  display:grid; grid-template-columns:repeat(6,1fr); gap:0; margin:4px 0 14px;
+  border-top:1px solid var(--border); border-bottom:1px solid var(--border);
+}
+.card{padding:13px 14px; border-left:1px solid var(--line-soft); background:transparent;}
+.card:first-child{border-left:none; padding-left:0;}
+.card:last-child{padding-right:0;}
+.card .lbl{font-size:11.5px; color:var(--faint);}
+.card .val{font-size:17px; font-weight:600; margin-top:4px; letter-spacing:-.02em;}
+.card .abs{font-size:12px; color:var(--muted); margin-top:2px;}
+.card:last-child .lbl{color:var(--accent);}
 
-.divline{font-size:13px; color:var(--muted); margin:4px 0 18px;}
-.divline b{color:var(--text); font-weight:600;}
+.divline{font-size:13px; color:var(--muted); margin:0 0 18px;}
+.divline b{color:var(--text); font-weight:500;}
 
-nav.views{display:flex; gap:2px; border-bottom:1px solid var(--border); margin:8px 0 14px; overflow-x:auto; scrollbar-width:none;}
+nav.views{display:flex; gap:22px; border-bottom:1px solid var(--border); margin:8px 0 10px; overflow-x:auto; scrollbar-width:none;}
 nav.views::-webkit-scrollbar{display:none;}
 nav.views button{
-  background:none; border:none; color:var(--muted); font-size:14px; font-family:inherit;
-  padding:9px 14px; cursor:pointer; border-bottom:2px solid transparent; white-space:nowrap;
+  background:none; border:none; color:var(--muted); font-size:13.5px; font-family:inherit;
+  padding:10px 0 11px; cursor:pointer; border-bottom:2px solid transparent; white-space:nowrap;
+  margin-bottom:-1px;
 }
+nav.views button:hover{color:var(--text);}
 nav.views button.active{color:var(--text); border-bottom-color:var(--accent); font-weight:600;}
 
 table{width:100%; border-collapse:collapse; font-size:13.5px;}
-th{font-size:12px; font-weight:500; color:var(--faint); text-align:left; padding:6px 8px; white-space:nowrap;}
+th{
+  font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase;
+  color:var(--faint); text-align:left; padding:12px 7px 8px; white-space:nowrap;
+}
 th.sortable{cursor:pointer; user-select:none;}
 th.sortable:hover{color:var(--text);}
 th.sorted{color:var(--text);}
-td{padding:9px 8px; border-top:1px solid var(--border); white-space:nowrap;}
+td{padding:10px 7px; border-top:1px solid var(--line-soft); white-space:nowrap;}
+td .num, td.num{font-size:12.5px;}
+tbody tr:hover{background:var(--chip);}
+th:first-child, td:first-child{padding-left:0;}
+th:last-child, td:last-child{padding-right:0;}
 td.r, th.r{text-align:right;}
-.badge{font-size:10.5px; font-weight:600; padding:2px 7px; border-radius:6px; vertical-align:1px; margin-left:6px;}
-.badge.XTB{background:rgba(239,68,68,.14); color:var(--xtb);}
-.badge.REVOLUT{background:rgba(59,130,246,.14); color:var(--rev);}
-.badge.CONSEQ{background:rgba(234,179,8,.14); color:var(--csq);}
-.badge.WATCH{background:rgba(110,155,255,.14); color:var(--accent);}
-.badge.DEGIRO{background:rgba(45,212,191,.14); color:var(--dgr);}
-.badge.IBKR{background:rgba(236,72,153,.14); color:var(--ibk);}
-.badge.TRADING212{background:rgba(167,139,250,.16); color:var(--t212);}
-.badge.REVOLUT_CRYPTO{background:rgba(249,115,22,.14); color:var(--rvcr);}
-.badge.FREEDOM24{background:rgba(34,197,94,.14); color:var(--f24);}
+.badge{
+  font-size:10px; font-weight:600; letter-spacing:.04em; padding:2px 7px; border-radius:5px;
+  vertical-align:1px; margin-left:6px; background:color-mix(in srgb, currentColor 14%, transparent);
+}
+.badge.XTB{color:var(--xtb);}
+.badge.REVOLUT{color:var(--rev);}
+.badge.CONSEQ{color:var(--csq);}
+.badge.WATCH{color:var(--accent);}
+.badge.DEGIRO{color:var(--dgr);}
+.badge.IBKR{color:var(--ibk);}
+.badge.TRADING212{color:var(--t212);}
+.badge.REVOLUT_CRYPTO{color:var(--rvcr);}
+.badge.FREEDOM24{color:var(--f24);}
 .tick{font-weight:600;}
 .tlogo{width:20px; height:20px; border-radius:50%; vertical-align:-5px; margin-right:7px; background:var(--surface2); object-fit:contain;}
 .tlogo-fb{display:none; width:20px; height:20px; border-radius:50%; vertical-align:-5px; margin-right:7px;
@@ -158,13 +209,18 @@ td.r, th.r{text-align:right;}
 
 .alloc{display:flex; gap:24px; align-items:center; flex-wrap:wrap; margin-top:6px;}
 .alloc-legend{flex:1; min-width:220px;}
-.alloc-row{display:flex; align-items:center; gap:8px; padding:5px 0; font-size:13.5px; border-bottom:1px solid var(--border);}
+.alloc-row{display:flex; align-items:center; gap:9px; padding:8px 0; font-size:13.5px; border-bottom:1px solid var(--line-soft);}
 .alloc-row.clickable{cursor:pointer;}
 .alloc-row.clickable:hover{background:var(--surface2);}
 .alloc-row:last-child{border-bottom:none;}
 .dot{width:10px; height:10px; border-radius:3px; flex:none;}
 .alloc-row .pct{margin-left:auto; color:var(--muted);}
-.alloc-switch{display:flex; gap:4px; margin-bottom:10px;}
+.alloc-switch{
+  display:inline-flex; gap:1px; margin-bottom:12px; flex-wrap:wrap;
+  background:var(--chip); border-radius:9px; padding:2px;
+}
+/* záložky v detailu titulu mají vlastní oddělovač, chip pod nimi by se bil */
+#histTabs{background:transparent; padding:0;}
 
 .empty{
   border:1px dashed var(--border); border-radius:var(--radius); padding:34px 20px;
@@ -179,7 +235,7 @@ td.r, th.r{text-align:right;}
 
 .modal-bg{position:fixed; inset:0; background:rgba(5,8,12,.7); display:none; align-items:center; justify-content:center; z-index:50; padding:16px;}
 .modal-bg.open{display:flex;}
-.modal{background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:20px; max-width:440px; width:100%; max-height:85vh; overflow-y:auto;}
+.modal{background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:20px; max-width:440px; width:100%; max-height:85vh; overflow-y:auto; box-shadow:var(--shadow);}
 .modal h2{font-size:17px; margin-bottom:10px;}
 .modal p{font-size:13.5px; color:var(--muted); margin:6px 0;}
 .modal .actions{display:flex; gap:8px; justify-content:flex-end; margin-top:16px;}
@@ -206,12 +262,26 @@ td.r, th.r{text-align:right;}
 @keyframes sp{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){.spin{animation:none} #toast{transition:none}}
 
+@media (max-width:760px){
+  .cards{grid-template-columns:repeat(3,1fr);}
+  .card:nth-child(4){border-left:none; padding-left:0;}
+  .card:nth-child(n+4){border-top:1px solid var(--line-soft);}
+  .card:nth-child(3){padding-right:0;}
+}
 @media (max-width:560px){
   td,th{padding-left:5px; padding-right:5px;}
+  th:first-child, td:first-child{padding-left:0;}
+  th:last-child, td:last-child{padding-right:0;}
   #posTable td:first-child, #posTable th:first-child{max-width:32vw;}
   #posTable .tick{display:inline-block; max-width:26vw; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; vertical-align:-3px;}
   .hide-m{display:none;}
+  .panel{padding:14px 14px 8px; margin:12px 0 16px;}
   .cards{grid-template-columns:repeat(2,1fr);}
+  .card{padding:11px 12px;}
+  .card:nth-child(3), .card:nth-child(5){border-left:none; padding-left:0;}
+  .card:nth-child(4), .card:nth-child(6){padding-right:0;}
+  .card:nth-child(n+3){border-top:1px solid var(--line-soft);}
+  nav.views{gap:16px;}
 }
 </style>
 </head>
@@ -280,6 +350,7 @@ td.r, th.r{text-align:right;}
 </div>
 
 <div id="content" style="display:none">
+  <div class="panel">
   <div class="hero">
     <div style="display:flex; align-items:baseline; gap:10px; flex-wrap:wrap">
       <div class="hero-value num" id="heroValue">—</div>
@@ -311,6 +382,7 @@ td.r, th.r{text-align:right;}
   </div>
   <div id="chart"></div>
   <div class="chart-note" id="chartNote"></div>
+  </div><!-- /panel -->
 
   <div class="cards" id="cards"></div>
   <div class="divline" id="divLine"></div>
@@ -550,10 +622,18 @@ td.r, th.r{text-align:right;}
 <script>
 /* ================= KONFIGURACE ================= */
 const APP_VERSION = "2.1 (14. 6. 2026) — administrace";
-const FOOTER_VERSION = "v2.76 · 3. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
+const FOOTER_VERSION = "v2.77 · 3. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
 
 // Seznam změn — nejnovější nahoře. Při každé úpravě appky sem přidat řádek.
 const CHANGELOG = [
+  {v:"v2.77", d:"3. 9. 2026", items:[
+    "Nový vzhled — barvu má nově jen to, co něco znamená (zisk, ztráta, brokeři, alokace), zbytek appky je klidně neutrální",
+    "Hodnota portfolia a graf tvoří jednu vyzdviženou plochu; dlaždice pod grafem jsou oddělené jemnou linkou místo mřížky karet",
+    "Bublina brokera je nově tečka s názvem, vybraný broker má výplň",
+    "Plocha v grafu ukazuje zisk — je to mezera mezi hodnotou a vloženými prostředky",
+    "Nové písmo: čísla jsou monospace, takže sloupce v tabulkách sedí pod sebou",
+    "Světlý režim na papírovém podkladu místo šedé"
+  ]},
   {v:"v2.76", d:"3. 9. 2026", items:["Prohozeno pořadí záložek — Transakce jsou teď před Alokací"]},
   {v:"v2.75", d:"21. 8. 2026", items:["Cílové ceny se hlídají z intradenních dat vč. pre-marketu a after-marketu — nečeká se na závěr trhu","Ozve se i titul, který se cíle dnes jen dotkl a zase odskočil (v okně je dnešní extrém, v tabulce bledší 🎯)","Tlačítko Aktualizovat ceny cíle prověří znovu"]},
   {v:"v2.74", d:"21. 8. 2026", items:["Po přihlášení vyskočí upozornění, když nějaký titul z watchlistu dosáhl cílové ceny","Okno se ukáže nejvýš jednou denně; když týž den dosáhne cíle další titul, ukáže se znovu"]},
@@ -1453,7 +1533,9 @@ const PROV_SHORT = {XTB:"XTB", REVOLUT:"REV", CONSEQ:"CSQ", DEGIRO:"DGR", IBKR:"
 const PROV_NAME = {XTB:"XTB", REVOLUT:"Revolut", CONSEQ:"Conseq", DEGIRO:"Degiro", IBKR:"IBKR", TRADING212:"Trading 212", REVOLUT_CRYPTO:"Revolut crypto", FREEDOM24:"Freedom 24"};
 const CUR_SYM = {USD:"$", EUR:"€", GBP:"£", CZK:"Kč", JPY:"¥", CHF:"CHF", DKK:"kr", SEK:"kr", NOK:"kr", PLN:"zł", CAD:"C$", AUD:"A$", HKD:"HK$"};
 const fmtCur = (n,cur) => PRIVATE ? MASK : (n==null ? "—" : fmtNum(n)+"\u00A0"+(CUR_SYM[cur]||cur||""));
-const PALETTE = ["#6E9BFF","#34D399","#A78BFA","#2DD4BF","#F59E0B","#F87171","#F472B6","#93C5FD","#FCD34D","#86EFAC","#C4B5FD","#5EEAD4"];
+/* Paleta alokace — ověřená na rozlišitelnost i při barvosleposti
+   (odstup sousedních dílků, kontrast vůči podkladu v obou režimech). */
+const PALETTE = ["#3987E5","#D95926","#199E70","#C98500","#D55181","#9085E9","#5F6B7A","#7BB2F0","#E08A5F","#4FB89A","#B08BD8","#8A939E"];
 
 function series(prov){ return SERIES[prov] || (SERIES[prov]=computeSeries(prov)); }
 
@@ -1555,7 +1637,7 @@ function drawDailyChart(s, fromIdx){
     const profit = s.value.slice(start).map((v,k)=>v - s.invested[start+k]);
     drawChart($("#chart"), labels, profit, {fmtX:fmt, fmtTip, refLine:0, isProfit:true});
   } else {
-    drawChart($("#chart"), labels, s.value.slice(start), {invested:s.invested.slice(start), fmtX:fmt, fmtTip});
+    drawChart($("#chart"), labels, s.value.slice(start), {invested:s.invested.slice(start), fmtX:fmt, fmtTip, fillGap:true});
   }
 }
 async function renderIntraday(silent){
@@ -1634,7 +1716,14 @@ function drawChart(el, labels, value, o){
     svg+=`<text x="${pL}" y="${y-4}" font-size="11" fill="var(--faint)" class="num">${fmtAxis(hi-(hi-lo)*g/3)}</text>`;
   }
   if(refLine!=null) svg+=`<line x1="${pL}" y1="${Y(refLine)}" x2="${W-pR}" y2="${Y(refLine)}" stroke="var(--faint)" stroke-width="1" stroke-dasharray="3,4"/>`;
-  svg+=`<path d="${path(value)} L${X(value.length-1)},${H-pB} L${X(0)},${H-pB} Z" fill="${col}" opacity="0.07"/>`;
+  // Výplň = mezera mezi hodnotou a vloženým, tedy zisk. Jen u hlavního grafu
+  // portfolia (o.fillGap) — v detailu titulu je druhou řadou index S&P 500.
+  if(invested && o.fillGap){
+    const back = invested.map((v,i)=>"L"+X(i).toFixed(1)+","+Y(v).toFixed(1)).reverse().join("");
+    svg+=`<path d="${path(value)}${back}Z" fill="${col}" opacity="0.10"/>`;
+  } else {
+    svg+=`<path d="${path(value)} L${X(value.length-1)},${H-pB} L${X(0)},${H-pB} Z" fill="${col}" opacity="0.09"/>`;
+  }
   if(invested) svg+=`<path d="${path(invested)}" fill="none" stroke="var(--inv)" stroke-width="1.5" stroke-dasharray="5,4" opacity="0.8"/>`;
   svg+=`<path d="${path(value)}" fill="none" stroke="${col}" stroke-width="2"/>`;
   if(o.markers) for(const m of o.markers)

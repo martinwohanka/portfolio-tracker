@@ -25,6 +25,8 @@ try{ var _t=localStorage.getItem("theme"); if(_t==="light"||_t==="dark") documen
   --green:#3FCF8E; --red:#F0716B; --accent:#D9C39A; --on-accent:#171208;
   --inv:#69737B; --xtb:#E5484D; --rev:#3987E5; --csq:#C98500; --dgr:#199E70; --ibk:#D55181; --t212:#9085E9; --rvcr:#D95926; --f24:#3FCF8E;
   --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 28px -12px rgba(0,0,0,.65);
+  /* jemná textura podkladu — glyfy $ a € */
+  --texture:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='210' height='210' viewBox='0 0 210 210'%3E%3Cg fill='%23fff' fill-opacity='0.019' font-family='Georgia,Times New Roman,serif'%3E%3Ctext x='14' y='30' font-size='17' transform='rotate(-12 14 30)'%3E$%3C/text%3E%3Ctext x='68' y='20' font-size='13' transform='rotate(8 68 20)'%3E€%3C/text%3E%3Ctext x='116' y='38' font-size='20' transform='rotate(-6 116 38)'%3E$%3C/text%3E%3Ctext x='168' y='24' font-size='14' transform='rotate(11 168 24)'%3E€%3C/text%3E%3Ctext x='40' y='70' font-size='14' transform='rotate(7 40 70)'%3E€%3C/text%3E%3Ctext x='92' y='84' font-size='18' transform='rotate(-9 92 84)'%3E$%3C/text%3E%3Ctext x='150' y='74' font-size='13' transform='rotate(5 150 74)'%3E$%3C/text%3E%3Ctext x='188' y='96' font-size='16' transform='rotate(-13 188 96)'%3E€%3C/text%3E%3Ctext x='20' y='116' font-size='19' transform='rotate(9 20 116)'%3E€%3C/text%3E%3Ctext x='74' y='128' font-size='13' transform='rotate(-5 74 128)'%3E$%3C/text%3E%3Ctext x='130' y='122' font-size='15' transform='rotate(12 130 122)'%3E€%3C/text%3E%3Ctext x='176' y='148' font-size='18' transform='rotate(-8 176 148)'%3E$%3C/text%3E%3Ctext x='34' y='166' font-size='14' transform='rotate(6 34 166)'%3E$%3C/text%3E%3Ctext x='86' y='178' font-size='17' transform='rotate(-11 86 178)'%3E€%3C/text%3E%3Ctext x='140' y='186' font-size='13' transform='rotate(9 140 186)'%3E$%3C/text%3E%3Ctext x='192' y='192' font-size='15' transform='rotate(-6 192 192)'%3E€%3C/text%3E%3C/g%3E%3C/svg%3E");
   --radius:14px;
   --font-ui:"Archivo",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
   --font-num:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
@@ -38,6 +40,7 @@ try{ var _t=localStorage.getItem("theme"); if(_t==="light"||_t==="dark") documen
   --green:#0E9C6B; --red:#D0453F; --accent:#8A6E3A; --on-accent:#FFFDF7;
   --inv:#8B939A; --xtb:#D0453F; --rev:#2A78D6; --csq:#B07C00; --dgr:#1BAF7A; --ibk:#C25C86; --t212:#4A3AA7; --rvcr:#EB6834; --f24:#0E9C6B;
   --shadow:0 1px 2px rgba(30,26,18,.06), 0 10px 30px -14px rgba(30,26,18,.22);
+  --texture:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='210' height='210' viewBox='0 0 210 210'%3E%3Cg fill='%23000' fill-opacity='0.026' font-family='Georgia,Times New Roman,serif'%3E%3Ctext x='14' y='30' font-size='17' transform='rotate(-12 14 30)'%3E$%3C/text%3E%3Ctext x='68' y='20' font-size='13' transform='rotate(8 68 20)'%3E€%3C/text%3E%3Ctext x='116' y='38' font-size='20' transform='rotate(-6 116 38)'%3E$%3C/text%3E%3Ctext x='168' y='24' font-size='14' transform='rotate(11 168 24)'%3E€%3C/text%3E%3Ctext x='40' y='70' font-size='14' transform='rotate(7 40 70)'%3E€%3C/text%3E%3Ctext x='92' y='84' font-size='18' transform='rotate(-9 92 84)'%3E$%3C/text%3E%3Ctext x='150' y='74' font-size='13' transform='rotate(5 150 74)'%3E$%3C/text%3E%3Ctext x='188' y='96' font-size='16' transform='rotate(-13 188 96)'%3E€%3C/text%3E%3Ctext x='20' y='116' font-size='19' transform='rotate(9 20 116)'%3E€%3C/text%3E%3Ctext x='74' y='128' font-size='13' transform='rotate(-5 74 128)'%3E$%3C/text%3E%3Ctext x='130' y='122' font-size='15' transform='rotate(12 130 122)'%3E€%3C/text%3E%3Ctext x='176' y='148' font-size='18' transform='rotate(-8 176 148)'%3E$%3C/text%3E%3Ctext x='34' y='166' font-size='14' transform='rotate(6 34 166)'%3E$%3C/text%3E%3Ctext x='86' y='178' font-size='17' transform='rotate(-11 86 178)'%3E€%3C/text%3E%3Ctext x='140' y='186' font-size='13' transform='rotate(9 140 186)'%3E$%3C/text%3E%3Ctext x='192' y='192' font-size='15' transform='rotate(-6 192 192)'%3E€%3C/text%3E%3C/g%3E%3C/svg%3E");
 }
 @media (prefers-color-scheme: light){
   :root:not([data-theme]){
@@ -47,12 +50,14 @@ try{ var _t=localStorage.getItem("theme"); if(_t==="light"||_t==="dark") documen
     --green:#0E9C6B; --red:#D0453F; --accent:#8A6E3A; --on-accent:#FFFDF7;
     --inv:#8B939A; --xtb:#D0453F; --rev:#2A78D6; --csq:#B07C00; --dgr:#1BAF7A; --ibk:#C25C86; --t212:#4A3AA7; --rvcr:#EB6834; --f24:#0E9C6B;
     --shadow:0 1px 2px rgba(30,26,18,.06), 0 10px 30px -14px rgba(30,26,18,.22);
+    --texture:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='210' height='210' viewBox='0 0 210 210'%3E%3Cg fill='%23000' fill-opacity='0.026' font-family='Georgia,Times New Roman,serif'%3E%3Ctext x='14' y='30' font-size='17' transform='rotate(-12 14 30)'%3E$%3C/text%3E%3Ctext x='68' y='20' font-size='13' transform='rotate(8 68 20)'%3E€%3C/text%3E%3Ctext x='116' y='38' font-size='20' transform='rotate(-6 116 38)'%3E$%3C/text%3E%3Ctext x='168' y='24' font-size='14' transform='rotate(11 168 24)'%3E€%3C/text%3E%3Ctext x='40' y='70' font-size='14' transform='rotate(7 40 70)'%3E€%3C/text%3E%3Ctext x='92' y='84' font-size='18' transform='rotate(-9 92 84)'%3E$%3C/text%3E%3Ctext x='150' y='74' font-size='13' transform='rotate(5 150 74)'%3E$%3C/text%3E%3Ctext x='188' y='96' font-size='16' transform='rotate(-13 188 96)'%3E€%3C/text%3E%3Ctext x='20' y='116' font-size='19' transform='rotate(9 20 116)'%3E€%3C/text%3E%3Ctext x='74' y='128' font-size='13' transform='rotate(-5 74 128)'%3E$%3C/text%3E%3Ctext x='130' y='122' font-size='15' transform='rotate(12 130 122)'%3E€%3C/text%3E%3Ctext x='176' y='148' font-size='18' transform='rotate(-8 176 148)'%3E$%3C/text%3E%3Ctext x='34' y='166' font-size='14' transform='rotate(6 34 166)'%3E$%3C/text%3E%3Ctext x='86' y='178' font-size='17' transform='rotate(-11 86 178)'%3E€%3C/text%3E%3Ctext x='140' y='186' font-size='13' transform='rotate(9 140 186)'%3E$%3C/text%3E%3Ctext x='192' y='192' font-size='15' transform='rotate(-6 192 192)'%3E€%3C/text%3E%3C/g%3E%3C/svg%3E");
   }
 }
 *{box-sizing:border-box; margin:0; padding:0;}
 html{-webkit-text-size-adjust:100%;}
 body{
-  background:var(--bg); color:var(--text);
+  background-color:var(--bg); background-image:var(--texture);
+  background-attachment:fixed; color:var(--text);
   font-family:var(--font-ui);
   font-size:15px; line-height:1.5; min-height:100vh;
   padding-bottom:max(2rem, env(safe-area-inset-bottom));
@@ -636,10 +641,11 @@ td.r, th.r{text-align:right;}
 <script>
 /* ================= KONFIGURACE ================= */
 const APP_VERSION = "2.1 (14. 6. 2026) — administrace";
-const FOOTER_VERSION = "v2.80 · 3. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
+const FOOTER_VERSION = "v2.81 · 3. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
 
 // Seznam změn — nejnovější nahoře. Při každé úpravě appky sem přidat řádek.
 const CHANGELOG = [
+  {v:"v2.81", d:"3. 9. 2026", items:["Jemná textura na pozadí s motivem dolaru a eura; panel s hodnotou, tabulky i okna zůstávají čisté"]},
   {v:"v2.80", d:"3. 9. 2026", items:["Pre-market / after-market pohyb ve sloupci Dnes je o třetinu menší než procento nad ním, aby bylo jasné, které číslo je hlavní"]},
   {v:"v2.79", d:"3. 9. 2026", items:["Odhad podle pre-market / after-market cen je vedle hodnoty portfolia výrazný — cena je o třetinu menší než hlavní částka a zmenšuje se spolu s ní; popisek a procenta zůstávají drobné"]},
   {v:"v2.78", d:"3. 9. 2026", items:["Odhad podle pre-market / after-market cen vedle hodnoty portfolia je menším písmem, ať nekonkuruje hlavní částce"]},

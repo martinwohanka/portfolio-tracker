@@ -319,8 +319,8 @@ td.r, th.r{text-align:right;}
     <button class="active" data-v="pozice">Pozice</button>
     <button data-v="watchlist">Watchlist</button>
     <button data-v="obchody">Realizované</button>
-    <button data-v="alokace">Alokace</button>
     <button data-v="transakce">Transakce</button>
+    <button data-v="alokace">Alokace</button>
     <button data-v="nastaveni">Nastavení</button>
   </nav>
 
@@ -329,6 +329,10 @@ td.r, th.r{text-align:right;}
   <section id="v-obchody" style="display:none">
     <div id="realSummary"></div>
     <div class="tbl-scroll"><table id="realTable"></table></div>
+  </section>
+
+  <section id="v-transakce" style="display:none">
+    <div class="tbl-scroll"><table id="txTable"></table></div>
   </section>
 
   <section id="v-alokace" style="display:none">
@@ -343,10 +347,6 @@ td.r, th.r{text-align:right;}
       <svg id="donut" width="190" height="190" viewBox="0 0 190 190"></svg>
       <div class="alloc-legend" id="allocLegend"></div>
     </div>
-  </section>
-
-  <section id="v-transakce" style="display:none">
-    <div class="tbl-scroll"><table id="txTable"></table></div>
   </section>
 
   <section id="v-watchlist" style="display:none">
@@ -550,10 +550,11 @@ td.r, th.r{text-align:right;}
 <script>
 /* ================= KONFIGURACE ================= */
 const APP_VERSION = "2.1 (14. 6. 2026) — administrace";
-const FOOTER_VERSION = "v2.75 · 21. 8. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
+const FOOTER_VERSION = "v2.76 · 3. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
 
 // Seznam změn — nejnovější nahoře. Při každé úpravě appky sem přidat řádek.
 const CHANGELOG = [
+  {v:"v2.76", d:"3. 9. 2026", items:["Prohozeno pořadí záložek — Transakce jsou teď před Alokací"]},
   {v:"v2.75", d:"21. 8. 2026", items:["Cílové ceny se hlídají z intradenních dat vč. pre-marketu a after-marketu — nečeká se na závěr trhu","Ozve se i titul, který se cíle dnes jen dotkl a zase odskočil (v okně je dnešní extrém, v tabulce bledší 🎯)","Tlačítko Aktualizovat ceny cíle prověří znovu"]},
   {v:"v2.74", d:"21. 8. 2026", items:["Po přihlášení vyskočí upozornění, když nějaký titul z watchlistu dosáhl cílové ceny","Okno se ukáže nejvýš jednou denně; když týž den dosáhne cíle další titul, ukáže se znovu"]},
   {v:"v2.73", d:"6. 8. 2026", items:["Vedle hodnoty portfolia se mimo obchodní hodiny ukazuje odhad podle pre-market / after-market cen"]},

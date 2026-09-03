@@ -220,8 +220,8 @@ td.r, th.r{text-align:right;}
 .tick.clickable:hover{color:var(--accent); border-bottom-color:var(--accent);}
 .sub{font-size:11.5px; color:var(--faint); font-weight:400;}
 .sub.up{color:var(--green);} .sub.down{color:var(--red);}
-/* pre/after-market pohyb ve sloupci Dnes — o třetinu menší než číslo nad ním */
-.sub.ext{font-size:calc(var(--cell-num) * .667); line-height:1.35;}
+/* pre/after-market pohyb ve sloupci Dnes — menší než číslo nad ním, ale čitelný */
+.sub.ext{font-size:calc(var(--cell-num) * .8); line-height:1.35;}
 .tbl-scroll{overflow-x:auto; -webkit-overflow-scrolling:touch;}
 .del{background:none; border:none; color:var(--faint); cursor:pointer; font-size:15px; padding:2px 6px;}
 .del:hover{color:var(--red);}
@@ -641,10 +641,11 @@ td.r, th.r{text-align:right;}
 <script>
 /* ================= KONFIGURACE ================= */
 const APP_VERSION = "2.1 (14. 6. 2026) — administrace";
-const FOOTER_VERSION = "v2.82 · 3. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
+const FOOTER_VERSION = "v2.83 · 3. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
 
 // Seznam změn — nejnovější nahoře. Při každé úpravě appky sem přidat řádek.
 const CHANGELOG = [
+  {v:"v2.83", d:"3. 9. 2026", items:["Pre-market / after-market pohyb v seznamu akcií je o něco větší — předtím byl na hranici čitelnosti"]},
   {v:"v2.82", d:"3. 9. 2026", items:["Textura na pozadí je výrazněji vidět — v minulé verzi byla tak slabá, že se prakticky neprojevila"]},
   {v:"v2.81", d:"3. 9. 2026", items:["Jemná textura na pozadí s motivem dolaru a eura; panel s hodnotou, tabulky i okna zůstávají čisté"]},
   {v:"v2.80", d:"3. 9. 2026", items:["Pre-market / after-market pohyb ve sloupci Dnes je o třetinu menší než procento nad ním, aby bylo jasné, které číslo je hlavní"]},

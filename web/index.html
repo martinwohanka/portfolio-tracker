@@ -561,7 +561,7 @@ td.r, th.r{text-align:right;}
   <span class="spin"></span>&ensp;<span id="loadingMsg">Načítám…</span>
 </div>
 
-<footer style="text-align:center; padding:28px 0 8px; font-family:'Space Grotesk',monospace; font-size:13px; color:var(--faint)">
+<footer style="text-align:center; padding:28px 0 8px; font-family:var(--font-ui); font-size:12px; color:var(--faint)">
   vyrobil <span style="color:var(--accent)">Martin Wohanka</span> · <span id="footVer"></span>
 </footer>
 
@@ -652,10 +652,11 @@ td.r, th.r{text-align:right;}
 <script>
 /* ================= KONFIGURACE ================= */
 const APP_VERSION = "2.1 (14. 6. 2026) — administrace";
-const FOOTER_VERSION = "v2.84 · 3. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
+const FOOTER_VERSION = "v2.85 · 3. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
 
 // Seznam změn — nejnovější nahoře. Při každé úpravě appky sem přidat řádek.
 const CHANGELOG = [
+  {v:"v2.85", d:"3. 9. 2026", items:["Patička se na mobilu vejde na jeden řádek — menší písmo a oprava, kdy se kvůli zbytku po změně vzhledu vykreslovala strojopisem"]},
   {v:"v2.84", d:"3. 9. 2026", items:["Brokera u titulu v seznamech označuje barevná tečka místo textového odznaku — stejná barva jako bublina brokera nad grafem","Kde odznak stojí samostatně (nastavení hotovosti, nadpis detailu titulu, pořadí brokerů), zůstává text"]},
   {v:"v2.83", d:"3. 9. 2026", items:["Pre-market / after-market pohyb v seznamu akcií je o něco větší — předtím byl na hranici čitelnosti"]},
   {v:"v2.82", d:"3. 9. 2026", items:["Textura na pozadí je výrazněji vidět — v minulé verzi byla tak slabá, že se prakticky neprojevila"]},

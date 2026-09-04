@@ -206,6 +206,17 @@ td.r, th.r{text-align:right;}
 .badge.TRADING212{color:var(--t212);}
 .badge.REVOLUT_CRYPTO{color:var(--rvcr);}
 .badge.FREEDOM24{color:var(--f24);}
+/* Barevná tečka brokera v seznamech — legendu tvoří bubliny brokerů nad grafem.
+   Tam, kde odznak stojí samostatně jako popisek (nastavení, nadpis detailu),
+   zůstává text, jinak by nešlo poznat, o kterého brokera jde. */
+.bmark{
+  display:inline-block; width:7px; height:7px; border-radius:50%; flex:none;
+  margin-left:7px; vertical-align:1px; background:currentColor;
+}
+.bmark.XTB{color:var(--xtb);} .bmark.REVOLUT{color:var(--rev);}
+.bmark.CONSEQ{color:var(--csq);} .bmark.DEGIRO{color:var(--dgr);}
+.bmark.IBKR{color:var(--ibk);} .bmark.TRADING212{color:var(--t212);}
+.bmark.REVOLUT_CRYPTO{color:var(--rvcr);} .bmark.FREEDOM24{color:var(--f24);}
 .tick{font-weight:600;}
 .tlogo{width:20px; height:20px; border-radius:50%; vertical-align:-5px; margin-right:7px; background:var(--surface2); object-fit:contain;}
 .tlogo-fb{display:none; width:20px; height:20px; border-radius:50%; vertical-align:-5px; margin-right:7px;
@@ -641,10 +652,11 @@ td.r, th.r{text-align:right;}
 <script>
 /* ================= KONFIGURACE ================= */
 const APP_VERSION = "2.1 (14. 6. 2026) — administrace";
-const FOOTER_VERSION = "v2.83 · 3. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
+const FOOTER_VERSION = "v2.84 · 3. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
 
 // Seznam změn — nejnovější nahoře. Při každé úpravě appky sem přidat řádek.
 const CHANGELOG = [
+  {v:"v2.84", d:"3. 9. 2026", items:["Brokera u titulu v seznamech označuje barevná tečka místo textového odznaku — stejná barva jako bublina brokera nad grafem","Kde odznak stojí samostatně (nastavení hotovosti, nadpis detailu titulu, pořadí brokerů), zůstává text"]},
   {v:"v2.83", d:"3. 9. 2026", items:["Pre-market / after-market pohyb v seznamu akcií je o něco větší — předtím byl na hranici čitelnosti"]},
   {v:"v2.82", d:"3. 9. 2026", items:["Textura na pozadí je výrazněji vidět — v minulé verzi byla tak slabá, že se prakticky neprojevila"]},
   {v:"v2.81", d:"3. 9. 2026", items:["Jemná textura na pozadí s motivem dolaru a eura; panel s hodnotou, tabulky i okna zůstávají čisté"]},
@@ -1556,6 +1568,8 @@ function periodDays(p){ return p==="YTD" ? ytdDays() : PERIOD_DAYS[p]; }
 let chartMode = "value"; // value | profit
 const PROV_SHORT = {XTB:"XTB", REVOLUT:"REV", CONSEQ:"CSQ", DEGIRO:"DGR", IBKR:"IBKR", TRADING212:"T212", REVOLUT_CRYPTO:"CRYPTO", FREEDOM24:"F24"};
 const PROV_NAME = {XTB:"XTB", REVOLUT:"Revolut", CONSEQ:"Conseq", DEGIRO:"Degiro", IBKR:"IBKR", TRADING212:"Trading 212", REVOLUT_CRYPTO:"Revolut crypto", FREEDOM24:"Freedom 24"};
+/* značka brokera u titulu v seznamu — barevná tečka místo textového odznaku */
+const provDot = p => `<span class="bmark ${p}" title="${PROV_NAME[p]||p}" aria-label="${PROV_NAME[p]||p}"></span>`;
 const CUR_SYM = {USD:"$", EUR:"€", GBP:"£", CZK:"Kč", JPY:"¥", CHF:"CHF", DKK:"kr", SEK:"kr", NOK:"kr", PLN:"zł", CAD:"C$", AUD:"A$", HKD:"HK$"};
 const fmtCur = (n,cur) => PRIVATE ? MASK : (n==null ? "—" : fmtNum(n)+"\u00A0"+(CUR_SYM[cur]||cur||""));
 /* Paleta alokace — ověřená na rozlišitelnost i při barvosleposti
@@ -1904,7 +1918,7 @@ function renderPositions(){
     return `<th class="${c} sortable${active?" sorted":""}" data-sort="${k}">${lbl}${active?(dir===1?" ↑":" ↓"):""}</th>`;
   }).join("")+"</tr>";
   for(const p of pos){
-    const badge = (curProv==="ALL"||curProv.includes("+")) ? `<span class="badge ${p.provider}">${PROV_SHORT[p.provider]}</span>` : "";
+    const badge = (curProv==="ALL"||curProv.includes("+")) ? provDot(p.provider) : "";
     h+=`<tr>
       <td><div class="trow">${logoHtml(p.ticker,"row")}<div class="tcol"><span class="tick clickable" data-ht="${escapeHtml(p.ticker)}" data-hp="${p.provider}" title="${escapeHtml(p.raw||p.ticker)} — zobrazit transakce">${escapeHtml(dispName(p))}</span>${badge}<div class="sub">${p.currency}</div></div></div></td>
       <td class="r num">${fmtNum(p.qty,4)}</td>
@@ -2052,7 +2066,7 @@ function redrawAllocLegend(){
     if(open===k && has){
       const rows=detail[k].slice().sort((a,b)=>b.val-a.val).map(d=>
         `<div class="alloc-row" style="padding-left:26px; font-size:12.5px; color:var(--muted)">
-          <span style="display:flex; align-items:center; gap:0">${logoHtml(d.tk)}${escapeHtml(d.name)}<span class="badge ${d.prov}" style="margin-left:6px">${PROV_SHORT[d.prov]}</span></span>
+          <span style="display:flex; align-items:center; gap:0">${logoHtml(d.tk)}${escapeHtml(d.name)}${provDot(d.prov)}</span>
           <span class="pct num">${fmtKc(d.val)} · ${fmtNum(v>0?d.val/v*100:0,1)} %</span></div>`).join("");
       row+=rows;
     }
@@ -2069,7 +2083,7 @@ function renderTxTable(){
     const cur=txCurrency(t);
     h+=`<tr>
       <td class="num">${t.date.split("-").reverse().join(". ")}</td>
-      <td class="${c}">${lbl}<span class="badge ${t.provider}">${PROV_SHORT[t.provider]}</span></td>
+      <td class="${c}">${lbl}${provDot(t.provider)}</td>
       <td class="tick">${escapeHtml(t.ticker)}</td>
       <td class="r num">${t.quantity?fmtNum(t.quantity,4):"—"}</td>
       <td class="r num hide-m">${t.price!=null?fmtNum(t.price):"—"}</td>
@@ -2423,7 +2437,7 @@ function renderRealized(){
     const name = t.provider==="CONSEQ"&&t.raw ? (t.raw.length>20?t.raw.slice(0,19)+"…":t.raw) : t.ticker;
     h+=`<tr${t.warn?' title="K části prodeje chybí nákup v importované historii — zisk může být nepřesný"':''}>
       <td class="num">${t.sellDate.split("-").reverse().join(". ")}</td>
-      <td><span class="tick clickable" data-ht="${escapeHtml(t.ticker)}" data-hp="${t.provider}">${escapeHtml(name)}</span>${multi?`<span class="badge ${t.provider}">${PROV_SHORT[t.provider]}</span>`:""}${t.warn?' <span style="color:var(--csq)" title="chybí část nákupní historie">⚠</span>':""}</td>
+      <td><span class="tick clickable" data-ht="${escapeHtml(t.ticker)}" data-hp="${t.provider}">${escapeHtml(name)}</span>${multi?provDot(t.provider):""}${t.warn?' <span style="color:var(--csq)" title="chybí část nákupní historie">⚠</span>':""}</td>
       <td class="r num">${fmtNum(t.qty,4)}</td>
       <td class="r num hide-m">${fmtHeld(t.held)}</td>
       <td class="r num ${cls(t.profit)}">${fmtSign(t.profit)}</td>

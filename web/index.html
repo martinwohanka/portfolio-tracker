@@ -197,6 +197,20 @@ td.r, th.r{text-align:right;}
    nimi skryté). Bez výrazné mezery splývaly v jedno číslo — „30 211 737 Kč".
    Odstup musí být znatelně větší než mezera mezi trojicemi číslic uvnitř částky. */
 #posTable th:nth-child(2), #posTable td:nth-child(2){padding-right:26px;}
+@media (max-width:560px){
+  /* Na mobilu se musí vejít i sloupce Dnes a P/L, jinak by je člověk
+     musel odscrollovat. Odstup Ks/Hodnota zůstává násobkem mezery
+     mezi trojicemi číslic, jen se nerozhazuje zbytečným místem. */
+  #posTable th:nth-child(2), #posTable td:nth-child(2){padding-right:12px;}
+  #posTable td, #posTable th{padding-left:4px; padding-right:4px;}
+  #posTable th:first-child, #posTable td:first-child{padding-left:0;}
+  #posTable th:last-child, #posTable td:last-child{padding-right:0;}
+  #posTable td .num, #posTable td.num{font-size:11.8px;}
+  #posTable .trow{gap:8px;}
+  #posTable .tlogo.row, #posTable .tlogo-fb.row{width:26px; height:26px;}
+  #posTable .tlogo-fb.row{line-height:26px; font-size:10.5px;}
+  #posTable .bmark{margin-left:6px;}
+}
 .badge{
   font-size:10px; font-weight:600; letter-spacing:.04em; padding:2px 7px; border-radius:5px;
   vertical-align:1px; margin-left:6px; background:color-mix(in srgb, currentColor 14%, transparent);
@@ -235,8 +249,13 @@ td.r, th.r{text-align:right;}
 .tick.clickable:hover{color:var(--accent); border-bottom-color:var(--accent);}
 .sub{font-size:11.5px; color:var(--faint); font-weight:400;}
 .sub.up{color:var(--green);} .sub.down{color:var(--red);}
-/* pre/after-market pohyb ve sloupci Dnes — menší než číslo nad ním, ale čitelný */
-.sub.ext{font-size:calc(var(--cell-num) * .8); line-height:1.35;}
+/* pre/after-market pohyb ve sloupci Dnes — menší než číslo nad ním, ale čitelný.
+   Je to poznámka pod číslem, ne sloupec k porovnávání, takže proporcionální
+   písmo místo strojopisu: čte se stejně a ušetří ve sloupci ~15 px šířky. */
+.sub.ext{
+  font-size:calc(var(--cell-num) * .8); line-height:1.35;
+  font-family:var(--font-ui); font-variant-numeric:tabular-nums;
+}
 .tbl-scroll{overflow-x:auto; -webkit-overflow-scrolling:touch;}
 .del{background:none; border:none; color:var(--faint); cursor:pointer; font-size:15px; padding:2px 6px;}
 .del:hover{color:var(--red);}
@@ -656,10 +675,11 @@ td.r, th.r{text-align:right;}
 <script>
 /* ================= KONFIGURACE ================= */
 const APP_VERSION = "2.1 (14. 6. 2026) — administrace";
-const FOOTER_VERSION = "v2.86 · 3. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
+const FOOTER_VERSION = "v2.87 · 5. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
 
 // Seznam změn — nejnovější nahoře. Při každé úpravě appky sem přidat řádek.
 const CHANGELOG = [
+  {v:"v2.87", d:"5. 9. 2026", items:["Na mobilu je v pozicích vidět celý sloupec Dnes i P/L bez posouvání doleva — menší logo, úspornější odsazení a o kousek menší čísla","Pořadí sloupců zůstává stejné"]},
   {v:"v2.86", d:"3. 9. 2026", items:["Větší mezera mezi sloupci Ks a Hodnota — na mobilu se dosud četly jako jedno číslo (např. „30 211 737 Kč“)"]},
   {v:"v2.85", d:"3. 9. 2026", items:["Patička se na mobilu vejde na jeden řádek — menší písmo a oprava, kdy se kvůli zbytku po změně vzhledu vykreslovala strojopisem"]},
   {v:"v2.84", d:"3. 9. 2026", items:["Brokera u titulu v seznamech označuje barevná tečka místo textového odznaku — stejná barva jako bublina brokera nad grafem","Kde odznak stojí samostatně (nastavení hotovosti, nadpis detailu titulu, pořadí brokerů), zůstává text"]},

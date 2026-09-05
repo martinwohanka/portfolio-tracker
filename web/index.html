@@ -193,6 +193,10 @@ tbody tr:hover{background:var(--chip);}
 th:first-child, td:first-child{padding-left:0;}
 th:last-child, td:last-child{padding-right:0;}
 td.r, th.r{text-align:right;}
+/* Ks a Hodnota jsou dva sousední sloupce čísel (na mobilu jsou sloupce mezi
+   nimi skryté). Bez výrazné mezery splývaly v jedno číslo — „30 211 737 Kč".
+   Odstup musí být znatelně větší než mezera mezi trojicemi číslic uvnitř částky. */
+#posTable th:nth-child(2), #posTable td:nth-child(2){padding-right:26px;}
 .badge{
   font-size:10px; font-weight:600; letter-spacing:.04em; padding:2px 7px; border-radius:5px;
   vertical-align:1px; margin-left:6px; background:color-mix(in srgb, currentColor 14%, transparent);
@@ -652,10 +656,11 @@ td.r, th.r{text-align:right;}
 <script>
 /* ================= KONFIGURACE ================= */
 const APP_VERSION = "2.1 (14. 6. 2026) — administrace";
-const FOOTER_VERSION = "v2.85 · 3. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
+const FOOTER_VERSION = "v2.86 · 3. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
 
 // Seznam změn — nejnovější nahoře. Při každé úpravě appky sem přidat řádek.
 const CHANGELOG = [
+  {v:"v2.86", d:"3. 9. 2026", items:["Větší mezera mezi sloupci Ks a Hodnota — na mobilu se dosud četly jako jedno číslo (např. „30 211 737 Kč“)"]},
   {v:"v2.85", d:"3. 9. 2026", items:["Patička se na mobilu vejde na jeden řádek — menší písmo a oprava, kdy se kvůli zbytku po změně vzhledu vykreslovala strojopisem"]},
   {v:"v2.84", d:"3. 9. 2026", items:["Brokera u titulu v seznamech označuje barevná tečka místo textového odznaku — stejná barva jako bublina brokera nad grafem","Kde odznak stojí samostatně (nastavení hotovosti, nadpis detailu titulu, pořadí brokerů), zůstává text"]},
   {v:"v2.83", d:"3. 9. 2026", items:["Pre-market / after-market pohyb v seznamu akcií je o něco větší — předtím byl na hranici čitelnosti"]},

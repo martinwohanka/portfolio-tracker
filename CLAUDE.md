@@ -26,3 +26,17 @@ Změny, které se uživatele appky netýkají (úpravy `README.md`, `CLAUDE.md`,
 CI/FTP workflow, `scripts/kontrola.mjs` apod.), do changelogu nepatří.
 
 Před commitem vždy spustit `node scripts/kontrola.mjs`.
+
+## Kontrola po každé změně
+
+Po nasazení každé změny `web/index.html` je potřeba:
+
+1. **Ověřit na ostrém webu** — `https://portfolio.wohanka.online` musí opravdu
+   servírovat novou verzi (zkontrolovat `FOOTER_VERSION` a konkrétní změnu
+   v HTML). Hosting má edge cache na 5 minut, takže je nutný cache-busting
+   parametr, např. `curl -s "https://portfolio.wohanka.online/?v=$(date +%s%N)"`.
+   Úspěšný běh GitHub Actions sám o sobě nestačí.
+2. **Zkontrolovat zobrazení na mobilu** — appku používám hlavně na iPhonu.
+   Ověřovat na šířkách 390 px (běžný iPhone) a 430 px (Pro Max), a to
+   v tmavém i světlém režimu. Nic se nesmí ořezávat ani vodorovně scrollovat.
+   Na kontrolu se hodí Playwright (Chromium je v prostředí předinstalovaný).

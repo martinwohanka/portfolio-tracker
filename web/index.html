@@ -131,12 +131,27 @@ header h1 span{color:var(--accent);}
   letter-spacing:-.03em; line-height:1.05; white-space:nowrap;
 }
 #heroExt .ext-delta{white-space:nowrap;}
-/* trh zavřený (víkend, svátek) — tichá poznámka na místě odhadu */
-#heroExt .ext-closed{display:inline-flex; align-items:center; gap:7px; color:var(--faint);}
-#heroExt .ext-closed::before{
-  content:""; width:6px; height:6px; border-radius:50%; flex:none;
-  background:var(--faint);
+/* zavřené trhy — odznak u hodnoty portfolia + plovoucí okénko s důvodem */
+#heroMkt{position:relative; display:inline-flex; font-size:12px;}
+.mkt-chip{
+  font-family:inherit; font-size:12px; color:var(--faint); cursor:pointer;
+  background:transparent; border:1px solid var(--border); border-radius:999px;
+  padding:3px 10px; display:inline-flex; align-items:center; gap:6px; white-space:nowrap;
 }
+.mkt-chip::before{content:""; width:6px; height:6px; border-radius:50%; background:var(--faint); flex:none;}
+.mkt-chip:hover{color:var(--text); border-color:var(--faint);}
+.mkt-chip:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+.mkt-pop{
+  position:absolute; top:calc(100% + 8px); left:0; z-index:20;
+  background:var(--surface); border:1px solid var(--border); border-radius:12px;
+  box-shadow:var(--shadow); padding:11px 13px; min-width:215px; max-width:min(290px,78vw);
+  display:flex; flex-direction:column; gap:7px; font-size:12px; white-space:normal;
+}
+.mkt-pop[hidden]{display:none;}
+.mkt-row{display:flex; justify-content:space-between; gap:16px; align-items:baseline;}
+.mkt-row b{font-weight:600; color:var(--text);}
+.mkt-row > span{color:var(--muted); white-space:nowrap;}
+.mkt-note{color:var(--faint); border-top:1px solid var(--line-soft); padding-top:8px; line-height:1.45;}
 .up{color:var(--green);} .down{color:var(--red);} .flat{color:var(--muted);}
 
 .chart-head{display:flex; align-items:center; justify-content:space-between; margin:18px 0 6px; gap:8px; flex-wrap:wrap;}
@@ -414,6 +429,7 @@ td.r, th.r{text-align:right;}
     <div style="display:flex; align-items:baseline; gap:10px; flex-wrap:wrap">
       <div class="hero-value num" id="heroValue">—</div>
       <span id="heroExt"></span>
+      <span id="heroMkt"></span>
     </div>
     <div class="hero-sub">
       <span class="num" id="heroChange"></span>
@@ -681,10 +697,11 @@ td.r, th.r{text-align:right;}
 <script>
 /* ================= KONFIGURACE ================= */
 const APP_VERSION = "2.1 (14. 6. 2026) — administrace";
-const FOOTER_VERSION = "v2.88 · 7. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
+const FOOTER_VERSION = "v2.89 · 7. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
 
 // Seznam změn — nejnovější nahoře. Při každé úpravě appky sem přidat řádek.
 const CHANGELOG = [
+  {v:"v2.89", d:"7. 9. 2026", items:["Zavřené trhy se hlásí po jednotlivých burzách — u hodnoty portfolia se objeví odznak a po klepnutí okénko s tím, která burza je zavřená a proč (např. Americké burzy — Labor Day)","Hláška přijde i tehdy, když je zavřeno jen v USA a evropské burzy obchodují"]},
   {v:"v2.88", d:"7. 9. 2026", items:["Když je trh zavřený (víkend nebo svátek), ukáže se u hodnoty portfolia tichá poznámka „trh zavřený“ — dřív odhad podle pre/after-market cen jen zmizel bez vysvětlení","Poznámka se neukáže, když se ceny jen nepodařilo stáhnout, ani když evropské burzy obchodují a zavřeno je jen v USA"]},
   {v:"v2.87", d:"5. 9. 2026", items:["Na mobilu je v pozicích vidět celý sloupec Dnes i P/L bez posouvání doleva — menší logo, úspornější odsazení a o kousek menší čísla","Pořadí sloupců zůstává stejné"]},
   {v:"v2.86", d:"3. 9. 2026", items:["Větší mezera mezi sloupci Ks a Hodnota — na mobilu se dosud četly jako jedno číslo (např. „30 211 737 Kč“)"]},
@@ -1598,15 +1615,135 @@ async function buildIntraday(prov){
   return points;
 }
 
-/* Trh zavřený = u všech držených titulů dnešní seance neproběhla.
-   Krypto se nepočítá (obchoduje se nonstop) a titul, u kterého selhalo
-   stažení dat, taky ne — jinak by appka po výpadku sítě tvrdila, že je zavřeno.
-   Na americký svátek tak hlášku nedostane ten, kdo drží evropské tituly. */
-function marketClosed(prov){
-  if(!INTRA || INTRA.prov!==prov || !INTRA.closed) return false;
-  const tks=[...new Set(computePositions(prov).map(p=>p.ticker))]
-    .filter(tk => !((META[tk]&&META[tk].crypto) || CRYPTO_TICKERS.has(tk)));
-  return tks.length>0 && tks.every(tk => INTRA.closed.has(tk));
+/* ===== Zavřené trhy =====
+   Burzu určujeme z přípony tickeru, ne z Yahoo metadat: zavřená burza vrací
+   odpověď bez exchangeName, tedy přesně tehdy, kdy bychom údaj potřebovali. */
+const MARKETS = {
+  "":   {label:"Americké burzy", hol:"US"},
+  "PR": {label:"Burza Praha",    hol:"CZ"},
+  "DE": {label:"Xetra",          hol:"DE"},
+  "F":  {label:"Frankfurt",      hol:"DE"},
+  "L":  {label:"Burza Londýn",   hol:"UK"},
+  "AS": {label:"Euronext Amsterdam"}, "PA": {label:"Euronext Paříž"},
+  "BR": {label:"Euronext Brusel"},    "LS": {label:"Euronext Lisabon"},
+  "MI": {label:"Burza Milán"},        "MC": {label:"Burza Madrid"},
+  "VI": {label:"Burza Vídeň"},        "SW": {label:"Burza Švýcarsko"},
+  "ST": {label:"Burza Stockholm"},    "HE": {label:"Burza Helsinky"},
+  "CO": {label:"Burza Kodaň"},        "OL": {label:"Burza Oslo"},
+  "WA": {label:"Burza Varšava"},      "BD": {label:"Burza Budapešť"},
+  "TO": {label:"Burza Toronto"},      "HK": {label:"Burza Hongkong"},
+  "T":  {label:"Burza Tokio"},        "AX": {label:"Burza Sydney"},
+};
+function marketOf(tk){
+  const m = String(tk).match(/\.([A-Za-z]+)$/);
+  const sfx = m ? m[1].toUpperCase() : "";
+  return MARKETS[sfx] ? sfx : (sfx ? null : "");   // neznámá přípona -> nehlásíme
+}
+/* Velikonoce (Gaussův/anonymní gregoriánský algoritmus) — kvůli Velkému pátku */
+function easterSunday(y){
+  const a=y%19, b=Math.floor(y/100), c=y%100, d=Math.floor(b/4), e=b%4,
+        f=Math.floor((b+8)/25), g=Math.floor((b-f+1)/3), h=(19*a+b-d-g+15)%30,
+        i=Math.floor(c/4), k=c%4, l=(32+2*e+2*i-h-k)%7,
+        m=Math.floor((a+11*h+22*l)/451),
+        mo=Math.floor((h+l-7*m+114)/31), da=((h+l-7*m+114)%31)+1;
+  return new Date(Date.UTC(y, mo-1, da));
+}
+const iso = d => d.toISOString().slice(0,10);
+const shift = (d,n) => new Date(d.getTime()+n*864e5);
+/* n-tý daný den v týdnu v měsíci (m je 0-based), resp. poslední */
+function nthDow(y,m,dow,n){
+  const first=new Date(Date.UTC(y,m,1));
+  return new Date(Date.UTC(y,m,1+((dow-first.getUTCDay()+7)%7)+(n-1)*7));
+}
+function lastDow(y,m,dow){
+  const last=new Date(Date.UTC(y,m+1,0));
+  return new Date(Date.UTC(y,m,last.getUTCDate()-((last.getUTCDay()-dow+7)%7)));
+}
+/* Americké burzy posouvají svátek padnoucí na víkend (so -> pá, ne -> po) */
+function usObserved(d){
+  const w=d.getUTCDay();
+  return w===6 ? shift(d,-1) : w===0 ? shift(d,1) : d;
+}
+function holidayTable(kod, y){
+  const t={}, E=easterSunday(y);
+  const put=(d,n)=>{ t[iso(d)]=n; };
+  if(kod==="US"){
+    put(usObserved(new Date(Date.UTC(y,0,1))), "Nový rok");
+    put(nthDow(y,0,1,3), "Den Martina Luthera Kinga");
+    put(nthDow(y,1,1,3), "Den prezidentů");
+    put(shift(E,-2), "Velký pátek");
+    put(lastDow(y,4,1), "Memorial Day");
+    put(usObserved(new Date(Date.UTC(y,5,19))), "Juneteenth");
+    put(usObserved(new Date(Date.UTC(y,6,4))), "Den nezávislosti");
+    put(nthDow(y,8,1,1), "Labor Day");
+    put(nthDow(y,10,4,4), "Den díkůvzdání");
+    put(usObserved(new Date(Date.UTC(y,11,25))), "Vánoce");
+  } else if(kod==="CZ"){
+    put(new Date(Date.UTC(y,0,1)), "Nový rok");
+    put(shift(E,-2), "Velký pátek");  put(shift(E,1), "Velikonoční pondělí");
+    put(new Date(Date.UTC(y,4,1)), "Svátek práce");
+    put(new Date(Date.UTC(y,4,8)), "Den vítězství");
+    put(new Date(Date.UTC(y,6,5)), "Cyril a Metoděj");
+    put(new Date(Date.UTC(y,6,6)), "Jan Hus");
+    put(new Date(Date.UTC(y,8,28)), "Den české státnosti");
+    put(new Date(Date.UTC(y,9,28)), "Vznik Československa");
+    put(new Date(Date.UTC(y,10,17)), "Den boje za svobodu");
+    put(new Date(Date.UTC(y,11,24)), "Štědrý den");
+    put(new Date(Date.UTC(y,11,25)), "1. svátek vánoční");
+    put(new Date(Date.UTC(y,11,26)), "2. svátek vánoční");
+  } else if(kod==="DE"){
+    put(new Date(Date.UTC(y,0,1)), "Nový rok");
+    put(shift(E,-2), "Velký pátek");  put(shift(E,1), "Velikonoční pondělí");
+    put(new Date(Date.UTC(y,4,1)), "Svátek práce");
+    put(new Date(Date.UTC(y,11,24)), "Štědrý den");
+    put(new Date(Date.UTC(y,11,25)), "1. svátek vánoční");
+    put(new Date(Date.UTC(y,11,26)), "2. svátek vánoční");
+    put(new Date(Date.UTC(y,11,31)), "Silvestr");
+  } else if(kod==="UK"){
+    put(new Date(Date.UTC(y,0,1)), "Nový rok");
+    put(shift(E,-2), "Velký pátek");  put(shift(E,1), "Velikonoční pondělí");
+    put(nthDow(y,4,1,1), "Early May Bank Holiday");
+    put(lastDow(y,4,1), "Spring Bank Holiday");
+    put(lastDow(y,7,1), "Summer Bank Holiday");
+    put(new Date(Date.UTC(y,11,25)), "Vánoce");
+    put(new Date(Date.UTC(y,11,26)), "Boxing Day");
+  }
+  return t;
+}
+/* Důvod, proč je trh zavřený. Když svátek neumíme pojmenovat, řekneme jen „svátek“. */
+function marketReason(key){
+  const now=new Date(), dow=now.getDay();
+  if(dow===0 || dow===6) return "víkend";
+  const kod = MARKETS[key] && MARKETS[key].hol;
+  if(kod){
+    const dnes = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")}`;
+    const nazev = holidayTable(kod, now.getFullYear())[dnes];
+    if(nazev) return nazev;
+  }
+  return "svátek";
+}
+/* Trhy, na kterých dnes neproběhla seance u ŽÁDNÉHO z držených titulů.
+   Krypto se nepočítá (obchoduje nonstop) a titul se selhaným stažením taky ne —
+   jinak by appka po výpadku sítě tvrdila, že je zavřeno. Díky členění po trzích
+   se americký svátek pozná i tehdy, když evropské burzy normálně obchodují. */
+function closedMarkets(prov){
+  if(!INTRA || INTRA.prov!==prov || !INTRA.closed) return [];
+  const stat=new Map();
+  for(const p of computePositions(prov)){
+    const tk=p.ticker;
+    if((META[tk]&&META[tk].crypto) || CRYPTO_TICKERS.has(tk)) continue;
+    const key=marketOf(tk);
+    if(key===null) continue;
+    if(!stat.has(key)) stat.set(key, {vse:new Set(), zavr:new Set()});
+    const s=stat.get(key);
+    s.vse.add(tk);
+    if(INTRA.closed.has(tk)) s.zavr.add(tk);
+  }
+  const out=[];
+  for(const [key,s] of stat)
+    if(s.vse.size && s.zavr.size===s.vse.size)
+      out.push({label:MARKETS[key].label, reason:marketReason(key)});
+  return out;
 }
 
 /* ================= RENDER ================= */
@@ -1662,16 +1799,58 @@ function extPortfolio(prov){
   if(!base || Math.abs(delta)<0.5) return null;
   return {state: pre>=post?"pre":"after", delta, pct: delta/base*100, count: pre+post};
 }
-function renderHeroExt(val){
-  const el=$("#heroExt"); if(!el) return;
-  const e=extPortfolio(curProv);
-  if(!e){
-    if(marketClosed(curProv)){
-      el.innerHTML=`<span class="ext-closed">trh zavřený</span>`;
-      el.title="Dnes neproběhla žádná obchodní seance — víkend nebo svátek. Ceny jsou z posledního závěru.";
-    } else { el.innerHTML=""; el.title=""; }
+/* Odznak u hodnoty portfolia; po klepnutí vypíše, které trhy jsou zavřené a proč. */
+function renderMarketNote(){
+  const el=$("#heroMkt"); if(!el) return;
+  const list=closedMarkets(curProv);
+  if(!list.length){ el.innerHTML=""; return; }
+  const souhrn = list.length===1 ? "trh zavřený" : "trhy zavřené";
+  el.innerHTML =
+    `<button type="button" class="mkt-chip" aria-expanded="false">${souhrn}</button>` +
+    `<span class="mkt-pop" hidden>` +
+      list.map(m=>`<span class="mkt-row"><b>${escapeHtml(m.label)}</b><span>${escapeHtml(m.reason)}</span></span>`).join("") +
+      `<span class="mkt-note">Dnes se neobchoduje, ceny jsou z posledního závěru.</span>` +
+    `</span>`;
+}
+/* Okénko visí pod odznakem, ale odznak může být kdekoli na řádku (na mobilu se
+   zalomí doleva, na širokém displeji je vpravo). Po otevření ho proto posuneme
+   tak, aby se vešlo do šířky stránky. */
+function mktPopPlace(){
+  const pop=$("#heroMkt .mkt-pop");
+  if(!pop || pop.hasAttribute("hidden")) return;
+  pop.style.left="0px";
+  const wrap=document.querySelector(".wrap") || document.body;
+  const r=pop.getBoundingClientRect(), w=wrap.getBoundingClientRect();
+  let posun=0;
+  if(r.right > w.right-8) posun=(w.right-8)-r.right;
+  if(r.left+posun < w.left+8) posun=(w.left+8)-r.left;
+  if(posun) pop.style.left=posun+"px";
+}
+window.addEventListener("resize", mktPopPlace);
+function mktPopClose(){
+  const pop=$("#heroMkt .mkt-pop"); if(!pop) return;
+  pop.setAttribute("hidden","");
+  const c=$("#heroMkt .mkt-chip"); if(c) c.setAttribute("aria-expanded","false");
+}
+document.addEventListener("click", e=>{
+  const chip=e.target.closest && e.target.closest(".mkt-chip");
+  if(chip){
+    const pop=$("#heroMkt .mkt-pop"); if(!pop) return;
+    const otevrit=pop.hasAttribute("hidden");
+    if(otevrit){ pop.removeAttribute("hidden"); mktPopPlace(); }
+    else pop.setAttribute("hidden","");
+    chip.setAttribute("aria-expanded", String(otevrit));
     return;
   }
+  if(!(e.target.closest && e.target.closest("#heroMkt"))) mktPopClose();
+});
+document.addEventListener("keydown", e=>{ if(e.key==="Escape") mktPopClose(); });
+
+function renderHeroExt(val){
+  const el=$("#heroExt"); if(!el) return;
+  renderMarketNote();
+  const e=extPortfolio(curProv);
+  if(!e){ el.innerHTML=""; el.title=""; return; }
   const lbl=e.state==="pre"?"pre-market":"after-market";
   el.innerHTML=`<span class="ext-lbl">${lbl}</span>`+
     `<b class="ext-px ${cls(e.delta)}">${fmtKc(val+e.delta)}</b>`+

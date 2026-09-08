@@ -697,10 +697,11 @@ td.r, th.r{text-align:right;}
 <script>
 /* ================= KONFIGURACE ================= */
 const APP_VERSION = "2.1 (14. 6. 2026) — administrace";
-const FOOTER_VERSION = "v2.89 · 7. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
+const FOOTER_VERSION = "v2.90 · 7. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
 
 // Seznam změn — nejnovější nahoře. Při každé úpravě appky sem přidat řádek.
 const CHANGELOG = [
+  {v:"v2.90", d:"7. 9. 2026", items:["Oprava denního grafu — nezahrnoval hotovost, takže křivka běžela níž než hodnota portfolia nad ním (u větší hotovosti i o stovky tisíc)","Kvůli tomu se z menšího základu počítal i zisk dnes v procentech","Popisky osy grafu mají u plochého dne víc desetinných míst; dřív se stávalo, že dvě čáry měly stejný popisek (např. dvakrát 1,42 mil.)"]},
   {v:"v2.89", d:"7. 9. 2026", items:["Zavřené trhy se hlásí po jednotlivých burzách — u hodnoty portfolia se objeví odznak a po klepnutí okénko s tím, která burza je zavřená a proč (např. Americké burzy — Labor Day)","Hláška přijde i tehdy, když je zavřeno jen v USA a evropské burzy obchodují"]},
   {v:"v2.88", d:"7. 9. 2026", items:["Když je trh zavřený (víkend nebo svátek), ukáže se u hodnoty portfolia tichá poznámka „trh zavřený“ — dřív odhad podle pre/after-market cen jen zmizel bez vysvětlení","Poznámka se neukáže, když se ceny jen nepodařilo stáhnout, ani když evropské burzy obchodují a zavřeno je jen v USA"]},
   {v:"v2.87", d:"5. 9. 2026", items:["Na mobilu je v pozicích vidět celý sloupec Dnes i P/L bez posouvání doleva — menší logo, úspornější odsazení a o kousek menší čísla","Pořadí sloupců zůstává stejné"]},
@@ -1566,6 +1567,10 @@ async function buildIntraday(prov){
   if(!tsArr.length) return [];
   const qtyMap={}, fxMap={};
   for(const p of positions){ qtyMap[p.ticker]=(qtyMap[p.ticker]||0)+p.qty; fxMap[p.ticker]=fxAt(p.currency,today)||0; }
+  // Hotovost patří do hodnoty portfolia stejně jako v denní řadě (value=v+cash).
+  // Bez ní byl 1D graf o hotovost níž než částka nad ním a „zisk dnes“ se počítal
+  // z menšího základu, takže procento nesedělo s dlaždicí Dnes.
+  const cashCzk = cashNow(prov) || 0;
   const lastIdx={}, points=[];
   for(const t of tsArr){
     let v=0;
@@ -1580,7 +1585,7 @@ async function buildIntraday(prov){
       if(price==null) price=g.prev!=null?g.prev:priceAt(tk,yest);
       if(price!=null) v+=q*price;
     }
-    points.push({t, v});
+    points.push({t, v:v+cashCzk});
   }
   // referenční hodnota = „základ dne" každé pozice:
   //  - kusy držené od včera: včerejší závěr × včerejší kurz
@@ -1611,6 +1616,7 @@ async function buildIntraday(prov){
       ref += p.qty*prev*fxT;
     }
   }
+  ref += cashCzk;   // základ dne musí zahrnovat hotovost stejně jako body grafu
   INTRA={prov, t:Date.now(), points, ref, grids, closed};
   return points;
 }
@@ -1953,7 +1959,13 @@ function drawChart(el, labels, value, o){
   const defAxis = v => {
     if(PRIVATE) return MASK;
     const a=Math.abs(v), s=v<0?"−":"";
-    if(a>=1e6) return s+(a/1e6).toLocaleString("cs-CZ",{maximumFractionDigits:2})+" mil.";
+    // Počet desetinných míst podle rozestupu čar — u plochého dne (rozpětí v řádu
+    // tisíců) by dvě desetinná místa v milionech daly dvakrát stejný popisek.
+    const krok=Math.abs(hi-lo)/3;
+    if(a>=1e6){
+      const dec = krok>=1e5 ? 1 : krok>=1e4 ? 2 : krok>=1e3 ? 3 : 4;
+      return s+(a/1e6).toLocaleString("cs-CZ",{minimumFractionDigits:dec, maximumFractionDigits:dec})+" mil.";
+    }
     if(a>=1e4) return s+Math.round(a/1e3).toLocaleString("cs-CZ")+" tis.";
     return s+Math.round(a).toLocaleString("cs-CZ")+" Kč";
   };

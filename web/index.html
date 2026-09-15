@@ -100,7 +100,8 @@ header h1 span{color:var(--accent);}
 .tab:hover{color:var(--text);}
 .tab.active{background:var(--surface2); border-color:var(--faint); color:var(--text); font-weight:600;}
 .tab.xtb::before, .tab.rev::before, .tab.csq::before, .tab.dgr::before,
-.tab.ibk::before, .tab.t212::before, .tab.rvcr::before, .tab.f24::before{
+.tab.ibk::before, .tab.t212::before, .tab.rvcr::before, .tab.f24::before,
+.tab.rrb::before{
   content:""; width:7px; height:7px; border-radius:50%; flex:none; background:currentColor;
 }
 .tab.xtb::before{color:var(--xtb);} .tab.rev::before{color:var(--rev);}
@@ -702,10 +703,11 @@ td.r, th.r{text-align:right;}
 <script>
 /* ================= KONFIGURACE ================= */
 const APP_VERSION = "2.1 (14. 6. 2026) — administrace";
-const FOOTER_VERSION = "v2.91 · 15. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
+const FOOTER_VERSION = "v2.92 · 15. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
 
 // Seznam změn — nejnovější nahoře. Při každé úpravě appky sem přidat řádek.
 const CHANGELOG = [
+  {v:"v2.92", d:"15. 9. 2026", items:["Oprava: bublina Revolut robo nahoře neměla barevnou tečku jako ostatní brokeři"]},
   {v:"v2.91", d:"15. 9. 2026", items:["Nový broker Revolut robo — robo poradce má vlastní bublinu a počítá se odděleně od běžného Revolutu","Export z robo poradce má stejnou hlavičku jako běžný revoluťácký, proto se v okně importu vybírá, kam obchody patří","Tickery evropských ETF se převádějí na burzovní symboly (XDWI → XDWI.DE, EMBH → EMBHI.MI), jinak by se některé ocenily úplně jiným papírem"]},
   {v:"v2.90", d:"7. 9. 2026", items:["Oprava denního grafu — nezahrnoval hotovost, takže křivka běžela níž než hodnota portfolia nad ním (u větší hotovosti i o stovky tisíc)","Kvůli tomu se z menšího základu počítal i zisk dnes v procentech","Popisky osy grafu mají u plochého dne víc desetinných míst; dřív se stávalo, že dvě čáry měly stejný popisek (např. dvakrát 1,42 mil.)"]},
   {v:"v2.89", d:"7. 9. 2026", items:["Zavřené trhy se hlásí po jednotlivých burzách — u hodnoty portfolia se objeví odznak a po klepnutí okénko s tím, která burza je zavřená a proč (např. Americké burzy — Labor Day)","Hláška přijde i tehdy, když je zavřeno jen v USA a evropské burzy obchodují"]},

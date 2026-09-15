@@ -706,10 +706,11 @@ td.r, th.r{text-align:right;}
 <script>
 /* ================= KONFIGURACE ================= */
 const APP_VERSION = "2.1 (14. 6. 2026) — administrace";
-const FOOTER_VERSION = "v2.93 · 15. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
+const FOOTER_VERSION = "v2.94 · 15. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
 
 // Seznam změn — nejnovější nahoře. Při každé úpravě appky sem přidat řádek.
 const CHANGELOG = [
+  {v:"v2.94", d:"15. 9. 2026", items:["Oprava: appka dopoledne chybně hlásila zavřené americké burzy. Než v USA otevřou, jsou k dispozici jen pre-market data — to ale neznamená, že se dnes neobchoduje","Hláška o zavřeném trhu se nově ukáže i o víkendu, když držíš jen americké tituly (dřív se v takovém případě neobjevila vůbec)","Když důvod zavření neumí appka pojmenovat, napíše jen „zavřeno“ místo toho, aby tvrdila svátek"]},
   {v:"v2.93", d:"15. 9. 2026", items:["Odhad podle pre/after-market cen je celý na jednom řádku — cena i zisk vedle sebe, dřív se zisk zalamoval pod ni"]},
   {v:"v2.92", d:"15. 9. 2026", items:["Oprava: bublina Revolut robo nahoře neměla barevnou tečku jako ostatní brokeři"]},
   {v:"v2.91", d:"15. 9. 2026", items:["Nový broker Revolut robo — robo poradce má vlastní bublinu a počítá se odděleně od běžného Revolutu","Export z robo poradce má stejnou hlavičku jako běžný revoluťácký, proto se v okně importu vybírá, kam obchody patří","Tickery evropských ETF se převádějí na burzovní symboly (XDWI → XDWI.DE, EMBH → EMBHI.MI), jinak by se některé ocenily úplně jiným papírem"]},
@@ -1561,7 +1562,14 @@ async function buildIntraday(prov){
       else delete EXT[tk];
       // bez dnešních svíček (trh zavřený / neobchodováno) -> použije se denní řada, ne stará seance
       grids[tk] = kts.length ? {ts:kts, cl:kcl, prev} : null;
-      if(!kts.length) closed.add(tk);
+      // Pozor na rozdíl mezi „dnes se neobchoduje“ a „seance ještě nezačala“.
+      // Dopoledne u nás jsou americké svíčky jen z pre-marketu a ze seance žádná,
+      // ale Yahoo dnešní seanci hlásí (regS je vyplněné) — zavřeno to není.
+      // Na skutečný svátek Yahoo žádnou seanci nehlásí a regS chybí.
+      // O víkendu se nečeká na otevření, tam prázdno znamená opravdu zavřeno.
+      const jeVikend = [0,6].includes(new Date().getDay());
+      const predOtevrenim = !jeVikend && regS!=null && nowSec < regS;
+      if(!kts.length && !predOtevrenim) closed.add(tk);
     }catch(e){ grids[tk]=null; }
   }));
   // promítnout poslední intradenní ceny do denní série (sjednocení s dlaždicemi a pozicemi)
@@ -1585,7 +1593,10 @@ async function buildIntraday(prov){
   const allTs=new Set();
   for(const tk of tickers){ if(grids[tk]) grids[tk].ts.forEach(t=>allTs.add(t)); }
   const tsArr=[...allTs].sort((a,b)=>a-b);
-  if(!tsArr.length) return [];
+  // Neobchoduje-li dnes vůbec nic (víkend, svátek u čistě amerického portfolia),
+  // graf nevznikne — ale zjištění o zavřených trzích si uložit musíme, jinak by
+  // se hláška „trh zavřený“ neměla z čeho vzít.
+  if(!tsArr.length){ INTRA={prov, t:Date.now(), points:[], ref:0, grids, closed}; return []; }
   const qtyMap={}, fxMap={};
   for(const p of positions){ qtyMap[p.ticker]=(qtyMap[p.ticker]||0)+p.qty; fxMap[p.ticker]=fxAt(p.currency,today)||0; }
   // Hotovost patří do hodnoty portfolia stejně jako v denní řadě (value=v+cash).
@@ -1747,7 +1758,8 @@ function marketReason(key){
     const nazev = holidayTable(kod, now.getFullYear())[dnes];
     if(nazev) return nazev;
   }
-  return "svátek";
+  // Svátek, který neumíme pojmenovat, netvrdíme — důvod prostě neznáme.
+  return "zavřeno";
 }
 /* Trhy, na kterých dnes neproběhla seance u ŽÁDNÉHO z držených titulů.
    Krypto se nepočítá (obchoduje nonstop) a titul se selhaným stažením taky ne —

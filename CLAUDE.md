@@ -27,6 +27,27 @@ CI/FTP workflow, `scripts/kontrola.mjs` apod.), do changelogu nepatří.
 
 Před commitem vždy spustit `node scripts/kontrola.mjs`.
 
+## Přidání nového brokera
+
+Seznam brokerů není jen v appce — tabulka `transactions` v Supabase má na
+sloupci `provider` kontrolní pravidlo `transactions_provider_check`, které
+povoluje jen vyjmenované hodnoty. **Když se do `PROVIDERS` přidá nový broker,
+je nutné rozšířit i tohle pravidlo**, jinak import skončí chybou
+`Supabase 400 … violates check constraint "transactions_provider_check"`.
+
+Schéma databáze není v repozitáři a `anon` klíč ho měnit nesmí, takže SQL musí
+spustit majitel projektu v Supabase → SQL Editor:
+
+```sql
+alter table transactions drop constraint transactions_provider_check;
+alter table transactions add constraint transactions_provider_check
+  check (provider in ('XTB','REVOLUT','CONSEQ','DEGIRO','IBKR',
+                      'TRADING212','REVOLUT_CRYPTO','REVOLUT_ROBO','FREEDOM24'));
+```
+
+Ostatní tabulky brokera neomezují — hotovost i pořadí brokerů se ukládají
+jako JSON v `user_settings`.
+
 ## Kontrola po každé změně
 
 Po nasazení každé změny `web/index.html` je potřeba:

@@ -125,8 +125,11 @@ header h1 span{color:var(--accent);}
 /* Odhad podle pre/after-market cen vedle hodnoty portfolia.
    Samotná cena je o třetinu menší než hlavní částka (a zmenšuje se s ní),
    popisek a procenta zůstávají drobné, ať se to vejde i na mobil. */
-#heroExt{display:inline-flex; align-items:baseline; gap:6px; flex-wrap:wrap; font-size:12px;}
-#heroExt .ext-lbl{color:var(--faint);}
+/* Popisek, cena i zisk pre/after-marketu drží na jednom řádku; jako celek se
+   skupina zalomí pod hlavní částku, ale sama uvnitř se netrhá. */
+#heroExt{display:inline-flex; align-items:baseline; gap:6px; flex-wrap:nowrap; font-size:12px;}
+#heroExt > *{flex:none;}   /* bez toho flexbox skupinu stlačí a rozlomí popisek */
+#heroExt .ext-lbl{color:var(--faint); white-space:nowrap;}
 #heroExt .ext-px{
   font-family:var(--font-ui); font-variant-numeric:tabular-nums;
   font-size:calc(var(--hero-size) * .667); font-weight:600;
@@ -703,10 +706,11 @@ td.r, th.r{text-align:right;}
 <script>
 /* ================= KONFIGURACE ================= */
 const APP_VERSION = "2.1 (14. 6. 2026) — administrace";
-const FOOTER_VERSION = "v2.92 · 15. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
+const FOOTER_VERSION = "v2.93 · 15. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
 
 // Seznam změn — nejnovější nahoře. Při každé úpravě appky sem přidat řádek.
 const CHANGELOG = [
+  {v:"v2.93", d:"15. 9. 2026", items:["Odhad podle pre/after-market cen je celý na jednom řádku — cena i zisk vedle sebe, dřív se zisk zalamoval pod ni"]},
   {v:"v2.92", d:"15. 9. 2026", items:["Oprava: bublina Revolut robo nahoře neměla barevnou tečku jako ostatní brokeři"]},
   {v:"v2.91", d:"15. 9. 2026", items:["Nový broker Revolut robo — robo poradce má vlastní bublinu a počítá se odděleně od běžného Revolutu","Export z robo poradce má stejnou hlavičku jako běžný revoluťácký, proto se v okně importu vybírá, kam obchody patří","Tickery evropských ETF se převádějí na burzovní symboly (XDWI → XDWI.DE, EMBH → EMBHI.MI), jinak by se některé ocenily úplně jiným papírem"]},
   {v:"v2.90", d:"7. 9. 2026", items:["Oprava denního grafu — nezahrnoval hotovost, takže křivka běžela níž než hodnota portfolia nad ním (u větší hotovosti i o stovky tisíc)","Kvůli tomu se z menšího základu počítal i zisk dnes v procentech","Popisky osy grafu mají u plochého dne víc desetinných míst; dřív se stávalo, že dvě čáry měly stejný popisek (např. dvakrát 1,42 mil.)"]},

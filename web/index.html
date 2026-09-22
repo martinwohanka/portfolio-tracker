@@ -706,10 +706,11 @@ td.r, th.r{text-align:right;}
 <script>
 /* ================= KONFIGURACE ================= */
 const APP_VERSION = "2.1 (14. 6. 2026) — administrace";
-const FOOTER_VERSION = "v2.95 · 22. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
+const FOOTER_VERSION = "v2.96 · 22. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
 
 // Seznam změn — nejnovější nahoře. Při každé úpravě appky sem přidat řádek.
 const CHANGELOG = [
+  {v:"v2.96", d:"22. 9. 2026", items:["Okno importu samo pozná výpis robo poradce a předvybere správného brokera — robo nakupuje celý košík naráz, běžný účet ne. Přepnout jde pořád ručně"]},
   {v:"v2.95", d:"22. 9. 2026", items:["Když se u titulu nepodaří stáhnout ceny, appka sama zkusí dohledat burzu (SPY4 → SPY4.DE) — týká se evropských ETF, které jsou v exportech uvedené holým kódem","Přijme jen symbol, kde sedí měna i řádová cena proti skutečnému obchodu, aby se titul nechytil jiného papíru se stejným kódem","Hláška o nenačtených cenách už stejný ticker nevypisuje několikrát"]},
   {v:"v2.94", d:"15. 9. 2026", items:["Oprava: appka dopoledne chybně hlásila zavřené americké burzy. Než v USA otevřou, jsou k dispozici jen pre-market data — to ale neznamená, že se dnes neobchoduje","Hláška o zavřeném trhu se nově ukáže i o víkendu, když držíš jen americké tituly (dřív se v takovém případě neobjevila vůbec)","Když důvod zavření neumí appka pojmenovat, napíše jen „zavřeno“ místo toho, aby tvrdila svátek"]},
   {v:"v2.93", d:"15. 9. 2026", items:["Odhad podle pre/after-market cen je celý na jednom řádku — cena i zisk vedle sebe, dřív se zisk zalamoval pod ni"]},
@@ -1070,6 +1071,22 @@ function parseStatement(rows, fname){
     const iD=idx(["date"]), iT=idx(["ticker"]), iTy=idx(["type"]), iQ=idx(["quantity"]),
           iP=idx(["price per share"]), iA=idx(["total amount"]), iC=idx(["currency"]);
     const txs=[]; let skipped=0;
+    // Robo poradce nakupuje celý košík ETF naráz — ve stejné minutě jich padne
+    // deset i víc, kdežto na běžném účtu člověk zvládne nanejvýš pár. Podle toho
+    // se v okně importu předvybere správný broker (hlavičky souborů jsou totožné).
+    const poMinute={}; const castky=[];
+    for(const r of rows.slice(1)){
+      const tk=(r[iT]||"").trim().toUpperCase(), d=String(r[iD]||"");
+      if(!tk || d.length<16) continue;
+      (poMinute[d.slice(0,16)] = poMinute[d.slice(0,16)] || new Set()).add(tk);
+      const a=parseNum(r[iA]); if(a!=null && a>0) castky.push(a);
+    }
+    // Naměřeno na skutečných výpisech: běžný účet nekoupí ve stejné minutě víc
+    // než 3 tituly, robo jich nakoupí 7 až 13. Práh 5 nechává rezervu na obě strany.
+    const maxDavka = Math.max(0, ...Object.values(poMinute).map(v=>v.size));
+    // Záložní signál pro případ, že by se exportoval jen kousek s malou dávkou:
+    // robo přikupuje po drobných (všech 76 obchodů pod 5 EUR), běžný účet má medián 200.
+    const vseDrobne = castky.length>=5 && castky.every(a=>a<5);
     for(const r of rows.slice(1)){
       const tRaw=(r[iTy]||"").toUpperCase();
       let type = /BUY/.test(tRaw)?"BUY" : /SELL/.test(tRaw)?"SELL" : /DIVIDEND/.test(tRaw)?"DIVIDEND" : null;
@@ -1081,7 +1098,7 @@ function parseStatement(rows, fname){
       txs.push({provider:"REVOLUT", raw_symbol:ticker, ticker:mapSymbol(ticker), type, date,
         quantity: type==="DIVIDEND"?0:qty, price, total, currency});
     }
-    return {provider:"REVOLUT", txs, skipped};
+    return {provider:"REVOLUT", txs, skipped, roboHint: maxDavka>=5 || vseDrobne};
   }
 
   // DEGIRO: Datum, Čas, Produkt, ISIN, Reference exchange, Venue, Počet, Cena, měna, ...
@@ -2878,14 +2895,15 @@ async function fileToTables(f){
 }
 let pendingImport=null;
 async function handleFiles(files){
-  const all=[]; const notes=[]; let skippedTotal=0;
+  const all=[]; const notes=[]; let skippedTotal=0; let roboDetekovano=false;
   for(const f of files){
     try{
       const tables=await fileToTables(f);
       const cnt={BUY:0,SELL:0,DIVIDEND:0}; let prov=null;
       for(const rows of tables){
-        const {provider, txs, skipped}=parseStatement(rows, f.name);
+        const {provider, txs, skipped, roboHint}=parseStatement(rows, f.name);
         all.push(...txs); skippedTotal+=skipped; prov=provider;
+        if(roboHint) roboDetekovano=true;
         for(const t of txs) cnt[t.type]++;
       }
       notes.push(`<p><b>${escapeHtml(f.name)}</b> → ${prov}: ${cnt.BUY}× nákup, ${cnt.SELL}× prodej, ${cnt.DIVIDEND}× dividenda</p>`);
@@ -2896,9 +2914,10 @@ async function handleFiles(files){
   if(all.some(t=>t.provider==="REVOLUT")){
     notes.push(`<label style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin:12px 0; font-size:13.5px; color:var(--muted)">Zaúčtovat jako
       <select id="impTarget" class="setSel">
-        <option value="REVOLUT">Revolut</option>
-        <option value="REVOLUT_ROBO">Revolut robo</option>
+        <option value="REVOLUT"${roboDetekovano?"":" selected"}>Revolut</option>
+        <option value="REVOLUT_ROBO"${roboDetekovano?" selected":""}>Revolut robo</option>
       </select></label>`);
+    if(roboDetekovano) notes.push(`<p style="color:var(--muted)">Vypadá to na výpis robo poradce (nákup celého košíku naráz), proto je předvybraný. Když to tak není, přepni zpět.</p>`);
   }
   if(skippedTotal) notes.push(`<p>${skippedTotal} řádků přeskočeno (vklady, poplatky, úroky…).</p>`);
   notes.push(`<p style="margin-top:8px">Duplicitní záznamy se automaticky přeskočí, import lze bezpečně opakovat.</p>`);

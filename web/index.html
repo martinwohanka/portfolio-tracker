@@ -706,10 +706,11 @@ td.r, th.r{text-align:right;}
 <script>
 /* ================= KONFIGURACE ================= */
 const APP_VERSION = "2.1 (14. 6. 2026) — administrace";
-const FOOTER_VERSION = "v2.94 · 15. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
+const FOOTER_VERSION = "v2.95 · 22. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
 
 // Seznam změn — nejnovější nahoře. Při každé úpravě appky sem přidat řádek.
 const CHANGELOG = [
+  {v:"v2.95", d:"22. 9. 2026", items:["Když se u titulu nepodaří stáhnout ceny, appka sama zkusí dohledat burzu (SPY4 → SPY4.DE) — týká se evropských ETF, které jsou v exportech uvedené holým kódem","Přijme jen symbol, kde sedí měna i řádová cena proti skutečnému obchodu, aby se titul nechytil jiného papíru se stejným kódem","Hláška o nenačtených cenách už stejný ticker nevypisuje několikrát"]},
   {v:"v2.94", d:"15. 9. 2026", items:["Oprava: appka dopoledne chybně hlásila zavřené americké burzy. Než v USA otevřou, jsou k dispozici jen pre-market data — to ale neznamená, že se dnes neobchoduje","Hláška o zavřeném trhu se nově ukáže i o víkendu, když držíš jen americké tituly (dřív se v takovém případě neobjevila vůbec)","Když důvod zavření neumí appka pojmenovat, napíše jen „zavřeno“ místo toho, aby tvrdila svátek"]},
   {v:"v2.93", d:"15. 9. 2026", items:["Odhad podle pre/after-market cen je celý na jednom řádku — cena i zisk vedle sebe, dřív se zisk zalamoval pod ni"]},
   {v:"v2.92", d:"15. 9. 2026", items:["Oprava: bublina Revolut robo nahoře neměla barevnou tečku jako ostatní brokeři"]},
@@ -830,6 +831,9 @@ function provKey(){
 }
 let curProv = "XTB+REVOLUT", curPeriod = "1D", curAlloc = "ticker";
 let priceErrors = [];
+/* Dohledané burzovní přípony: holý kód -> symbol, na který Yahoo vrací ceny.
+   Nemění uložené transakce, jen se použije při dotazu (viz fetchChart). */
+let AUTO_SFX = lsGet("autosfx", 7*24*3600*1000) || {};
 
 /* ================= UTILITY ================= */
 const $ = s => document.querySelector(s);
@@ -1315,13 +1319,43 @@ function parseStatement(rows, fname){
 
 /* ================= CENY (Yahoo přes edge proxy) ================= */
 async function fetchChart(symbol, range, interval, prePost){
-  const u = `${CONFIG.PROXY_URL}?symbol=${encodeURIComponent(symbol)}&range=${range}&interval=${interval}${prePost?"&prepost=true":""}`;
+  const sym = AUTO_SFX[symbol] || symbol;
+  const u = `${CONFIG.PROXY_URL}?symbol=${encodeURIComponent(sym)}&range=${range}&interval=${interval}${prePost?"&prepost=true":""}`;
   const r = await fetch(u, {headers:{Authorization:`Bearer ${CONFIG.SUPABASE_ANON_KEY}`}, cache:"no-store"});
   if(!r.ok) throw new Error(`proxy ${r.status}`);
   const j = await r.json();
   const res = j.chart && j.chart.result && j.chart.result[0];
   if(!res) throw new Error((j.chart&&j.chart.error&&j.chart.error.description) || "žádná data");
   return res;
+}
+/* Evropské ETF bývají v exportech holým burzovním kódem (SPY4, ZPRV) a Yahoo
+   na něj ceny nevrací. Zkusíme obvyklé přípony a přijmeme jen tu, kde MĚNA sedí
+   na měnu obchodů. Ta kontrola je podstatná: bez ní by se holý kód mohl chytit
+   úplně jiného papíru — EMBH bez přípony je ETF v dolarech, ale držený je eurový. */
+const SUFFIX_KANDIDATI = [".DE",".MI",".PA",".AS",".MU",".DU",".L",".SW",".VI"];
+const stejnaMena = (a,b) => {
+  const n = x => { x=String(x||"").toUpperCase(); return (x==="GBX"||x==="GBP") ? "GBP" : x; };
+  return n(a)===n(b);
+};
+async function resolveSymbol(tk){
+  if(String(tk).includes(".")) return null;            // příponu už má
+  // referenční obchod: nejnovější s cenou, podle něj se ověří měna i řádová cena
+  const txs = TX.filter(t=>t.ticker===tk && t.currency && t.price>0 && t.type!=="DIVIDEND")
+                .sort((a,b)=>b.date.localeCompare(a.date));
+  const tx = txs[0];
+  if(!tx) return null;
+  for(const sfx of SUFFIX_KANDIDATI){
+    try{
+      const res = await fetchChart(tk+sfx, "5d", "1d");
+      const ceny = (res.indicators.quote[0].close||[]).filter(v=>v!=null);
+      if(!ceny.length || !stejnaMena(res.meta.currency, tx.currency)) continue;
+      // Měna sama nestačí: EMBH.PA je taky v eurech, ale stojí 9,59 EUR místo 65 —
+      // je to jiný papír. Cena proto musí řádově sedět na skutečný obchod.
+      const pomer = ceny[ceny.length-1] / tx.price;
+      if(pomer >= 0.4 && pomer <= 2.5) return tk+sfx;
+    }catch(e){}
+  }
+  return null;
 }
 function pickRange(firstDate){
   const days = (new Date(todayStr()) - new Date(firstDate)) / 864e5;
@@ -3289,6 +3323,20 @@ async function loadAllData(){
     META[e.ticker]={currency: sorted[0].currency||"USD", approx:true};
     priceErrors.splice(priceErrors.indexOf(e),1);
   }
+  // Ticker bez přípony burzy (evropské ETF): zkusit dohledat a načíst znovu.
+  const dohledane=[];
+  for(const e of [...priceErrors]){
+    const nalezeny = await resolveSymbol(e.ticker);
+    if(!nalezeny) continue;
+    AUTO_SFX[e.ticker] = nalezeny;
+    try{
+      await loadDaily(e.ticker, first[e.ticker]);
+      priceErrors.splice(priceErrors.indexOf(e),1);
+      dohledane.push(`${e.ticker} → ${nalezeny}`);
+    }catch(err){ delete AUTO_SFX[e.ticker]; }
+  }
+  if(dohledane.length){ lsSet("autosfx", AUTO_SFX); toast("Dohledáno na burze: "+dohledane.join(", "), 5000); }
+
   // Conseq: historie před začátkem Yahoo dat se doplní cenami z transakcí
   for(const tk of new Set(TX.filter(t=>t.provider==="CONSEQ").map(t=>t.ticker))){
     const d=DAILY[tk]; if(!d || !d.dates.length) continue;
@@ -3315,7 +3363,7 @@ async function loadAllData(){
   }
   buildCalendar();
   if(priceErrors.length)
-    showErr("Nepodařilo se načíst data pro: "+priceErrors.map(e=>e.ticker).join(", ")+". Zkontroluj mapování tickerů v Nastavení.");
+    showErr("Nepodařilo se načíst data pro: "+[...new Set(priceErrors.map(e=>e.ticker))].join(", ")+". Zkontroluj mapování tickerů v Nastavení.");
   else $("#errBox").style.display="none";
 }
 async function refreshAll(clearPx, deferRender){

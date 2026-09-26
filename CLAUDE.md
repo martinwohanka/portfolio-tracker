@@ -1,4 +1,4 @@
-# Portfolio Tracker — pokyny pro Claude
+# Fortivio — pokyny pro Claude
 
 Jednosouborová appka `web/index.html` (viz README.md pro popis a nasazení).
 

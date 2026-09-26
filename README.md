@@ -1,4 +1,4 @@
-# Portfolio Tracker
+# Fortivio
 
 Sledování akciového (a krypto) portfolia napříč brokery — hodnota, vývoj,
 realizované zisky, alokace a daňový podklad pro ČR. Běží na mobilu i na
@@ -8,7 +8,8 @@ Celá aplikace je **jeden soubor** [`web/index.html`](web/index.html) nad
 databází Supabase. Nasazuje se prostým nahráním na webhosting.
 
 ```
-web/index.html                        aplikace (jediný soubor, který jde na web)
+web/index.html                        aplikace (celá v jednom souboru)
+web/fortivio-*.png                    ikona aplikace (záložka prohlížeče, plocha iPhonu)
 scripts/kontrola.mjs                  kontrola souboru před nasazením
 .github/workflows/deploy-ftp.yml      automatické nahrání na FTP při push
 ```
@@ -19,7 +20,7 @@ scripts/kontrola.mjs                  kontrola souboru před nasazením
 | --- | --- |
 | Přístup | mobil i počítač, světlý i tmavý režim, na iPhonu lze přidat na plochu |
 | Účty | přihlášení e-mailem (magic link nebo kód), bez hesla; přístup jen pro povolené e-maily, správa přímo v appce |
-| Brokeři | import CSV/XLSX výpisu z XTB, Revolut, Conseq, Degiro, Interactive Brokers, Trading 212, Revolut crypto a Freedom 24 |
+| Brokeři | import CSV/XLSX výpisu z XTB, Revolut (vč. robo poradce), Degiro, Interactive Brokers, Trading 212, Revolut crypto a Freedom 24 |
 | Přehled | hodnota portfolia v čase, zisk (celkově i dnes), graf s výběrem období a porovnáním vůči vloženým prostředkům |
 | Pozice | aktuální držené tituly, ceny přes Yahoo Finance, P/E, denní pohyb vč. pre/after-marketu |
 | Watchlist | sledované tituly bez nákupu, cílové ceny s upozorněním, sdílení watchlistu mezi uživateli |

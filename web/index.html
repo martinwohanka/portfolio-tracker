@@ -7,10 +7,12 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Portfolio</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='14'%20fill='%23151A22'/%3E%3Cpath%20d='M10%2046%20L22%2035%20L30%2039%20L42%2024%20L52%2017'%20fill='none'%20stroke='%2334D399'%20stroke-width='5.5'%20stroke-linecap='round'%20stroke-linejoin='round'/%3E%3Ccircle%20cx='52'%20cy='17'%20r='5'%20fill='%236E9BFF'/%3E%3C/svg%3E">
-<link rel="apple-touch-icon" href="icon.png">
-<link rel="icon" type="image/png" sizes="512x512" href="icon.png">
+<title>Fortivio</title>
+<meta name="apple-mobile-web-app-title" content="Fortivio">
+<meta name="application-name" content="Fortivio">
+<link rel="icon" type="image/png" sizes="64x64" href="fortivio-64.png">
+<link rel="icon" type="image/png" sizes="512x512" href="fortivio-512.png">
+<link rel="apple-touch-icon" sizes="180x180" href="fortivio-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -369,7 +371,7 @@ td.r, th.r{text-align:right;}
 
 <div id="authScreen" style="display:none; min-height:100vh; align-items:center; justify-content:center; padding:24px; padding-top:calc(24px + env(safe-area-inset-top))">
   <div style="max-width:380px; width:100%; text-align:center">
-    <h1 style="font-size:30px; font-weight:600; letter-spacing:.02em; margin-bottom:6px">Portfolio<span style="color:var(--accent)">.</span></h1>
+    <h1 style="font-size:30px; font-weight:600; letter-spacing:.02em; margin-bottom:6px">Fortivio<span style="color:var(--accent)">.</span></h1>
     <p style="color:var(--muted); font-size:14px; margin-bottom:24px">Sledování akciového portfolia napříč brokery.</p>
     <div id="authForm">
       <input id="authEmail" type="email" inputmode="email" autocomplete="email" placeholder="tvuj@email.cz"
@@ -396,7 +398,7 @@ td.r, th.r{text-align:right;}
 <div class="wrap" id="appWrap" style="display:none">
 
 <header>
-  <h1>Portfolio<span>.</span></h1>
+  <h1>Fortivio<span>.</span></h1>
   <div class="hdr-actions">
     <button class="btn icon" id="btnPrivacy" title="Soukromý režim — skrýt částky">👁</button>
     <button class="btn icon" id="btnRefresh" title="Aktualizovat ceny">&#10227;</button>
@@ -703,10 +705,13 @@ td.r, th.r{text-align:right;}
 <script>
 /* ================= KONFIGURACE ================= */
 const APP_VERSION = "2.1 (14. 6. 2026) — administrace";
-const FOOTER_VERSION = "v3.01 · 26. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
+const FOOTER_VERSION = "v3.02 · 26. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
 
 // Seznam změn — nejnovější nahoře. Při každé úpravě appky sem přidat řádek.
 const CHANGELOG = [
+  {v:"v3.02", d:"26. 9. 2026", items:[
+    "Appka se jmenuje Fortivio — nový název v záhlaví, na přihlašovací obrazovce, v záložce prohlížeče i v daňovém podkladu",
+    "Nová ikona s býkem: v záložce prohlížeče i na ploše iPhonu (u už přidané ikony na ploše je potřeba ji odebrat a přidat znovu, iOS si starou pamatuje)"]},
   {v:"v3.01", d:"26. 9. 2026", items:[
     "Dividendy se počítají do zisku (Celkem P/L, graf Zisk, změny za období) u všech brokerů — dřív jen u těch se zadanou hotovostí",
     "Vloženo je o přijaté dividendy nižší: dividenda je výnos, ne vklad, a když ji znovu investuješ, nepočítá se jako nové peníze"]},
@@ -3322,7 +3327,7 @@ async function exportTaxXlsx(year){
     ["Přepočty měn: denní kurzy ECB (Frankfurter). Pro přiznání lze použít jednotný kurz GFŘ nebo kurzy ČNB — částky se mohou mírně lišit."],
     ["Výdaje = nabývací cena FIFO bez poplatků brokera; poplatky lze případně doplnit z výpisů."],
     ["Dividendy XTB jsou v hrubé výši, sražená daň v zahraničí (pro zápočet) viz daňový přehled brokera. U Revolutu ověř hrubou/čistou částku ve výpisu."],
-    ["Vygenerováno aplikací Portfolio — podklad, nikoli daňové poradenství."]
+    ["Vygenerováno aplikací Fortivio — podklad, nikoli daňové poradenství."]
   ];
   if(S.warns) souhrn.splice(9,0,["UPOZORNĚNÍ","U některých prodejů se nepodařilo dohledat nákup (import nepokrývá celou historii) — výdaj je 0, doplň ručně."]);
   const prodeje=[["Datum prodeje","Datum nabytí","Titul","Broker","Ks","Měna","Příjem (Kč)","Výdaj (Kč)","Zisk/ztráta (Kč)","Časový test 3 roky"]];
@@ -3652,7 +3657,7 @@ $("#footVer").textContent=FOOTER_VERSION;
 try{ PRIVATE = localStorage.getItem("private")==="1"; }catch(e){}
 applyPrivacyUI();
 initTheme();
-console.log("Portfolio verze", APP_VERSION, "·", FOOTER_VERSION);
+console.log("Fortivio verze", APP_VERSION, "·", FOOTER_VERSION);
 $("#footVer").style.cursor="pointer";
 $("#footVer").title="Klik = seznam změn · dvojklik = diagnostika";
 function renderChangelog(){

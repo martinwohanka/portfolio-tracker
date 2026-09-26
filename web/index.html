@@ -608,7 +608,7 @@ td.r, th.r{text-align:right;}
   <p style="font-size:30px; margin-bottom:8px">📈</p>
   <p><b>Zatím žádné transakce.</b></p>
   <p style="margin-top:4px">Nahraj výpis transakcí od svého brokera — tlačítkem nahoře, nebo ho sem přetáhni.<br>
-  Podporuji: <b>XTB</b>, <b>Revolut</b>, <b>Conseq</b>, <b>Degiro</b>, <b>Interactive Brokers</b>, <b>Trading 212</b>, <b>Revolut crypto</b>, <b>Revolut robo</b> a <b>Freedom 24</b> (CSV / XLSX export z účtu).</p>
+  Podporuji: <b>XTB</b>, <b>Revolut</b>, <b>Degiro</b>, <b>Interactive Brokers</b>, <b>Trading 212</b>, <b>Revolut crypto</b>, <b>Revolut robo</b> a <b>Freedom 24</b> (CSV / XLSX export z účtu).</p>
 </div>
 
 <div id="loading" style="display:none; text-align:center; padding:40px; color:var(--muted)">
@@ -660,7 +660,7 @@ td.r, th.r{text-align:right;}
       Tohle je tvůj soukromý prostor — data vidíš jen ty. Začni nahráním výpisu transakcí
       od svého brokera, zbytek (ceny, grafy, zisky, daně) dopočítá appka sama.</p>
     <p style="font-size:13px; color:var(--faint); margin-bottom:18px; line-height:1.7">
-      Podporovaní brokeři:<br><b style="color:var(--text)">XTB</b> · <b style="color:var(--text)">Revolut</b> · <b style="color:var(--text)">Conseq</b> · <b style="color:var(--text)">Degiro</b> · <b style="color:var(--text)">Interactive Brokers</b> · <b style="color:var(--text)">Trading 212</b> · <b style="color:var(--text)">Revolut crypto</b> · <b style="color:var(--text)">Revolut robo</b> · <b style="color:var(--text)">Freedom 24</b><br>
+      Podporovaní brokeři:<br><b style="color:var(--text)">XTB</b> · <b style="color:var(--text)">Revolut</b> · <b style="color:var(--text)">Degiro</b> · <b style="color:var(--text)">Interactive Brokers</b> · <b style="color:var(--text)">Trading 212</b> · <b style="color:var(--text)">Revolut crypto</b> · <b style="color:var(--text)">Revolut robo</b> · <b style="color:var(--text)">Freedom 24</b><br>
       (CSV/XLSX export z účtu daného brokera)</p>
     <button class="btn primary" id="onboardImport" style="width:100%; justify-content:center; padding:11px">Nahrát první výpis</button>
     <button class="btn" id="onboardSkip" style="width:100%; justify-content:center; margin-top:8px">Zatím se jen rozhlédnu</button>
@@ -706,10 +706,11 @@ td.r, th.r{text-align:right;}
 <script>
 /* ================= KONFIGURACE ================= */
 const APP_VERSION = "2.1 (14. 6. 2026) — administrace";
-const FOOTER_VERSION = "v2.97 · 26. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
+const FOOTER_VERSION = "v2.98 · 26. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
 
 // Seznam změn — nejnovější nahoře. Při každé úpravě appky sem přidat řádek.
 const CHANGELOG = [
+  {v:"v2.98", d:"26. 9. 2026", items:["Import výpisů z Consequ byl zrušen — Conseq zmizel ze seznamu podporovaných brokerů a jeho výpis se už nenaimportuje","Dosud naimportovaná data Consequ zůstávají beze změny; smazat je jde v Nastavení tlačítkem Smazat data Conseq"]},
   {v:"v2.97", d:"26. 9. 2026", items:["Oprava grafu Zisk — titul, ke kterému se nepodařilo stáhnout ceny, se počítal do vložených prostředků, ale do hodnoty vůbec. Zisk tím byl o celou jeho cenu stlačený a v den prodeje skokem povyskočil (svislý schod v grafu)","Takový titul se nově ocení vlastní nákupní cenou, dokud se ceny nepodaří načíst","Týkalo se to evropských ETF uvedených holým kódem (ETLZ, VUSA, IUSN, SPPW, VUAA, QDV5, HMI) — dnes už se většina dohledá sama"]},
   {v:"v2.96", d:"22. 9. 2026", items:["Okno importu samo pozná výpis robo poradce a předvybere správného brokera — robo nakupuje celý košík naráz, běžný účet ne. Přepnout jde pořád ručně"]},
   {v:"v2.95", d:"22. 9. 2026", items:["Když se u titulu nepodaří stáhnout ceny, appka sama zkusí dohledat burzu (SPY4 → SPY4.DE) — týká se evropských ETF, které jsou v exportech uvedené holým kódem","Přijme jen symbol, kde sedí měna i řádová cena proti skutečnému obchodu, aby se titul nechytil jiného papíru se stejným kódem","Hláška o nenačtených cenách už stejný ticker nevypisuje několikrát"]},
@@ -1284,28 +1285,6 @@ function parseStatement(rows, fname){
     return {provider:"FREEDOM24", txs, skipped};
   }
 
-  // CONSEQ: Datum obchodu, Investiční nástroj, ISIN, Typ operace, Počet, Cena za kus, Celkem..., Měna
-  if(idx(["isin"])>-1 && idx(["typ operace"])>-1){
-    const iD=idx(["datum obchodu","datum"]), iN=idx(["investiční nástroj","investicni nastroj"]),
-          iI=idx(["isin"]), iTy=idx(["typ operace"]), iQ=idx(["počet","pocet"]),
-          iP=idx(["cena za kus"]), iTot=idx(["celkem v měně investičního","celkem v mene investicniho"]),
-          iC=idx(["měna","mena"]);
-    const txs=[]; let skipped=0;
-    for(const r of rows.slice(1)){
-      const isin=(r[iI]||"").trim().toUpperCase(), tRaw=(r[iTy]||"");
-      const date=parseDate(r[iD]);
-      let type = /prodej|odkup/i.test(tRaw)?"SELL" : /n[aá]kup/i.test(tRaw)?"BUY" : null;
-      if(!isin || !type || !date){ skipped++; continue; }
-      const qty=parseNum(r[iQ]), price=parseNum(r[iP]), total=parseNum(r[iTot]),
-            currency=(r[iC]||"").trim().toUpperCase()||null;
-      if(!qty){ skipped++; continue; }
-      const ticker = SYMBOL_OVERRIDES[isin] || mapSymbol(isin+".SG");
-      txs.push({provider:"CONSEQ", raw_symbol:(r[iN]||isin).trim(), ticker, type, date,
-        quantity:qty, price, total, currency});
-    }
-    return {provider:"CONSEQ", txs, skipped};
-  }
-
   // XTB cash operations: starý (Symbol) i nový (Ticker) formát; Type, Time/Date, Comment, Amount, ID
   const iSym=idx(["symbol","ticker"]), iCom=idx(["comment","komentář","komentar"]);
   if(iSym>-1 && iCom>-1){
@@ -1332,7 +1311,7 @@ function parseStatement(rows, fname){
     }
     return {provider:"XTB", txs, skipped};
   }
-  throw new Error(`Nerozpoznaný formát „${fname}" — podporuji XTB, Revolut, Conseq, Degiro, Interactive Brokers, Trading 212, Revolut crypto a Freedom 24.`);
+  throw new Error(`Nerozpoznaný formát „${fname}" — podporuji XTB, Revolut, Degiro, Interactive Brokers, Trading 212, Revolut crypto, Revolut robo a Freedom 24.`);
 }
 
 /* ================= CENY (Yahoo přes edge proxy) ================= */
@@ -2889,7 +2868,7 @@ async function fileToTables(f){
       });
       if(hi>-1) tables.push(rows.slice(hi).map(r=>r.map(c=>String(c==null?"":c))));
     }
-    if(!tables.length) throw new Error(`V „${f.name}" jsem nenašel list s transakcemi — čekám XTB cash operace, Conseq výpis, nebo Freedom 24 (list „Trades").`);
+    if(!tables.length) throw new Error(`V „${f.name}" jsem nenašel list s transakcemi — čekám XTB cash operace nebo Freedom 24 (list „Trades").`);
     return tables;
   }
   return [parseCSV(await f.text())];

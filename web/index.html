@@ -703,10 +703,13 @@ td.r, th.r{text-align:right;}
 <script>
 /* ================= KONFIGURACE ================= */
 const APP_VERSION = "2.1 (14. 6. 2026) — administrace";
-const FOOTER_VERSION = "v3.00 · 26. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
+const FOOTER_VERSION = "v3.01 · 26. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
 
 // Seznam změn — nejnovější nahoře. Při každé úpravě appky sem přidat řádek.
 const CHANGELOG = [
+  {v:"v3.01", d:"26. 9. 2026", items:[
+    "Dividendy se počítají do zisku (Celkem P/L, graf Zisk, změny za období) u všech brokerů — dřív jen u těch se zadanou hotovostí",
+    "Vloženo je o přijaté dividendy nižší: dividenda je výnos, ne vklad, a když ji znovu investuješ, nepočítá se jako nové peníze"]},
   {v:"v3.00", d:"26. 9. 2026", items:[
     "Kontrola výpočtů — opraveno několik míst, kde čísla nesouhlasila",
     "Ručně zadaný skutečný stav kryptoměn (staking) se teď počítá i do hodnoty portfolia a grafu, ne jen do tabulky pozic — hodnota nahoře se rovná součtu pozic",
@@ -1488,10 +1491,23 @@ function computeSeries(prov){
       (allTx[t.date]=allTx[t.date]||[]).push(t);
     }
   }
+  // Dividendy mimo sledovanou hotovost (broker bez zadané hotovosti, nebo výplata
+  // ještě před dnem jejího zadání) v hodnotě nejsou — peníze odešly z dohledu appky.
+  // Do zisku ale patří, proto o ně snížíme vloženo (jako by sis je vybral).
+  // Jinak by zisk dividendy u části brokerů obsahoval a u části ne a jejich
+  // reinvestice by se tvářila jako nový vklad.
+  const divOut={};
+  for(const t of txFor(prov)){
+    if(t.type!=="DIVIDEND") continue;
+    const c=cfg[t.provider];
+    if(c && cashProvs.includes(t.provider) && t.date>c.date) continue;   // ty už běží přes hotovost
+    divOut[t.date]=(divOut[t.date]||0) + (t.total||0)*(fxAt(txCurrency(t), t.date)||0);
+  }
   const qty={}; let inv=0, cash=0, divCum=0;
   for(let i=0;i<CAL.length;i++){
     const d=CAL[i];
     if(cashStart[d]) cash+=cashStart[d];
+    if(divOut[d]) divCum+=divOut[d];
     for(const t of (allTx[d]||[])){
       const fx=fxAt(txCurrency(t), d)||0;
       const val=(t.total!=null?t.total:(t.quantity*(t.price||0)))*fx;
@@ -1512,7 +1528,8 @@ function computeSeries(prov){
       v += qty[tk]*p*(fxAt((META[tk]&&META[tk].currency)||"USD",d)||0);
     }
     // hotovost jde do hodnoty i do vloženého (mínus dividendy — ty nejsou vklad),
-    // takže zisk v Kč zůstává stejný a procenta počítají i s ležícími penězi
+    // takže zisk v Kč zůstává stejný a procenta počítají i s ležícími penězi;
+    // divCum obsahuje dividendy všech brokerů, takže jsou v zisku vždy právě jednou
     value[i]=v+cash; invested[i]=inv+cash-divCum;
   }
   return {value, invested};

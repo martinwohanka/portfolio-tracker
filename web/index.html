@@ -706,10 +706,11 @@ td.r, th.r{text-align:right;}
 <script>
 /* ================= KONFIGURACE ================= */
 const APP_VERSION = "2.1 (14. 6. 2026) — administrace";
-const FOOTER_VERSION = "v2.96 · 22. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
+const FOOTER_VERSION = "v2.97 · 26. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
 
 // Seznam změn — nejnovější nahoře. Při každé úpravě appky sem přidat řádek.
 const CHANGELOG = [
+  {v:"v2.97", d:"26. 9. 2026", items:["Oprava grafu Zisk — titul, ke kterému se nepodařilo stáhnout ceny, se počítal do vložených prostředků, ale do hodnoty vůbec. Zisk tím byl o celou jeho cenu stlačený a v den prodeje skokem povyskočil (svislý schod v grafu)","Takový titul se nově ocení vlastní nákupní cenou, dokud se ceny nepodaří načíst","Týkalo se to evropských ETF uvedených holým kódem (ETLZ, VUSA, IUSN, SPPW, VUAA, QDV5, HMI) — dnes už se většina dohledá sama"]},
   {v:"v2.96", d:"22. 9. 2026", items:["Okno importu samo pozná výpis robo poradce a předvybere správného brokera — robo nakupuje celý košík naráz, běžný účet ne. Přepnout jde pořád ručně"]},
   {v:"v2.95", d:"22. 9. 2026", items:["Když se u titulu nepodaří stáhnout ceny, appka sama zkusí dohledat burzu (SPY4 → SPY4.DE) — týká se evropských ETF, které jsou v exportech uvedené holým kódem","Přijme jen symbol, kde sedí měna i řádová cena proti skutečnému obchodu, aby se titul nechytil jiného papíru se stejným kódem","Hláška o nenačtených cenách už stejný ticker nevypisuje několikrát"]},
   {v:"v2.94", d:"15. 9. 2026", items:["Oprava: appka dopoledne chybně hlásila zavřené americké burzy. Než v USA otevřou, jsou k dispozici jen pre-market data — to ale neznamená, že se dnes neobchoduje","Hláška o zavřeném trhu se nově ukáže i o víkendu, když držíš jen americké tituly (dřív se v takovém případě neobjevila vůbec)","Když důvod zavření neumí appka pojmenovat, napíše jen „zavřeno“ místo toho, aby tvrdila svátek"]},
@@ -3333,15 +3334,6 @@ async function loadAllData(){
     try{ await loadDaily(tk, first[tk]); }
     catch(e){ priceErrors.push({ticker:tk, msg:e.message}); }
   }));
-  // fondy, které Yahoo nevede: syntetická cenová řada z cen vlastních transakcí
-  for(const e of [...priceErrors]){
-    const txs=TX.filter(t=>t.ticker===e.ticker && t.provider==="CONSEQ" && t.price!=null && t.type!=="DIVIDEND");
-    if(!txs.length) continue;
-    const sorted=txs.slice().sort((a,b)=>a.date.localeCompare(b.date));
-    DAILY[e.ticker]={dates:sorted.map(t=>t.date), closes:sorted.map(t=>t.price)};
-    META[e.ticker]={currency: sorted[0].currency||"USD", approx:true};
-    priceErrors.splice(priceErrors.indexOf(e),1);
-  }
   // Ticker bez přípony burzy (evropské ETF): zkusit dohledat a načíst znovu.
   const dohledane=[];
   for(const e of [...priceErrors]){
@@ -3355,6 +3347,20 @@ async function loadAllData(){
     }catch(err){ delete AUTO_SFX[e.ticker]; }
   }
   if(dohledane.length){ lsSet("autosfx", AUTO_SFX); toast("Dohledáno na burze: "+dohledane.join(", "), 5000); }
+
+  // Pořád bez cen: ocenit vlastními nákupními cenami, ne nulou. Titul bez cen se
+  // totiž počítal do „vloženo“, ale do hodnoty vůbec — zisk byl o celou jeho cenu
+  // stlačený a v den prodeje skokem povyskočil (svislý schod v grafu Zisk).
+  // Takhle přispívá do zisku nulou, dokud se neprodá. Conseq fondy Yahoo nevede
+  // vůbec, tam je to běžný stav a hlášku není třeba ukazovat; u ostatních ano.
+  for(const e of [...priceErrors]){
+    const txs=TX.filter(t=>t.ticker===e.ticker && t.price>0 && t.type!=="DIVIDEND")
+                .sort((a,b)=>a.date.localeCompare(b.date));
+    if(!txs.length) continue;
+    DAILY[e.ticker]={dates:txs.map(t=>t.date), closes:txs.map(t=>t.price)};
+    META[e.ticker]={currency: txs[0].currency||"USD", approx:true};
+    if(txs.every(t=>t.provider==="CONSEQ")) priceErrors.splice(priceErrors.indexOf(e),1);
+  }
 
   // Conseq: historie před začátkem Yahoo dat se doplní cenami z transakcí
   for(const tk of new Set(TX.filter(t=>t.provider==="CONSEQ").map(t=>t.ticker))){

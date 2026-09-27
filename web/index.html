@@ -347,6 +347,7 @@ tr.grp-item td:first-child{padding-left:14px;} tr.grp-item{background:var(--surf
   font-size:13.5px; transition:transform .25s; z-index:70; max-width:90vw;}
 #toast.show{transform:translateX(-50%) translateY(0);}
 
+.auth-bull{width:72px; height:72px; display:block; margin:0 auto 12px;}
 #bootSplash{position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; z-index:50;
   background-color:var(--bg); background-image:var(--texture);}
 #bootSplash .boot-bull{width:64px; height:64px;}
@@ -391,6 +392,7 @@ tr.grp-item td:first-child{padding-left:14px;} tr.grp-item{background:var(--surf
 
 <div id="authScreen" style="display:none; min-height:100vh; align-items:center; justify-content:center; padding:24px; padding-top:calc(24px + env(safe-area-inset-top))">
   <div style="max-width:380px; width:100%; text-align:center">
+    <svg class="auth-bull" viewBox="10 7 80 80" aria-hidden="true"><path fill="var(--brand)" d="M50,31 C45,31 41,32 38,34 C31,34 25,31 22,26 C19,21 19,15 23,9 C15,13 11,20 12,27 C13,35 20,40 30,41 L34,41 C28,41 23,42 19,43 C21,49 27,51 34,49 C35,56 37,60 41,64 C43,67 44,70 43,73 C41,77 42,81 45,84 C47,85 49,86 50,86 C51,86 53,85 55,84 C58,81 59,77 57,73 C56,70 57,67 59,64 C63,60 65,56 66,49 C73,51 79,49 81,43 C77,42 72,41 66,41 L70,41 C80,40 87,35 88,27 C89,20 85,13 77,9 C81,15 81,21 78,26 C75,31 69,34 62,34 C59,32 55,31 50,31Z"/><path d="M0,22 L12,11 L17,15 L27,5 L32,9 L43,-1" transform="translate(37.5 39.7) scale(0.605)" fill="none" stroke="var(--bg)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg>
     <h1 style="font-size:30px; font-weight:600; letter-spacing:.02em; margin-bottom:6px">Fortivio<span style="color:var(--accent)">.</span></h1>
     <p style="color:var(--muted); font-size:14px; margin-bottom:24px">Sledování akciového portfolia napříč brokery.</p>
     <div id="authForm">
@@ -729,10 +731,11 @@ tr.grp-item td:first-child{padding-left:14px;} tr.grp-item{background:var(--surf
 <script>
 /* ================= KONFIGURACE ================= */
 const APP_VERSION = "2.1 (14. 6. 2026) — administrace";
-const FOOTER_VERSION = "v3.06 · 27. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
+const FOOTER_VERSION = "v3.07 · 27. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
 
 // Seznam změn — nejnovější nahoře. Při každé úpravě appky sem přidat řádek.
 const CHANGELOG = [
+  {v:"v3.07", d:"27. 9. 2026", items:["Zlatý býk je i na přihlašovací obrazovce nad názvem Fortivio"]},
   {v:"v3.06", d:"27. 9. 2026", items:[
     "Graf 1D o víkendu a svátcích: místo nekonečného načítání ukáže průběh posledního obchodního dne s datem, a když ani ten není (americké akcie o víkendu), hlášku „Trh je zavřený“. Načítání má časový limit a nikdy nevisí",
     "Na 1D je pod hodnotou portfolia vždy částka a procento zisku — za dnešek, nebo za poslední obchodní den (např. „zisk v pátek 25. 9.“)",

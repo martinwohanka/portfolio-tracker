@@ -193,11 +193,11 @@ header h1 span{color:var(--accent);} header h1 .brand-name{color:var(--text);}
 .card:last-child{padding-right:0;}
 .card .lbl{font-size:11.5px; color:var(--faint);}
 .card .val{font-size:17px; font-weight:600; margin-top:4px; letter-spacing:-.02em;}
-.card .abs{font-size:12px; color:var(--muted); margin-top:2px;}
+.card .abs{font-size:12px; color:var(--muted); margin-top:2px; white-space:nowrap;}
 .card:last-child .lbl{color:var(--accent);}
 
 .divline{font-size:13px; color:var(--muted); margin:0 0 18px;}
-.divline b{color:var(--text); font-weight:500;}
+.divline b{color:var(--text); font-weight:500; font-family:var(--font-ui); font-variant-numeric:tabular-nums; white-space:nowrap;}  /* bez mono písma: mezera v „3 551 Kč“ není široká jako číslice */
 
 nav.views{display:flex; gap:22px; border-bottom:1px solid var(--border); margin:8px 0 10px; overflow-x:auto; scrollbar-width:none;}
 nav.views::-webkit-scrollbar{display:none;}
@@ -290,6 +290,11 @@ td.r, th.r{text-align:right;}
 }
 .tbl-scroll{overflow-x:auto; -webkit-overflow-scrolling:touch;}
 .del{background:none; border:none; color:var(--faint); cursor:pointer; font-size:15px; padding:2px 6px;}
+.tx-tools{display:flex; flex-wrap:wrap; align-items:center; gap:8px 14px; margin:4px 0 10px;}
+.tx-check{font-size:12.5px; color:var(--muted); display:flex; align-items:center; gap:6px; cursor:pointer;}
+tr.grp-row{cursor:pointer;} tr.grp-row .grp-n{color:var(--muted); font-size:12px;}
+tr.grp-item td:first-child{padding-left:14px;} tr.grp-item{background:var(--surface2);}
+.conv{color:var(--faint); font-size:11px;}
 .del:hover{color:var(--red);}
 
 .alloc{display:flex; gap:24px; align-items:center; flex-wrap:wrap; margin-top:6px;}
@@ -342,6 +347,12 @@ td.r, th.r{text-align:right;}
   font-size:13.5px; transition:transform .25s; z-index:70; max-width:90vw;}
 #toast.show{transform:translateX(-50%) translateY(0);}
 
+#bootSplash{position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; z-index:50;
+  background-color:var(--bg); background-image:var(--texture);}
+#bootSplash .boot-bull{width:64px; height:64px;}
+#bootSplash .boot-name{font-size:26px; font-weight:700; letter-spacing:-.02em; color:var(--text);}
+#bootSplash .boot-name span{color:var(--accent);}
+#bootSplash .boot-msg{font-size:13px; color:var(--muted); display:flex; align-items:center; gap:8px; margin-top:6px;}
 .spin{display:inline-block; width:14px; height:14px; border:2px solid var(--faint); border-top-color:var(--accent);
   border-radius:50%; animation:sp .7s linear infinite; vertical-align:-2px;}
 @keyframes sp{to{transform:rotate(360deg)}}
@@ -371,6 +382,12 @@ td.r, th.r{text-align:right;}
 </style>
 </head>
 <body>
+<!-- úvodní obrazovka: viditelná hned, než skript zjistí přihlášení (jinak ~3 s jen pozadí) -->
+<div id="bootSplash" role="status" aria-live="polite">
+  <svg class="boot-bull" viewBox="10 7 80 80" aria-hidden="true"><path fill="var(--brand)" d="M50,31 C45,31 41,32 38,34 C31,34 25,31 22,26 C19,21 19,15 23,9 C15,13 11,20 12,27 C13,35 20,40 30,41 L34,41 C28,41 23,42 19,43 C21,49 27,51 34,49 C35,56 37,60 41,64 C43,67 44,70 43,73 C41,77 42,81 45,84 C47,85 49,86 50,86 C51,86 53,85 55,84 C58,81 59,77 57,73 C56,70 57,67 59,64 C63,60 65,56 66,49 C73,51 79,49 81,43 C77,42 72,41 66,41 L70,41 C80,40 87,35 88,27 C89,20 85,13 77,9 C81,15 81,21 78,26 C75,31 69,34 62,34 C59,32 55,31 50,31Z"/><path d="M0,22 L12,11 L17,15 L27,5 L32,9 L43,-1" transform="translate(37.5 39.7) scale(0.605)" fill="none" stroke="var(--bg)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  <div class="boot-name">Fortivio<span>.</span></div>
+  <div class="boot-msg"><span class="spin"></span> Načítám…</div>
+</div>
 
 <div id="authScreen" style="display:none; min-height:100vh; align-items:center; justify-content:center; padding:24px; padding-top:calc(24px + env(safe-area-inset-top))">
   <div style="max-width:380px; width:100%; text-align:center">
@@ -490,6 +507,10 @@ td.r, th.r{text-align:right;}
   </section>
 
   <section id="v-transakce" style="display:none">
+    <div class="tx-tools">
+      <select id="txProv" class="setSel" aria-label="Filtr podle brokera"></select>
+      <label class="tx-check"><input type="checkbox" id="txGroup" checked> Seskupit hromadné obchody</label>
+    </div>
     <div class="tbl-scroll"><table id="txTable"></table></div>
   </section>
 
@@ -708,10 +729,23 @@ td.r, th.r{text-align:right;}
 <script>
 /* ================= KONFIGURACE ================= */
 const APP_VERSION = "2.1 (14. 6. 2026) — administrace";
-const FOOTER_VERSION = "v3.05 · 26. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
+const FOOTER_VERSION = "v3.06 · 27. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
 
 // Seznam změn — nejnovější nahoře. Při každé úpravě appky sem přidat řádek.
 const CHANGELOG = [
+  {v:"v3.06", d:"27. 9. 2026", items:[
+    "Graf 1D o víkendu a svátcích: místo nekonečného načítání ukáže průběh posledního obchodního dne s datem, a když ani ten není (americké akcie o víkendu), hlášku „Trh je zavřený“. Načítání má časový limit a nikdy nevisí",
+    "Na 1D je pod hodnotou portfolia vždy částka a procento zisku — za dnešek, nebo za poslední obchodní den (např. „zisk v pátek 25. 9.“)",
+    "Nuly bez znaménka a bez barvy: místo „−0,0 %“ nebo červeného „−0 Kč“ je „0,0 %“ / „0 Kč“; záporná čísla mají všude stejné znaménko −",
+    "Linka Vloženo už nemá krátké propady: peníze z prodeje nebo dividendy, za které do 7 dní přijde nákup (rebalanc, reinvestice, převod k jinému brokerovi), se nepočítají jako výběr. Do té doby jsou v pozicích na řádku „Z prodeje“",
+    "Ceny vždy na 2 desetinná místa (177,60 $), i v Transakcích",
+    "Celkem P/L: vloženo na vlastním řádku, částky se nelámou; u dividend pod grafem zmizela široká mezera v čísle",
+    "Opravené logo ServiceNow (NOW)",
+    "Dividendy z XTB (připisované v Kč) se v Transakcích ukazují přepočtené na měnu titulu se znakem ≈, původní částka v Kč je pod nimi",
+    "Transakce: filtr podle brokera a seskupení hromadných obchodů (robo poradce) do jednoho řádku, který se klepnutím rozbalí; stejně se seskupují prodeje v Realizovaných a drobné zisky mají haléře místo „+0 Kč“",
+    "Mazání transakce se ptá s popisem, co přesně se smaže",
+    "Alokace ukazuje 15 největších položek zvlášť, zbytek je v „Ostatní“ (klepnutím se rozbalí)",
+    "Při spuštění je hned vidět úvodní obrazovka s býkem a „Načítám…“ místo prázdného pozadí"]},
   {v:"v3.05", d:"26. 9. 2026", items:["Býk v záhlaví je zlatý, ve stejném tónu jako tečka za názvem (ve světlém režimu tmavší zlatá, aby byl na krémovém podkladu dobře vidět)"]},
   {v:"v3.04", d:"26. 9. 2026", items:["Býk z ikony je i v záhlaví vedle názvu — ve světlém režimu v zelené barvě ikony, v tmavém ve světlejší mátové, aby na tmavém podkladu nezanikl"]},
   {v:"v3.03", d:"26. 9. 2026", items:[
@@ -867,11 +901,25 @@ const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 let PRIVATE = false;
 const MASK = "•••";
-const fmtKc = n => PRIVATE ? MASK : ((n==null||isNaN(n)) ? "—" : Math.round(n).toLocaleString("cs-CZ") + " Kč");
-const fmtPct = n => (n==null||isNaN(n)) ? "—" : (n>0?"+":"") + n.toLocaleString("cs-CZ",{minimumFractionDigits:1,maximumFractionDigits:1}) + " %";
-const fmtSign = n => PRIVATE ? MASK : ((n==null||isNaN(n)) ? "—" : (n>0?"+":n<0?"−":"") + Math.abs(Math.round(n)).toLocaleString("cs-CZ") + " Kč");
+/* Zaokrouhlení na zobrazovanou přesnost. Co se zaokrouhlí na nulu, je nula —
+   bez znaménka a bez barvy (dřív vznikalo „−0,0 %“ nebo červené „−0 Kč“). */
+const rnd = (n,d) => { const f=10**d, r=Math.round(n*f)/f; return r===0 ? 0 : r; };
+const nfmt = (n,d) => n.toLocaleString("cs-CZ",{minimumFractionDigits:d, maximumFractionDigits:d});
+const sgnCh = r => r>0 ? "+" : r<0 ? "−" : "";
+const fmtKc = n => PRIVATE ? MASK : ((n==null||isNaN(n)) ? "—" : (rnd(n,0)<0?"−":"") + nfmt(Math.abs(rnd(n,0)),0) + "\u00A0Kč");
+const fmtPct = n => { if(n==null||isNaN(n)) return "—"; const r=rnd(n,1); return sgnCh(r) + nfmt(Math.abs(r),1) + "\u00A0%"; };
+/* d = počet desetinných míst; „auto“ = u drobných částek (pod 10 Kč) haléře, ať robo mikroobchody neukazují „+0 Kč“ */
+const fmtSign = (n,d=0) => {
+  if(PRIVATE) return MASK;
+  if(n==null||isNaN(n)) return "—";
+  if(d==="auto") d = Math.abs(n)<9.995 ? 2 : 0;
+  const r=rnd(n,d); return sgnCh(r) + nfmt(Math.abs(r),d) + "\u00A0Kč";
+};
 const fmtNum = (n,d=2) => n==null ? "—" : n.toLocaleString("cs-CZ",{maximumFractionDigits:d});
-const cls = n => n>0.0001 ? "up" : n<-0.0001 ? "down" : "flat";
+/* cena titulu: vždy 2 desetinná místa (177,60 $), u haléřových cen víc */
+const fmtPx = n => n==null||isNaN(n) ? "—" : n.toLocaleString("cs-CZ",{minimumFractionDigits:2, maximumFractionDigits: Math.abs(n)<1 && n!==0 ? 4 : 2});
+/* barva podle hodnoty zaokrouhlené na zobrazenou přesnost (d=1 pro %, d=0 pro Kč) */
+const cls = (n,d=1) => { if(n==null||isNaN(n)) return "flat"; const r=rnd(n,d); return r>0 ? "up" : r<0 ? "down" : "flat"; };
 const todayStr = () => new Date().toISOString().slice(0,10);
 const escapeHtml = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 function toast(msg, ms=3200){ const t=$("#toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("show"), ms); }
@@ -1339,10 +1387,17 @@ function parseStatement(rows, fname){
 }
 
 /* ================= CENY (Yahoo přes edge proxy) ================= */
-async function fetchChart(symbol, range, interval, prePost){
+async function fetchChart(symbol, range, interval, prePost, timeoutMs=15000){
   const sym = AUTO_SFX[symbol] || symbol;
   const u = `${CONFIG.PROXY_URL}?symbol=${encodeURIComponent(sym)}&range=${range}&interval=${interval}${prePost?"&prepost=true":""}`;
-  const r = await fetch(u, {headers:{Authorization:`Bearer ${CONFIG.SUPABASE_ANON_KEY}`}, cache:"no-store"});
+  // Bez časového limitu umí mobilní Safari na odpověď čekat donekonečna
+  // a s ní i celý graf („načítám dnešní průběh…“ navždy).
+  const ctl = typeof AbortController!=="undefined" ? new AbortController() : null;
+  const tm = ctl ? setTimeout(()=>ctl.abort(), timeoutMs) : null;
+  let r;
+  try{ r = await fetch(u, {headers:{Authorization:`Bearer ${CONFIG.SUPABASE_ANON_KEY}`}, cache:"no-store", signal: ctl?ctl.signal:undefined}); }
+  catch(e){ throw new Error(e && e.name==="AbortError" ? "Yahoo neodpovídá" : (e.message||"chyba sítě")); }
+  finally{ if(tm) clearTimeout(tm); }
   if(!r.ok) throw new Error(`proxy ${r.status}`);
   const j = await r.json();
   const res = j.chart && j.chart.result && j.chart.result[0];
@@ -1463,9 +1518,12 @@ function computeSeries(prov){
   const value=new Array(CAL.length).fill(0), invested=new Array(CAL.length).fill(0);
   // pozor: i bez obchodů může existovat hotovost (nebo jen dividendy), proto se
   // nekončí předčasně — jen když není vůbec žádný kalendář
-  if(!CAL.length) return {value, invested};
+  const pending=new Array(CAL.length).fill(0);
+  if(!CAL.length) return {value, invested, pending};
   const byDate={};
   for(const t of txs) (byDate[t.date]=byDate[t.date]||[]).push(t);
+  // v rámci dne nejdřív prodeje, pak nákupy — ať nákup ze stejného dne najde peníze z prodeje
+  for(const d in byDate) byDate[d].sort((a,b)=>(a.type==="SELL"?0:1)-(b.type==="SELL"?0:1));
   // hotovost: základ k zadanému dni + průběžné pohyby (nákup ubírá, prodej a dividenda přidávají).
   // Počítá se inkrementálně v jednom průchodu, ať se nezpomalí vykreslování.
   const cfg=cashCfg();
@@ -1514,13 +1572,27 @@ function computeSeries(prov){
     if(t.type!=="DIVIDEND") continue;
     const c=cfg[t.provider];
     if(c && cashProvs.includes(t.provider) && t.date>c.date) continue;   // ty už běží přes hotovost
-    divOut[t.date]=(divOut[t.date]||0) + (t.total||0)*(fxAt(txCurrency(t), t.date)||0);
+    (divOut[t.date]=divOut[t.date]||[]).push({prov:t.provider, val:(t.total||0)*(fxAt(txCurrency(t), t.date)||0)});
   }
+  // Peníze „na cestě“ u brokerů bez zadané hotovosti: prodej, dividenda nebo
+  // odeslání krypta, po kterém do pár dní přijde nákup (rebalanc, reinvestice,
+  // převod k jinému brokerovi). Bez toho „vloženo“ v den prodeje spadlo a s nákupem
+  // se hned vrátilo — v grafu krátké propady. Peníze proto počkají v poolu:
+  // počítají se do hodnoty i do vloženého (zisk se nemění) a nákup je spotřebuje
+  // dřív, než by se počítal jako nový vklad. Co se do POOL_DAYS nespotřebuje,
+  // bereme jako výběr.
+  const POOL_DAYS=7, pool=[];
+  const tracked=p=>cashProvs.includes(p);
+  const poolSum=()=>pool.reduce((a,x)=>a+x.amt,0);
   const qty={}; let inv=0, cash=0, divCum=0;
   for(let i=0;i<CAL.length;i++){
     const d=CAL[i];
+    while(pool.length && pool[0].exp<=d) pool.shift();   // nevyužité peníze po lhůtě = výběr
     if(cashStart[d]) cash+=cashStart[d];
-    if(divOut[d]) divCum+=divOut[d];
+    for(const x of (divOut[d]||[])){
+      divCum+=x.val;
+      if(!tracked(x.prov)) pool.push({amt:x.val, exp:addDays(d,POOL_DAYS)});
+    }
     for(const t of (allTx[d]||[])){
       const fx=fxAt(txCurrency(t), d)||0;
       const val=(t.total!=null?t.total:(t.quantity*(t.price||0)))*fx;
@@ -1532,6 +1604,10 @@ function computeSeries(prov){
       const c2=(t.total!=null?t.total:(t.quantity*(t.price||0)))*fx;
       if(t.type==="BUY"){ qty[t.ticker]=(qty[t.ticker]||0)+t.quantity; inv+=c2; }
       else { qty[t.ticker]=(qty[t.ticker]||0)-t.quantity; inv-=c2; }
+      if(tracked(t.provider)) continue;
+      if(t.type==="SELL") pool.push({amt:c2, exp:addDays(d,POOL_DAYS)});
+      else { let need=c2;   // nákup nejdřív spotřebuje peníze z nedávných prodejů/dividend
+        while(need>1e-9 && pool.length){ const x=pool[0], k=Math.min(need,x.amt); x.amt-=k; need-=k; if(x.amt<=1e-9) pool.shift(); } }
     }
     for(const [tk,dq] of (extraQty[d]||[])) qty[tk]=(qty[tk]||0)+dq;
     let v=0;
@@ -1543,9 +1619,10 @@ function computeSeries(prov){
     // hotovost jde do hodnoty i do vloženého (mínus dividendy — ty nejsou vklad),
     // takže zisk v Kč zůstává stejný a procenta počítají i s ležícími penězi;
     // divCum obsahuje dividendy všech brokerů, takže jsou v zisku vždy právě jednou
-    value[i]=v+cash; invested[i]=inv+cash-divCum;
+    const pl=poolSum();
+    value[i]=v+cash+pl; invested[i]=inv+cash+pl-divCum; pending[i]=pl;
   }
-  return {value, invested};
+  return {value, invested, pending};
 }
 
 /* pozice k dnešku (průměrná pořizovací cena metodou váženého průměru) */
@@ -1643,6 +1720,7 @@ async function buildIntraday(prov){
   // Titul, u kterého stahování selhalo, se sem záměrně nedostane — z chyby sítě
   // se nedá usuzovat, že je trh zavřený.
   const closed=new Set();
+  const raw={};   // celá odpověď po titulech — pro průběh posledního obchodního dne
   const dayStart = (()=>{ const n=new Date(); return new Date(n.getFullYear(),n.getMonth(),n.getDate()).getTime()/1000; })();
   const nowSec=Date.now()/1000;
   await Promise.all(tickers.map(async tk=>{
@@ -1655,8 +1733,9 @@ async function buildIntraday(prov){
       const isCrypto = (META[tk] && META[tk].crypto) || CRYPTO_TICKERS.has(tk);
       const cmul = isCrypto ? (fxAt("USD", today)||0) : 1;
       const conv = v => v==null ? null : (v/div)*cmul;
-      const ts=res.timestamp||[], cl=(res.indicators.quote[0].close||[]).map(conv);
+      const ts=res.timestamp||[], cl=(((res.indicators||{}).quote||[{}])[0].close||[]).map(conv);
       const ctp=res.meta.currentTradingPeriod||{};
+      raw[tk]={ts, cl, meta:res.meta, conv};
       const regS=ctp.regular?ctp.regular.start:null, regE=ctp.regular?ctp.regular.end:null;
       let prev=(res.meta.chartPreviousClose!=null ? (res.meta.chartPreviousClose/div)*cmul : priceAt(tk,yest));
       const kts=[], kcl=[]; let lastPre=null, lastPost=null;
@@ -1709,13 +1788,18 @@ async function buildIntraday(prov){
   // Neobchoduje-li dnes vůbec nic (víkend, svátek u čistě amerického portfolia),
   // graf nevznikne — ale zjištění o zavřených trzích si uložit musíme, jinak by
   // se hláška „trh zavřený“ neměla z čeho vzít.
-  if(!tsArr.length){ INTRA={prov, t:Date.now(), points:[], ref:0, grids, closed}; return []; }
+  if(!tsArr.length){
+    // Dnes se nic neobchodovalo (víkend, svátek, ráno před otevřením).
+    // Místo prázdna ukážeme průběh posledního obchodního dne.
+    INTRA = lastSession(prov, positions, raw, closed, dayStart);
+    return INTRA.points;
+  }
   const qtyMap={}, fxMap={};
   for(const p of positions){ qtyMap[p.ticker]=(qtyMap[p.ticker]||0)+p.qty; fxMap[p.ticker]=fxAt(p.currency,today)||0; }
   // Hotovost patří do hodnoty portfolia stejně jako v denní řadě (value=v+cash).
   // Bez ní byl 1D graf o hotovost níž než částka nad ním a „zisk dnes“ se počítal
   // z menšího základu, takže procento nesedělo s dlaždicí Dnes.
-  const cashCzk = cashNow(prov) || 0;
+  const cashCzk = (cashNow(prov) || 0) + pendingNow(prov);
   const lastIdx={}, points=[];
   for(const t of tsArr){
     let v=0;
@@ -1767,6 +1851,82 @@ async function buildIntraday(prov){
   ref += cashCzk;   // základ dne musí zahrnovat hotovost stejně jako body grafu
   INTRA={prov, t:Date.now(), points, ref, grids, closed};
   return points;
+}
+
+/* Průběh posledního obchodního dne, když dnes žádné svíčky nejsou.
+   Yahoo o víkendu vrací u evropských titulů svíčky za celý týden, u amerických
+   často jen jediný bod se závěrem. Den bereme z regularMarketTime, závěr
+   z regularMarketPrice a předchozí závěr z previousClose (chartPreviousClose
+   se u týdenní odpovědi vztahuje k začátku týdne). Titul bez svíček ten den
+   přispívá do grafu konstantou — jeho denní změna je pak vidět jako posun
+   začátku grafu proti čárkované základně. */
+function lastSession(prov, positions, raw, closed, dayStart){
+  const today=todayStr();
+  const pad=n=>String(n).padStart(2,"0");
+  const ld=t=>{ const d=new Date(t*1000); return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()); };
+  const info={};
+  let D=null;
+  for(const tk in raw){
+    const r=raw[tk], m=r.meta||{};
+    if(m.regularMarketTime==null || m.regularMarketTime>=dayStart) continue;
+    const sess=ld(m.regularMarketTime);
+    info[tk]={sess, close: m.regularMarketPrice!=null ? r.conv(m.regularMarketPrice) : null,
+      prev: m.previousClose!=null ? r.conv(m.previousClose) : null};
+    if(!D || sess>D) D=sess;
+  }
+  const empty={prov, t:Date.now(), points:[], ref:0, grids:{}, closed, session:D, sessChange:null, sessPct:null};
+  if(!D) return empty;
+  const grids={};
+  for(const tk in info){
+    const i=info[tk], r=raw[tk];
+    if(i.close==null) i.close=priceAt(tk, i.sess);
+    if(i.sess!==D || i.prev==null){ i.prev=i.close; continue; }   // ten den se u něj neobchodovalo
+    // regulérní seance dne D (bez pre/after-marketu), jinak všechny svíčky toho dne
+    let per=null;
+    const tp=r.meta.tradingPeriods && r.meta.tradingPeriods.regular;
+    if(Array.isArray(tp)) for(const row of tp) for(const x of (Array.isArray(row)?row:[row])) if(x && ld(x.start)===D) per=x;
+    const gts=[], gcl=[];
+    for(let k=0;k<r.ts.length;k++){
+      const t=r.ts[k]; if(r.cl[k]==null || ld(t)!==D) continue;
+      if(per && (t<per.start || t>=per.end)) continue;
+      gts.push(t); gcl.push(r.cl[k]);
+    }
+    if(gts.length>=2) grids[tk]={ts:gts, cl:gcl, prev:i.prev};
+  }
+  const fx={}, qty={};
+  for(const p of positions){ qty[p.ticker]=(qty[p.ticker]||0)+p.qty; fx[p.ticker]=fxAt(p.currency,today)||0; }
+  const cashCzk=(cashNow(prov)||0) + pendingNow(prov);
+  let ref=cashCzk, end=cashCzk;
+  for(const tk in qty){
+    const i=info[tk];
+    const close = i ? i.close : priceAt(tk,today), prev = i ? i.prev : close;
+    if(close!=null) end += qty[tk]*close*fx[tk];
+    if(prev!=null)  ref += qty[tk]*prev*fx[tk];
+  }
+  const tsArr=[...new Set(Object.values(grids).flatMap(g=>g.ts))].sort((a,b)=>a-b);
+  const points=[]; const idx={};
+  for(const t of tsArr){
+    let v=cashCzk;
+    for(const tk in qty){
+      const g=grids[tk], i=info[tk];
+      let price;
+      if(g){
+        let j=idx[tk]==null?-1:idx[tk];
+        while(j+1<g.ts.length && g.ts[j+1]<=t) j++;
+        idx[tk]=j;
+        price = j>=0 ? g.cl[j] : g.prev;
+      } else price = i ? i.close : priceAt(tk,today);
+      if(price!=null) v+=qty[tk]*price*fx[tk];
+    }
+    points.push({t, v});
+  }
+  return {...empty, points, ref, grids, sessChange:end-ref, sessPct: ref>0 ? (end-ref)/ref*100 : null};
+}
+/* „v pátek 25. 9.“ */
+function sessLabel(d){
+  const dt=new Date(d+"T12:00:00");
+  const dny=["v neděli","v pondělí","v úterý","ve středu","ve čtvrtek","v pátek","v sobotu"];
+  return `${dny[dt.getDay()]} ${dt.getDate()}. ${dt.getMonth()+1}.`;
 }
 
 /* ===== Zavřené trhy =====
@@ -1912,7 +2072,7 @@ const PROV_NAME = {XTB:"XTB", REVOLUT:"Revolut", DEGIRO:"Degiro", IBKR:"IBKR", T
 /* značka brokera u titulu v seznamu — barevná tečka místo textového odznaku */
 const provDot = p => `<span class="bmark ${p}" title="${PROV_NAME[p]||p}" aria-label="${PROV_NAME[p]||p}"></span>`;
 const CUR_SYM = {USD:"$", EUR:"€", GBP:"£", CZK:"Kč", JPY:"¥", CHF:"CHF", DKK:"kr", SEK:"kr", NOK:"kr", PLN:"zł", CAD:"C$", AUD:"A$", HKD:"HK$"};
-const fmtCur = (n,cur) => PRIVATE ? MASK : (n==null ? "—" : fmtNum(n)+"\u00A0"+(CUR_SYM[cur]||cur||""));
+const fmtCur = (n,cur) => PRIVATE ? MASK : (n==null ? "—" : fmtPx(n)+"\u00A0"+(CUR_SYM[cur]||cur||""));
 /* Paleta alokace — ověřená na rozlišitelnost i při barvosleposti
    (odstup sousedních dílků, kontrast vůči podkladu v obou režimech). */
 const PALETTE = ["#3987E5","#D95926","#199E70","#C98500","#D55181","#9085E9","#5F6B7A","#7BB2F0","#E08A5F","#4FB89A","#B08BD8","#8A939E"];
@@ -2008,15 +2168,15 @@ function renderHeroExt(val){
   if(!e){ el.innerHTML=""; el.title=""; return; }
   const lbl=e.state==="pre"?"pre-market":"after-market";
   el.innerHTML=`<span class="ext-lbl">${lbl}</span>`+
-    `<b class="ext-px ${cls(e.delta)}">${fmtKc(val+e.delta)}</b>`+
-    `<span class="ext-delta num ${cls(e.delta)}">${fmtSign(e.delta)} (${fmtPct(e.pct)})</span>`;
+    `<b class="ext-px ${cls(e.delta,0)}">${fmtKc(val+e.delta)}</b>`+
+    `<span class="ext-delta num ${cls(e.delta,0)}">${fmtSign(e.delta)} (${fmtPct(e.pct)})</span>`;
   el.title=`Odhad hodnoty portfolia podle ${lbl} cen (${e.count} ${e.count===1?"titul":"titulů"} s daty) — mimo řádné obchodní hodiny.`;
 }
 function setHeroChange(ch){
   const el=$("#heroChange");
   if(!ch){ el.textContent="—"; el.className="num flat"; return; }
   el.textContent = ch.pct==null ? fmtSign(ch.abs) : `${fmtSign(ch.abs)} (${fmtPct(ch.pct)})`;
-  el.className = "num "+cls(ch.abs);
+  el.className = "num "+cls(ch.abs,0);
 }
 function renderCards(s){
   const total = s.value.length ? s.value[s.value.length-1] : 0;
@@ -2025,7 +2185,7 @@ function renderCards(s){
   // (chartPreviousClose) dnešním kurzem, vč. overnight gapu/pre-marketu. Když intradenní
   // data nejsou k dispozici, padáme zpět na denní změnu.
   let dnesCh=null;
-  if(INTRA && INTRA.prov===curProv && INTRA.points && INTRA.points.length && INTRA.ref>0){
+  if(INTRA && INTRA.prov===curProv && !INTRA.session && INTRA.points && INTRA.points.length && INTRA.ref>0){
     const last=INTRA.points[INTRA.points.length-1].v;
     const abs=last-INTRA.ref;
     dnesCh={abs, pct: abs/INTRA.ref*100};
@@ -2034,18 +2194,19 @@ function renderCards(s){
   }
   const defs = [["Týden",7],["Měsíc",31],["Od začátku roku",ytdDays()],["Rok",366]];
   let html = `<div class="card"><div class="lbl">Dnes (od včera)</div>
-      <div class="val num ${dnesCh?cls(dnesCh.abs):"flat"}">${dnesCh?fmtPct(dnesCh.pct):"—"}</div>
+      <div class="val num ${dnesCh?cls(dnesCh.pct!=null?dnesCh.pct:dnesCh.abs):"flat"}">${dnesCh?fmtPct(dnesCh.pct):"—"}</div>
       <div class="abs num">${dnesCh?fmtSign(dnesCh.abs):""}</div></div>`;
   html += defs.map(([lbl,d])=>{
     const ch = periodChange(s,d);
     return `<div class="card"><div class="lbl">${lbl}</div>
-      <div class="val num ${ch?cls(ch.abs):"flat"}">${ch?fmtPct(ch.pct):"—"}</div>
+      <div class="val num ${ch?cls(ch.pct!=null?ch.pct:ch.abs):"flat"}">${ch?fmtPct(ch.pct):"—"}</div>
       <div class="abs num">${ch?fmtSign(ch.abs):""}</div></div>`;
   }).join("");
   const pl = total-inv, plPct = inv>0 ? (total/inv-1)*100 : null;
   html += `<div class="card"><div class="lbl">Celkem P/L</div>
-    <div class="val num ${cls(pl)}">${fmtPct(plPct)}</div>
-    <div class="abs num">${fmtSign(pl)} · vloženo ${fmtKc(inv)}</div></div>`;
+    <div class="val num ${cls(plPct!=null?plPct:pl)}">${fmtPct(plPct)}</div>
+    <div class="abs num">${fmtSign(pl)}</div>
+    <div class="abs num">vloženo ${fmtKc(inv)}</div></div>`;
   $("#cards").innerHTML = html;
 }
 function renderDivLine(){
@@ -2068,16 +2229,42 @@ function drawDailyChart(s, fromIdx){
     drawChart($("#chart"), labels, s.value.slice(start), {invested:s.invested.slice(start), fmtX:fmt, fmtTip, fillGap:true});
   }
 }
+let intraReq=0;
 async function renderIntraday(silent){
+  const req=++intraReq;
   if(!silent) $("#chartNote").innerHTML = '<span class="spin"></span> načítám dnešní průběh…';
+  const s0=series(curProv);
+  // Dokud intradenní data nedorazí, ukaž aspoň denní změnu — nad grafem nesmí
+  // zůstat jen popisek „zisk dnes“ bez čísla.
+  if(!silent && curPeriod==="1D"){ setHeroChange(periodChange(s0,1)); $("#heroPeriodLbl").textContent=PERIOD_LBL["1D"]; }
   try{
-    const pts = await buildIntraday(curProv);
+    // pojistka: ani pomalá síť nesmí nechat točit načítání donekonečna
+    const pts = await Promise.race([
+      buildIntraday(curProv),
+      new Promise((_,rej)=>setTimeout(()=>rej(new Error("Yahoo neodpovídá")), 25000))
+    ]);
+    if(req!==intraReq) return;   // mezitím se spustilo novější načtení
     // EXT (pre/after-market) se plní až tady — obnovíme tabulku pozic i údaj u hlavní hodnoty
     const av=$$("#viewNav button").find(b=>b.classList.contains("active"));
     if(av && av.dataset.v==="pozice") renderPositions();
-    { const sX=series(curProv); renderHeroExt(sX.value.length?sX.value[sX.value.length-1]:0); }
+    const s2=series(curProv);
+    const v2=s2.value.length?s2.value[s2.value.length-1]:0;
+    $("#heroValue").textContent=fmtKc(v2);
+    renderHeroExt(v2);
+    renderCards(s2);
     if(curPeriod!=="1D") return;
-    if(!pts.length){ $("#chartNote").textContent="Dnešní intradenní data nejsou k dispozici."; return; }
+    const sess = INTRA && INTRA.session;          // datum posledního obchodního dne, když dnes zavřeno
+    const lbl = sess ? "zisk "+sessLabel(sess) : PERIOD_LBL["1D"];
+    $("#heroPeriodLbl").textContent=lbl;
+    if(!pts.length){
+      // není ani průběh posledního dne (typicky americké akcie o víkendu) —
+      // aspoň změna za ten den a jasná hláška místo starého grafu
+      if(sess && INTRA.sessChange!=null) setHeroChange({abs:INTRA.sessChange, pct:INTRA.sessPct});
+      else setHeroChange(periodChange(s2,1));
+      $("#chart").innerHTML=`<div class="chart-note" style="padding-top:90px">Trh je zavřený${sess?` — poslední obchodní den byl ${sessLabel(sess).replace(/^ve? /,"")}`:"."}<br>Průběh dne není k dispozici.</div>`;
+      $("#chartNote").textContent="";
+      return;
+    }
     const ref = INTRA.ref || pts[0].v;
     const last = pts[pts.length-1].v;
     // ref už zahrnuje dnešní nákupy v nákupní ceně a vylučuje dnes uzavřené pozice,
@@ -2087,17 +2274,17 @@ async function renderIntraday(silent){
     const fmtT = t=>{ const d=new Date(t*1000); return d.getHours()+":"+String(d.getMinutes()).padStart(2,"0"); };
     if(chartMode==="profit") drawChart($("#chart"), pts.map(p=>p.t), pts.map(p=>p.v-ref), {fmtX:fmtT, refLine:0, isProfit:true});
     else drawChart($("#chart"), pts.map(p=>p.t), pts.map(p=>p.v), {fmtX:fmtT, refLine:ref});
-    $("#chartNote").textContent="";
-    const s2=series(curProv);
-    const v2=s2.value.length?s2.value[s2.value.length-1]:0;
-    $("#heroValue").textContent=fmtKc(v2);
-    renderHeroExt(v2);
-    // přepočítat i horní "zisk dnes" z čerstvých cen (po minutové aktualizaci)
-    setHeroChange({abs:profitAbs, pct: ref>0 ? profitAbs/ref*100 : null});
-    renderCards(s2);
+    $("#chartNote").textContent = sess ? `Trh je zavřený — průběh posledního obchodního dne (${sessLabel(sess).replace(/^ve? /,"")}).` : "";
     const vb=$$("#viewNav button").find(b=>b.classList.contains("active"));
     if(vb && vb.dataset.v==="pozice") renderPositions(); // doplnit pre/after ceny
-  }catch(e){ $("#chartNote").textContent="Intradenní data se nepodařilo načíst ("+e.message+")."; }
+  }catch(e){
+    if(req!==intraReq) return;
+    $("#chartNote").textContent="Intradenní data se nepodařilo načíst ("+e.message+").";
+    if(curPeriod==="1D"){
+      setHeroChange(periodChange(series(curProv),1));
+      $("#chart").innerHTML='<div class="chart-note" style="padding-top:90px">Průběh dne se nepodařilo načíst.</div>';
+    }
+  }
 }
 
 /* ---- obecné kreslení čárového grafu ---- */
@@ -2185,12 +2372,12 @@ function drawChart(el, labels, value, o){
     curLine.setAttribute("x1",X(i)); curLine.setAttribute("x2",X(i)); curLine.setAttribute("opacity","0.35");
     tip.style.display="block";
     let txt = isProfit
-      ? `<b class="num ${cls(value[i])}">${fmtSign(value[i])}</b>`
+      ? `<b class="num ${cls(value[i],0)}">${fmtSign(value[i])}</b>`
       : `<b class="num">${fmtV(value[i])}</b>`;
     txt += `<br><span style="color:var(--muted)">${(o.fmtTip||fmtX)(labels[i])}`;
     if(invested){
       const p = value[i]-invested[i];
-      txt += ` · vloženo ${fmtKc(invested[i])}</span><br><span class="num ${cls(p)}">zisk ${fmtSign(p)}</span>`;
+      txt += ` · vloženo ${fmtKc(invested[i])}</span><br><span class="num ${cls(p,0)}">zisk ${fmtSign(p)}</span>`;
     } else txt += "</span>";
     tip.innerHTML=txt;
     const tw=tip.offsetWidth;
@@ -2231,14 +2418,14 @@ function drawChart(el, labels, value, o){
     ln.setAttribute("stroke-dasharray","4,4"); ln.setAttribute("opacity","0.5");
     svgEl.appendChild(ln); mEls.push(ln);
     const va=value[a], vb=value[b], d=vb-va;
-    const sgn=v=>(v>=0?"+":"−")+fmtV(Math.abs(v));
+    const sgn=v=>(v>0?"+":v<0?"−":"")+fmtV(Math.abs(v));
     const pct = Math.abs(va)>1e-9 ? d/Math.abs(va)*100 : null;
     let html=`<span style="color:var(--muted)">${(o.fmtTip||fmtX)(labels[a])} → ${(o.fmtTip||fmtX)(labels[b])}</span>`+
       `<span data-mclose style="cursor:pointer; color:var(--faint); margin-left:8px">✕</span>`+
-      `<br><b class="num ${cls(d)}">${sgn(d)}${pct!=null?` (${fmtNum(pct,1)} %)`:""}</b>`;
+      `<br><b class="num ${pct!=null?cls(pct):cls(d,0)}">${sgn(d)}${pct!=null?` (${fmtPct(pct)})`:""}</b>`;
     if(invested){
       const dInv=invested[b]-invested[a], net=d-dInv;
-      html+=`<br><span style="color:var(--muted)">vklady ${sgn(dInv)}</span> · <span class="num ${cls(net)}">zisk ${sgn(net)}</span>`;
+      html+=`<br><span style="color:var(--muted)">vklady ${sgn(dInv)}</span> · <span class="num ${cls(net,0)}">zisk ${sgn(net)}</span>`;
     }
     mBox=document.createElement("div");
     mBox.style.cssText="position:absolute; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:6px 10px; font-size:12px; white-space:nowrap; z-index:6;";
@@ -2282,6 +2469,9 @@ function extPct(p){
 }
 // Logo titulu: zkusí CDN (podle základního symbolu bez přípony burzy),
 // při chybě se plynule ukáže barevné kolečko s iniciálami (barva z hashe tickeru).
+/* Tickery, pod kterými má katalog log jinou firmu — logo hledáme podle ISIN.
+   NOW = ServiceNow (pod symbolem NOW vrací katalog cizí zelené logo). */
+const LOGO_OVERRIDES = { NOW:"isin/US81762P1021" };
 function logoHtml(ticker, variant){
   const base=String(ticker||"").toUpperCase().replace(/\.[A-Z]+$/,"").replace(/-USD$/,"");
   if(!base) return "";
@@ -2290,7 +2480,7 @@ function logoHtml(ticker, variant){
   const ini=escapeHtml(base.slice(0,2));
   const sz = variant==="lg" ? "&size=80" : variant==="row" ? "&size=80" : "&size=40";
   const cls2 = variant ? " "+variant : "";
-  const url=`https://assets.parqet.com/logos/symbol/${encodeURIComponent(base)}?format=png${sz}`;
+  const url=`https://assets.parqet.com/logos/${LOGO_OVERRIDES[base]||"symbol/"+encodeURIComponent(base)}?format=png${sz}`;
   return `<img class="tlogo${cls2}" src="${url}" alt="" loading="lazy"
     onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='inline-block'"
     ><span class="tlogo-fb${cls2}" style="background:hsl(${hue},45%,42%)">${ini}</span>`;
@@ -2321,6 +2511,18 @@ function renderPositions(){
   }
   // hotovost jako poslední řádek (není to pozice, proto stojí mimo computePositions)
   const cashCzk=cashNow(curProv);
+  const pend=pendingNow(curProv);
+  if(pend>0.5){
+    h+=`<tr><td><div class="trow">
+        <span class="tlogo-fb row" style="display:inline-block; background:var(--surface2); color:var(--muted); font-size:12px">Kč</span>
+        <div class="tcol"><span class="tick">Z prodeje</span><div class="sub" title="Peníze z prodeje nebo dividendy za posledních 7 dní — počítají se do hodnoty, dokud je nový nákup nespotřebuje.">čeká na nákup</div></div></div></td>
+      <td class="r num">—</td>
+      <td class="r num hide-m">—</td>
+      <td class="r num hide-m">—</td>
+      <td class="r num">${fmtKc(pend)}</td>
+      <td class="r num flat">—</td>
+      <td class="r num flat">—</td></tr>`;
+  }
   if(Math.abs(cashCzk)>0.5){
     h+=`<tr><td><div class="trow">
         <span class="tlogo-fb row" style="display:inline-block; background:var(--surface2); color:var(--muted); font-size:12px">Kč</span>
@@ -2394,7 +2596,7 @@ function renderAlloc(){
     groups[k]=(groups[k]||0)+(p.valCzk||0);
     (detail[k]=detail[k]||[]).push({tk:p.ticker, name:p.ticker, prov:p.provider, val:p.valCzk||0});
   }
-  const cashA=cashNow(curProv);
+  const cashA=cashNow(curProv)+pendingNow(curProv);
   if(Math.abs(cashA)>0.5) groups[curAlloc==="currency"?"CZK (hotovost)":"Hotovost"]=(groups[curAlloc==="currency"?"CZK (hotovost)":"Hotovost"]||0)+cashA;
   drawAlloc(groups, curAlloc==="ticker"||curAlloc==="country", detail);
 }
@@ -2411,19 +2613,28 @@ async function renderSectorAlloc(pos){
     groups[k]=(groups[k]||0)+(p.valCzk||0);
     (detail[k]=detail[k]||[]).push({tk:p.ticker, name:p.ticker, prov:p.provider, val:p.valCzk||0});
   }
-  const cashS=cashNow(curProv);
+  const cashS=cashNow(curProv)+pendingNow(curProv);
   if(Math.abs(cashS)>0.5) groups["Hotovost"]=(groups["Hotovost"]||0)+cashS;
   drawAlloc(groups, true, detail);
+}
+/* barva dílku: 12 základních, další patnáctka jejich tlumenější varianty, „Ostatní“ šedě */
+function allocColor(k,i){
+  if(k==="Ostatní") return "var(--faint)";
+  const c=PALETTE[i%PALETTE.length];
+  return i<PALETTE.length ? c : `color-mix(in srgb, ${c} 55%, var(--surface))`;
 }
 let ALLOC_STATE={items:[], total:1, detail:{}, open:null};
 function drawAlloc(groups, mergeSmall, detail){
   detail=detail||{};
   let items=Object.entries(groups).sort((a,b)=>b[1]-a[1]);
   const total=items.reduce((s,[,v])=>s+v,0)||1;
-  if(mergeSmall && items.length>9){
-    const restKeys=items.slice(8).map(([k])=>k);
-    const rest=items.slice(8).reduce((s,[,v])=>s+v,0);
-    items=items.slice(0,8); items.push(["Ostatní",rest]);
+  // Top 15 zvlášť, zbytek do „Ostatní“ (klepnutím se rozbalí seznam titulů).
+  // Dřív jen top 8 — u širokého portfolia pak „Ostatní“ spolklo třetinu.
+  const TOP=15;
+  if(mergeSmall && items.length>TOP+1){
+    const restKeys=items.slice(TOP).map(([k])=>k);
+    const rest=items.slice(TOP).reduce((s,[,v])=>s+v,0);
+    items=items.slice(0,TOP); items.push(["Ostatní",rest]);
     detail["Ostatní"]=restKeys.flatMap(k=>detail[k]||[]);
   }
   // donut
@@ -2434,7 +2645,7 @@ function drawAlloc(groups, mergeSmall, detail){
   items.forEach(([k,v],i)=>{
     const a1=a0+v/total*2*Math.PI, am=(a0+a1)/2;
     const p=(a,rad)=>`${cx+rad*Math.cos(a)},${cy+rad*Math.sin(a)}`;
-    if(v>0) svg+=`<path d="M${p(a0,R)} A${R},${R} 0 0 1 ${p(am,R)} A${R},${R} 0 0 1 ${p(a1,R)} L${p(a1,r)} A${r},${r} 0 0 0 ${p(am,r)} A${r},${r} 0 0 0 ${p(a0,r)} Z" fill="${PALETTE[i%PALETTE.length]}" stroke="var(--bg)" stroke-width="2"/>`;
+    if(v>0) svg+=`<path d="M${p(a0,R)} A${R},${R} 0 0 1 ${p(am,R)} A${R},${R} 0 0 1 ${p(a1,R)} L${p(a1,r)} A${r},${r} 0 0 0 ${p(am,r)} A${r},${r} 0 0 0 ${p(a0,r)} Z" fill="${allocColor(k,i)}" stroke="var(--bg)" stroke-width="2"/>`;
     a0=a1;
   });
   svg+=`<text x="${cx}" y="${cy-4}" text-anchor="middle" font-size="12" fill="var(--muted)">celkem</text>
@@ -2448,7 +2659,7 @@ function redrawAllocLegend(){
   $("#allocLegend").innerHTML=items.map(([k,v],i)=>{
     const has=(detail[k]||[]).length>0;
     let row=`<div class="alloc-row${has?" clickable":""}"${has?` data-ag="${escapeHtml(k)}" title="Klik zobrazí tituly ve skupině"`:""}>
-      <span class="dot" style="background:${PALETTE[i%PALETTE.length]}"></span>
+      <span class="dot" style="background:${allocColor(k,i)}"></span>
       <span>${escapeHtml(k)}${has?` <span style="color:var(--faint); font-size:11px">(${detail[k].length})</span>`:""}</span>
       <span class="pct num">${fmtKc(v)} · ${fmtNum(v/total*100,1)} %</span></div>`;
     if(open===k && has){
@@ -2461,22 +2672,68 @@ function redrawAllocLegend(){
     return row;
   }).join("");
 }
+let txProvSel="";
+/* Částka transakce v měně titulu. Dividendy z XTB přicházejí v korunách účtu —
+   přepočteme je kurzem ke dni výplaty na měnu titulu a označíme „≈“,
+   původní částka je v bublině. */
+function txAmountHtml(t){
+  if(t.total==null) return "—";
+  const cur=txCurrency(t), tcur=(META[t.ticker]&&META[t.ticker].currency)||cur;
+  if(t.type==="DIVIDEND" && tcur!==cur){
+    const a=fxAt(cur,t.date), b=fxAt(tcur,t.date);
+    if(a && b){
+      const orig=`${nfmt(t.total,2)}\u00A0${cur}`;
+      return `<span title="Přepočteno kurzem ze dne výplaty z ${orig}">≈\u00A0${nfmt(t.total*a/b,2)}\u00A0${tcur}</span><div class="conv">${orig}</div>`;
+    }
+  }
+  return `${nfmt(t.total,2)}\u00A0${cur}`;
+}
 function renderTxTable(){
-  const txs=[...txFor(curProv)].sort((a,b)=>b.date.localeCompare(a.date));
+  const all=[...txFor(curProv)].sort((a,b)=>b.date.localeCompare(a.date));
+  // filtr podle brokera v rámci vybraných bublin
+  const provs=[...new Set(all.map(t=>t.provider))];
+  if(txProvSel && !provs.includes(txProvSel)) txProvSel="";
+  $("#txProv").innerHTML=`<option value="">Všichni brokeři (${all.length})</option>`+
+    provOrder().filter(p=>provs.includes(p)).map(p=>`<option value="${p}"${p===txProvSel?" selected":""}>${PROV_NAME[p]||p} (${all.filter(t=>t.provider===p).length})</option>`).join("");
+  $("#txProv").style.display = provs.length>1 ? "" : "none";
+  const txs = txProvSel ? all.filter(t=>t.provider===txProvSel) : all;
   if(!txs.length){ $("#txTable").innerHTML="<tr><td style='color:var(--muted); border:none'>Žádné transakce.</td></tr>"; return; }
   const TYPE={BUY:["Nákup","up"],SELL:["Prodej","down"],DIVIDEND:["Dividenda",""]};
-  let h=`<tr><th>Datum</th><th>Typ</th><th>Titul</th><th class="r">Ks</th><th class="r hide-m">Cena</th><th class="r">Částka</th><th></th></tr>`;
-  for(const t of txs){
+  const row=(t,extra)=>{
     const [lbl,c]=TYPE[t.type];
-    const cur=txCurrency(t);
-    h+=`<tr>
+    return `<tr${extra||""}>
       <td class="num">${t.date.split("-").reverse().join(". ")}</td>
       <td class="${c}">${lbl}${provDot(t.provider)}</td>
       <td class="tick">${escapeHtml(t.ticker)}</td>
       <td class="r num">${t.quantity?fmtNum(t.quantity,4):"—"}</td>
-      <td class="r num hide-m">${t.price!=null?fmtNum(t.price):"—"}</td>
-      <td class="r num">${t.total!=null?fmtNum(t.total)+" "+cur:"—"}</td>
+      <td class="r num hide-m">${t.price!=null?fmtPx(t.price):"—"}</td>
+      <td class="r num">${txAmountHtml(t)}</td>
       <td class="r"><button class="del" data-del="${t.id}" title="Smazat">×</button></td></tr>`;
+  };
+  // Robo poradce nakupuje celý košík naráz — 10+ drobných řádků denně.
+  // Obchody stejného dne, brokera a typu (od 3 kusů) sbalíme do jednoho řádku.
+  const group=$("#txGroup").checked;
+  const groups=[]; const idx={};
+  for(const t of txs){
+    const k=t.date+"|"+t.provider+"|"+t.type;
+    if(idx[k]==null){ idx[k]=groups.length; groups.push({k, items:[]}); }
+    groups[idx[k]].items.push(t);
+  }
+  let h=`<tr><th>Datum</th><th>Typ</th><th>Titul</th><th class="r">Ks</th><th class="r hide-m">Cena</th><th class="r">Částka</th><th></th></tr>`;
+  let gi=0;
+  for(const g of groups){
+    if(!group || g.items.length<3){ for(const t of g.items) h+=row(t); continue; }
+    const t0=g.items[0], [lbl,c]=TYPE[t0.type], id="g"+(gi++);
+    const curs=[...new Set(g.items.map(txCurrency))];
+    const sum = curs.length===1 ? `${nfmt(g.items.reduce((a,t)=>a+(t.total||0),0),2)}\u00A0${curs[0]}`
+      : fmtKc(g.items.reduce((a,t)=>a+(t.total||0)*(fxAt(txCurrency(t),t.date)||0),0));
+    h+=`<tr class="grp-row" data-grp="${id}" title="Klik rozbalí jednotlivé obchody">
+      <td class="num">${t0.date.split("-").reverse().join(". ")}</td>
+      <td class="${c}">${lbl}${provDot(t0.provider)}</td>
+      <td><span class="grp-n">▸ ${g.items.length} ${g.items.length<5?"tituly":"titulů"}</span></td>
+      <td class="r num">—</td><td class="r num hide-m">—</td>
+      <td class="r num">${sum}</td><td></td></tr>`;
+    for(const t of g.items) h+=row(t, ` class="grp-item" data-gof="${id}" style="display:none"`);
   }
   $("#txTable").innerHTML=h;
 }
@@ -2806,9 +3063,9 @@ function renderRealized(){
   const wins=trades.filter(t=>t.profit>0).length;
   const div=dividendSummary(curProv);
   $("#realSummary").innerHTML=`<div class="cards" style="margin:6px 0 4px">
-    <div class="card"><div class="lbl">Realizovaný zisk</div><div class="val num ${cls(tot)}">${fmtSign(tot)}</div><div class="abs num">${trades.length} obchodů</div></div>
+    <div class="card"><div class="lbl">Realizovaný zisk</div><div class="val num ${cls(tot,0)}">${fmtSign(tot)}</div><div class="abs num">${trades.length} obchodů</div></div>
     <div class="card"><div class="lbl">Úspěšnost</div><div class="val num">${fmtNum(wins/trades.length*100,0)} %</div><div class="abs num">${wins} ziskových z ${trades.length}</div></div>
-    <div class="card"><div class="lbl">Průměr na obchod</div><div class="val num ${cls(tot/trades.length)}">${fmtSign(tot/trades.length)}</div><div class="abs"></div></div>
+    <div class="card"><div class="lbl">Průměr na obchod</div><div class="val num ${cls(tot/trades.length,2)}">${fmtSign(tot/trades.length,"auto")}</div><div class="abs"></div></div>
     <div class="card"><div class="lbl">Dividendy</div><div class="val num" style="color:var(--text)">${fmtKc(div.total)}</div><div class="abs">celkem přijato</div></div>
   </div>
   <p style="font-size:12px; color:var(--faint); margin-bottom:10px">FIFO párování, kurz ke dni obchodu, bez poplatků brokera. Klik na titul otevře detail.</p>`;
@@ -2817,19 +3074,37 @@ function renderRealized(){
   const multi = curProv==="ALL"||curProv.includes("+");
   let h=`<tr><th>Prodáno</th><th>Titul</th><th class="r">Ks</th><th class="r hide-m">Drženo</th><th class="r">Zisk</th><th class="r">Zisk %</th></tr>`;
   let curYear=null;
-  for(const t of trades){
-    const y=t.sellDate.slice(0,4);
-    if(y!==curYear){ curYear=y;
-      h+=`<tr><td colspan="6" style="padding-top:16px"><b>${y}</b> <span class="num ${cls(byYear[y])}" style="font-size:12.5px">${fmtSign(byYear[y])}</span></td></tr>`;
-    }
+  const row=(t,extra)=>{
     const name = t.ticker;
-    h+=`<tr${t.warn?' title="K části prodeje chybí nákup v importované historii — zisk může být nepřesný"':''}>
+    return `<tr${extra||""}${t.warn?' title="K části prodeje chybí nákup v importované historii — zisk může být nepřesný"':''}>
       <td class="num">${t.sellDate.split("-").reverse().join(". ")}</td>
       <td><span class="tick clickable" data-ht="${escapeHtml(t.ticker)}" data-hp="${t.provider}">${escapeHtml(name)}</span>${multi?provDot(t.provider):""}${t.warn?' <span style="color:var(--warn)" title="chybí část nákupní historie">⚠</span>':""}</td>
       <td class="r num">${fmtNum(t.qty,4)}</td>
       <td class="r num hide-m">${fmtHeld(t.held)}</td>
-      <td class="r num ${cls(t.profit)}">${fmtSign(t.profit)}</td>
+      <td class="r num ${cls(t.profit,2)}">${fmtSign(t.profit,"auto")}</td>
       <td class="r num ${t.pct!=null?cls(t.pct):"flat"}">${fmtPct(t.pct)}</td></tr>`;
+  };
+  // prodeje téhož dne u téhož brokera (robo rebalanc) od 3 titulů sbalit do jednoho řádku
+  const grp={}; for(const t of trades){ const k=t.sellDate+"|"+t.provider; (grp[k]=grp[k]||[]).push(t); }
+  const done=new Set(); let gi=0;
+  for(const t of trades){
+    const y=t.sellDate.slice(0,4);
+    if(y!==curYear){ curYear=y;
+      h+=`<tr><td colspan="6" style="padding-top:16px"><b>${y}</b> <span class="num ${cls(byYear[y],0)}" style="font-size:12.5px">${fmtSign(byYear[y])}</span></td></tr>`;
+    }
+    const k=t.sellDate+"|"+t.provider, g=grp[k];
+    if(g.length<3){ h+=row(t); continue; }
+    if(done.has(k)) continue;
+    done.add(k);
+    const id="r"+(gi++);
+    const inc=g.reduce((a,x)=>a+x.income,0), cost=g.reduce((a,x)=>a+x.cost,0), pr=inc-cost, pc=cost>0?(inc/cost-1)*100:null;
+    h+=`<tr class="grp-row" data-grp="${id}" title="Klik rozbalí jednotlivé prodeje">
+      <td class="num">${t.sellDate.split("-").reverse().join(". ")}</td>
+      <td><span class="grp-n">▸ ${g.length} ${g.length<5?"tituly":"titulů"}</span>${provDot(t.provider)}</td>
+      <td class="r num">—</td><td class="r num hide-m">—</td>
+      <td class="r num ${cls(pr,2)}">${fmtSign(pr,"auto")}</td>
+      <td class="r num ${pc!=null?cls(pc):"flat"}">${fmtPct(pc)}</td></tr>`;
+    for(const x of g) h+=row(x, ` class="grp-item" data-gof="${id}" style="display:none"`);
   }
   $("#realTable").innerHTML=h;
 }
@@ -3223,10 +3498,10 @@ function renderHistTx(txs, cur){
     const unrealCzk = pos ? unrealizedCzk(pos) : 0;
     const totalCzk = realCzk + unrealCzk + divCzk;
     const parts=[];
-    if(Math.abs(realCzk)>0.5) parts.push(`realizované <span class="num ${cls(realCzk)}">${fmtSign(realCzk)}</span>`);
-    if(pos) parts.push(`nerealizované <span class="num ${cls(unrealCzk)}">${fmtSign(unrealCzk)}</span>`);
+    if(Math.abs(realCzk)>0.5) parts.push(`realizované <span class="num ${cls(realCzk,0)}">${fmtSign(realCzk)}</span>`);
+    if(pos) parts.push(`nerealizované <span class="num ${cls(unrealCzk,0)}">${fmtSign(unrealCzk)}</span>`);
     if(divCzk>0.5) parts.push(`dividendy <span class="num up">${fmtSign(divCzk)}</span>`);
-    sum2=`<div style="font-size:13px; color:var(--muted); margin-bottom:8px">Výsledek celkem <b class="num ${cls(totalCzk)}">${fmtSign(totalCzk)}</b>${parts.length?" · "+parts.join(" · "):""}</div>`;
+    sum2=`<div style="font-size:13px; color:var(--muted); margin-bottom:8px">Výsledek celkem <b class="num ${cls(totalCzk,0)}">${fmtSign(totalCzk)}</b>${parts.length?" · "+parts.join(" · "):""}</div>`;
   }
   let h=`<div style="font-size:13px; color:var(--muted); margin-bottom:4px">${sum}</div>${sum2}
     <div class="tbl-scroll" style="max-height:48vh; overflow-y:auto"><table>
@@ -3235,7 +3510,7 @@ function renderHistTx(txs, cur){
     const [lbl,c]=TYPE[t.type];
     h+=`<tr><td class="num">${t.date.split("-").reverse().join(". ")}</td><td class="${c}">${lbl}</td>
       <td class="r num">${t.quantity?fmtNum(t.quantity,4):"—"}</td>
-      <td class="r num">${t.price!=null?fmtNum(t.price):"—"}</td>
+      <td class="r num">${t.price!=null?fmtPx(t.price):"—"}</td>
       <td class="r num">${t.total!=null?fmtNum(t.total)+" "+txCurrency(t):"—"}</td></tr>`;
   }
   $("#histBody").innerHTML=h+"</table></div>";
@@ -3617,8 +3892,19 @@ document.body.addEventListener("click",async e=>{
     catch(err){ showErr(err.message); }
     return;
   }
+  const gr=e.target.closest("tr.grp-row");
+  if(gr){
+    const items=$$(`tr[data-gof="${gr.dataset.grp}"]`), open=items.length && items[0].style.display==="none";
+    items.forEach(r=>r.style.display=open?"":"none");
+    const n=gr.querySelector(".grp-n"); if(n) n.textContent=n.textContent.replace(/^[▸▾]/, open?"▾":"▸");
+    return;
+  }
   const del=e.target.closest("[data-del]");
-  if(del && confirm("Smazat tuto transakci?")){
+  const delTx = del && TX.find(t=>String(t.id)===String(del.dataset.del));
+  const delMsg = delTx
+    ? `Smazat transakci?\n\n${{BUY:"Nákup",SELL:"Prodej",DIVIDEND:"Dividenda"}[delTx.type]||delTx.type} ${delTx.ticker} · ${delTx.date.split("-").reverse().join(". ")} · ${PROV_NAME[delTx.provider]||delTx.provider}${delTx.total!=null?` · ${nfmt(delTx.total,2)} ${txCurrency(delTx)}`:""}\n\nAkce je nevratná.`
+    : "Smazat tuto transakci? Akce je nevratná.";
+  if(del && confirm(delMsg)){
     try{ await deleteTx(del.dataset.del); toast("Smazáno."); await refreshAll(false); }
     catch(err){ showErr(err.message); }
   }
@@ -3790,6 +4076,8 @@ function divSinceBaseline(prov, d){
   return sum;
 }
 function cashNow(prov){ return cashAt(prov, todayStr()); }
+/* peníze z nedávného prodeje/dividendy, které čekají na nákup (viz pool v computeSeries) */
+function pendingNow(prov){ const s=series(prov); return s.pending && s.pending.length ? s.pending[s.pending.length-1] : 0; }
 function provOrder(){
   let o=[];
   try{ o=JSON.parse(SETTINGS.prov_order||"[]"); }catch(e){}
@@ -3891,6 +4179,8 @@ $("#cryptoRealSave").addEventListener("click", async ()=>{
   }catch(e){ showErr(e.message); }
 });
 $("#adminAdd").addEventListener("click",adminAddEmail);
+$("#txProv").addEventListener("change", e=>{ txProvSel=e.target.value; renderTxTable(); });
+$("#txGroup").addEventListener("change", renderTxTable);
 $("#adminEmail").addEventListener("keydown",e=>{ if(e.key==="Enter") adminAddEmail(); });
 document.body.addEventListener("click",async e=>{
   const ad=e.target.closest("[data-allow-del]");
@@ -3927,8 +4217,9 @@ setInterval(async ()=>{
 }, 60000);
 
 /* ================= AUTH FLOW ================= */
-function showAuth(){ $("#authScreen").style.display="flex"; $("#appWrap").style.display="none"; }
-function showApp(){ $("#authScreen").style.display="none"; $("#appWrap").style.display="block"; }
+function hideSplash(){ const b=$("#bootSplash"); if(b) b.remove(); }
+function showAuth(){ hideSplash(); $("#authScreen").style.display="flex"; $("#appWrap").style.display="none"; }
+function showApp(){ hideSplash(); $("#authScreen").style.display="none"; $("#appWrap").style.display="block"; }
 $("#authSend").addEventListener("click", async ()=>{
   const email=$("#authEmail").value.trim().toLowerCase();
   if(!email || !email.includes("@")){ $("#authErr").style.display="block"; $("#authErr").textContent="Zadej platný e-mail."; return; }
@@ -3976,6 +4267,7 @@ async function boot(){
   if(window.location.hash.includes("access_token")) history.replaceState(null,"",window.location.pathname);
   if(!sess){ showAuth(); return; }
   showApp();
+  $("#loadingMsg").textContent="Načítám…"; $("#loading").style.display="block";
   try{
     const s=await loadSettings();
     if(s && s.length) SETTINGS=Object.assign(SETTINGS, s[0]);
@@ -3991,8 +4283,10 @@ async function boot(){
   if(!TX.length) $("#onboard").classList.add("open");
   else checkTargetAlerts();          // watchlist: upozornění na dosažené cílové ceny
 }
-sbClient().auth.onAuthStateChange((event)=>{ if(event==="SIGNED_IN" && $("#authScreen").style.display!=="none") boot(); });
-boot();
+// když se knihovna Supabase nenačte, sbClient() spadne — boot() pak musí aspoň ukázat chybu
+try{ sbClient().auth.onAuthStateChange((event)=>{ if(event==="SIGNED_IN" && $("#authScreen").style.display!=="none") boot(); }); }catch(e){}
+// chyba při startu nesmí nechat viset úvodní obrazovku
+boot().catch(e=>{ showApp(); $("#loading").style.display="none"; showErr("Chyba při spuštění: "+(e&&e.message||e)); });
 </script>
 </body>
 </html>

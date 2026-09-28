@@ -731,10 +731,11 @@ tr.grp-item td:first-child{padding-left:14px;} tr.grp-item{background:var(--surf
 <script>
 /* ================= KONFIGURACE ================= */
 const APP_VERSION = "2.1 (14. 6. 2026) — administrace";
-const FOOTER_VERSION = "v3.17 · 28. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
+const FOOTER_VERSION = "v3.18 · 28. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
 
 // Seznam změn — nejnovější nahoře. Při každé úpravě appky sem přidat řádek.
 const CHANGELOG = [
+  {v:"v3.18", d:"28. 9. 2026", items:["Import z Freedom 24 pozná obchody, které už v appce jsou ze starší podoby výpisu (s jinými čísly obchodů), podle titulu, dne, kusů a ceny — nezdvojí je a v okně importu napíše, kolik jich přeskočí"]},
   {v:"v3.17", d:"28. 9. 2026", items:[
     "Import z Freedom 24 zná novější podobu výpisu se sloupcem „Trade ID/Order ID“ — dřív ho vůbec nerozpoznal",
     "Seskupený výpis z Freedom 24 (bez dat obchodů) už tiše neselže: import vysvětlí, že je potřeba výpis bez seskupení",
@@ -3395,10 +3396,28 @@ function parseF24Pos(rows){
   }
   return out;
 }
+/* Freedom 24 dává obchodům v různých podobách výpisu různá čísla (starší export
+   jiná než „Trade ID/Order ID“), takže podle čísla se stejný obchod nepozná.
+   Nový řádek proto považujeme za už uložený, když v databázi je obchod téhož
+   titulu a směru se stejným počtem kusů, cenou (±0,5 %) a dnem (±1 den).
+   Každý uložený obchod se spáruje nejvýš jednou — dva stejné obchody v jeden den
+   se tak nesloučí. */
+function f24Dupes(incoming){
+  const known=new Set(TX.map(t=>t.import_hash).filter(Boolean));
+  const db=TX.filter(t=>t.provider==="FREEDOM24" && t.type!=="DIVIDEND"), used=new Set(), dup=new Set();
+  for(const r of incoming){
+    if(r.provider!=="FREEDOM24" || r.type==="DIVIDEND") continue;
+    if(r.uid && known.has(r.uid)){ dup.add(r); continue; }
+    const m=db.find(t=>!used.has(t) && t.ticker===r.ticker && t.type===r.type && Math.abs(t.quantity-r.quantity)<1e-6
+      && Math.abs(new Date(t.date)-new Date(r.date))<=864e5*1.01 && r.price>0 && Math.abs((t.price||0)/r.price-1)<0.005);
+    if(m){ used.add(m); dup.add(r); }
+  }
+  return dup;
+}
 /* Kusy ve Freedom 24 (list Securities) proti appce po importu — jen varování. */
 function reconcileF24(pos, incoming){
-  const known=new Set(TX.map(t=>t.import_hash).filter(Boolean));
-  const f=[...TX.filter(t=>t.provider==="FREEDOM24"), ...incoming.filter(t=>t.provider==="FREEDOM24" && !(t.uid && known.has(t.uid)))];
+  const dup=f24Dupes(incoming);
+  const f=[...TX.filter(t=>t.provider==="FREEDOM24"), ...incoming.filter(t=>t.provider==="FREEDOM24" && !dup.has(t))];
   const have={}; for(const t of f){ if(t.type==="DIVIDEND") continue; have[t.ticker]=(have[t.ticker]||0)+(t.type==="BUY"?qN(t):-qN(t)); }
   const want={}; for(const p of pos) want[p.ticker]=(want[p.ticker]||0)+p.qty;
   const warn=[];
@@ -3477,6 +3496,8 @@ async function handleFiles(files){
     notes.push(`<p>Výkaz zisků a ztrát Revolut${naRobo===pnl.length?" robo":""}: ${pnl.length} dividend, hrubě ${fmtKc(g)}, sražená daň ${fmtKc(w)}.</p>`+
       `<p style="color:var(--muted)">${prep?`${prep} dividend z výpisu obchodů (uložených po zdanění) se přepíše na hrubou částku se sraženou daní`:""}${prep&&nove?"; ":""}${nove?`${nove} ${prep?"chybějících se doplní":"se přidá"}`:""}.</p>`);
   }
+  { const d=f24Dupes(all), nove=all.filter(t=>t.provider==="FREEDOM24" && t.type!=="DIVIDEND" && !d.has(t)).length;
+    if(d.size) notes.push(`<p>Freedom 24: ${d.size} obchodů už v appce je, přeskočí se${nove?`; nových ${nove}`:" — nic nového"}.</p>`); }
   if(f24Pos.length){
     const warn=reconcileF24(f24Pos, all);
     notes.push(warn.length
@@ -3552,6 +3573,8 @@ async function doImport(){
   const f24InDb=new Set(TX.filter(t=>t.provider==="FREEDOM24"&&t.import_hash&&t.import_hash.startsWith("F24:"))
                           .map(t=>t.import_hash.split("/")[0]));
   uniq=uniq.filter(r=>!(r.provider==="FREEDOM24" && f24InDb.has(String(r.import_hash).split("/")[0])));
+  // … a obchody Freedom 24 uložené dřív pod jiným číslem (starší podoba výpisu)
+  { const d=f24Dupes(uniq.map(r=>({...r, uid:r.import_hash, _r:r}))); const drop=new Set([...d].map(x=>x._r)); uniq=uniq.filter(r=>!drop.has(r)); }
   // XTB: nákup doplněný dřív z otevřených pozic (XTBPOS:…) nesmí přibýt znovu,
   // až přijde v cash operacích pod vlastním ID
   const pos=TX.filter(t=>t.provider==="XTB" && String(t.import_hash||"").startsWith("XTBPOS:"));

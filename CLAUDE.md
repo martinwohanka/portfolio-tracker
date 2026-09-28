@@ -90,9 +90,12 @@ Po nasazení každé změny `web/index.html` je potřeba:
 
 1. **Ověřit na ostrém webu** — `https://portfolio.wohanka.online` musí opravdu
    servírovat novou verzi (zkontrolovat `FOOTER_VERSION` a konkrétní změnu
-   v HTML). Hosting má edge cache na 5 minut, takže je nutný cache-busting
-   parametr, např. `curl -s "https://portfolio.wohanka.online/?v=$(date +%s%N)"`.
-   Úspěšný běh GitHub Actions sám o sobě nestačí.
+   v HTML). `web/.htaccess` posílá pro HTML `Cache-Control: no-cache`, takže CDN
+   WEDOS stránku necachuje a prohlížeč ji vždy ověří (ETag → 304). Pro jistotu
+   ověřuj s cache-busting parametrem, např.
+   `curl -s "https://portfolio.wohanka.online/?v=$(date +%s%N)"`.
+   Úspěšný běh GitHub Actions sám o sobě nestačí. `.htaccess` nesmazat — bez něj
+   hosting drží HTML 5 minut a prohlížeč ukazuje starou verzi až hodinu.
 2. **Zkontrolovat zobrazení na mobilu** — appku používám hlavně na iPhonu.
    Ověřovat na šířkách 390 px (běžný iPhone) a 430 px (Pro Max), a to
    v tmavém i světlém režimu. Nic se nesmí ořezávat ani vodorovně scrollovat.

@@ -731,10 +731,14 @@ tr.grp-item td:first-child{padding-left:14px;} tr.grp-item{background:var(--surf
 <script>
 /* ================= KONFIGURACE ================= */
 const APP_VERSION = "2.1 (14. 6. 2026) — administrace";
-const FOOTER_VERSION = "v3.16 · 28. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
+const FOOTER_VERSION = "v3.17 · 28. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
 
 // Seznam změn — nejnovější nahoře. Při každé úpravě appky sem přidat řádek.
 const CHANGELOG = [
+  {v:"v3.17", d:"28. 9. 2026", items:[
+    "Import z Freedom 24 zná novější podobu výpisu se sloupcem „Trade ID/Order ID“ — dřív ho vůbec nerozpoznal",
+    "Seskupený výpis z Freedom 24 (bez dat obchodů) už tiše neselže: import vysvětlí, že je potřeba výpis bez seskupení",
+    "Import z Freedom 24 porovná počty kusů s listem „Securities“ a napíše, jestli pozice sedí, nebo kde se liší"]},
   {v:"v3.16", d:"28. 9. 2026", items:[
     "Kontrola robo poradce proti výpisu a výkazu Revolutu: prodeje se párují s nákupy stejně jako u Revolutu a všech 14 ETF má správné ceny",
     "Výkaz zisků a ztrát robo poradce se pozná podle titulů — jeho dividendy (distribuční ETF jako EMBH nebo UBUD) se přiřadí k robo účtu, ne k běžnému Revolutu",
@@ -1375,10 +1379,14 @@ function parseStatement(rows, fname){
   // FREEDOM 24 (XLSX): 3 varianty exportu — (a) Trades: Ticker/ISIN/Trh/Operace/Množství/Cena/Měna/.../Datum obchodu/Id-OrderId,
   // (b) totéž s "Order ID", (c) jednolistý: Číslo/datum/Výpočty/Ticker/Operace/Počet akcií/Cena/částka/Zisk/Poplatek (bez měny)
   if(idx(["operace"])>-1 && idx(["ticker"])>-1 && idx(["datum obchodu","datum"])>-1
-     && (idx(["id/orderid"])>-1||idx(["id/order"])>-1||idx(["order id"])>-1||idx(["číslo","cislo"])>-1)){
+     && (idx(["id/orderid"])>-1||idx(["id/order"])>-1||idx(["order id"])>-1||idx(["trade id"])>-1||idx(["číslo","cislo"])>-1)){
     const iTk=idx(["ticker"]), iIsin=idx(["isin"]), iTrh=idx(["trh"]), iOp=idx(["operace"]),
           iQ=idx(["množství","mnozstvi","počet akcií","pocet akcii"]), iP=idx(["cena"]), iC=idx(["měna","mena"]),
-          iD=idx(["datum obchodu","datum"]), iId=idx(["id/orderid","id/order","order id","číslo","cislo"]);
+          iD=idx(["datum obchodu","datum"]), iId=idx(["id/orderid","id/order","order id","trade id","číslo","cislo"]);
+    // Seskupený výpis (Freedom 24 volba „seskupit“): místo data a čísla obchodu je
+    // „Seskupeno“ a nákupy titulu jsou sečtené — obchody z něj importovat nejde.
+    if(rows.slice(1).some(r=>/seskupeno|grouped/i.test(String(r[iD]||""))))
+      return {provider:"FREEDOM24", txs:[], skipped:0, grouped:true};
     const txs=[]; let skipped=0;
     for(const r of rows.slice(1)){
       const op=(r[iOp]||"").trim().toLowerCase();
@@ -3340,7 +3348,7 @@ async function fileToTables(f){
         const ib  = low.includes("buy/sell") && low.includes("symbol");
         const f24 = low.some(c=>c==="operace") && low.includes("ticker")
                  && low.some(c=>c.startsWith("datum"))
-                 && low.some(c=>c.startsWith("id/orderid")||c.startsWith("id/order")||c==="order id"||c==="číslo"||c==="cislo");
+                 && low.some(c=>c.startsWith("id/orderid")||c.startsWith("id/order")||c==="order id"||c.startsWith("trade id")||c==="číslo"||c==="cislo");
         return xtb || dgr || ib || f24;
       });
       if(hi>-1) tables.push(rows.slice(hi).map(r=>r.map(c=>String(c==null?"":c))));
@@ -3349,8 +3357,12 @@ async function fileToTables(f){
       const oi = rows.findIndex(r=>{ const low=r.map(c=>String(c).trim().toLowerCase());
         return low.includes("instrument/position") && low.includes("ticker") && low.includes("volume") && low.some(c=>c.startsWith("open price")); });
       if(oi>-1) tables.openPos = rows.slice(oi).map(r=>r.map(c=>String(c==null?"":c)));
+      // Freedom 24: list „Securities“ = držené kusy ke konci období (kontrola pozic)
+      const si = rows.findIndex(r=>{ const low=r.map(c=>String(c).trim().toLowerCase());
+        return low.includes("ticker") && low.includes("isin") && low.some(c=>c==="ke konci"); });
+      if(si>-1) tables.f24Pos = rows.slice(si).map(r=>r.map(c=>String(c==null?"":c)));
     }
-    if(!tables.length && !tables.openPos) throw new Error(`V „${f.name}" jsem nenašel list s transakcemi — čekám XTB cash operace nebo Freedom 24 (list „Trades").`);
+    if(!tables.length && !tables.openPos && !tables.f24Pos) throw new Error(`V „${f.name}" jsem nenašel list s transakcemi — čekám XTB cash operace nebo Freedom 24 (list „Trades").`);
     return tables;
   }
   return [parseCSV(await f.text())];
@@ -3369,6 +3381,32 @@ function parseXtbOpen(rows){
     lots.push({raw, ticker:mapSymbol(xtbToYahoo(raw)), qty, price, date, posId:String(r[iP]||"").trim()});
   }
   return lots;
+}
+/* list „Securities“ z Freedom 24 -> [{ticker, qty}] (kusy ke konci období) */
+function parseF24Pos(rows){
+  const h=rows[0].map(x=>String(x).trim().toLowerCase()), c=n=>h.findIndex(x=>x===n);
+  const iT=c("ticker"), iI=c("isin"), iK=c("ke konci");
+  const out=[];
+  for(const r of rows.slice(1)){
+    const tk=String(r[iT]||"").trim().toUpperCase(), isin=String(r[iI]||"").trim().toUpperCase(), q=parseNum(r[iK]);
+    if(!tk || q==null) continue;
+    const base=tk.replace(/\.(US|EU|DE|EUR)$/,"");
+    out.push({raw:tk, ticker:SYMBOL_OVERRIDES[isin]||SYMBOL_OVERRIDES[tk]||SYMBOL_OVERRIDES[base]||base, qty:q});
+  }
+  return out;
+}
+/* Kusy ve Freedom 24 (list Securities) proti appce po importu — jen varování. */
+function reconcileF24(pos, incoming){
+  const known=new Set(TX.map(t=>t.import_hash).filter(Boolean));
+  const f=[...TX.filter(t=>t.provider==="FREEDOM24"), ...incoming.filter(t=>t.provider==="FREEDOM24" && !(t.uid && known.has(t.uid)))];
+  const have={}; for(const t of f){ if(t.type==="DIVIDEND") continue; have[t.ticker]=(have[t.ticker]||0)+(t.type==="BUY"?qN(t):-qN(t)); }
+  const want={}; for(const p of pos) want[p.ticker]=(want[p.ticker]||0)+p.qty;
+  const warn=[];
+  for(const tk of new Set([...Object.keys(want), ...Object.keys(have).filter(k=>Math.abs(have[k])>1e-6)])){
+    const w=want[tk]||0, h=have[tk]||0;
+    if(Math.abs(w-h)>1e-6) warn.push(`${tk}: ve Freedom 24 ${fmtNum(w,4)} ks, v appce ${fmtNum(h,4)} ks`);
+  }
+  return warn;
 }
 /* Porovná otevřené pozice z XTB s tím, co bude v appce po importu. Chybějící nákupy
    (typicky obchod, který starší verze importu přeskočila) vrátí k doplnění,
@@ -3400,14 +3438,16 @@ function reconcileXtb(lots, incoming){
   return {add, warn};
 }
 async function handleFiles(files){
-  const all=[]; const notes=[]; let skippedTotal=0; let roboDetekovano=false; const openLots=[]; let vykazu=0;
+  const all=[]; const notes=[]; let skippedTotal=0; let roboDetekovano=false; const openLots=[]; let vykazu=0; const f24Pos=[];
   for(const f of files){
     try{
       const tables=await fileToTables(f);
       if(tables.openPos) openLots.push(...parseXtbOpen(tables.openPos));
+      if(tables.f24Pos) f24Pos.push(...parseF24Pos(tables.f24Pos));
       const cnt={BUY:0,SELL:0,DIVIDEND:0}; let prov=null;
       for(const rows of tables){
-        const {provider, txs, skipped, roboHint, pnl:jeVykaz}=parseStatement(rows, f.name);
+        const {provider, txs, skipped, roboHint, pnl:jeVykaz, grouped}=parseStatement(rows, f.name);
+        if(grouped) notes.push(`<p style="color:var(--warn)">Výpis z Freedom 24 je <b>seskupený</b> — místo data a čísla obchodu obsahuje „Seskupeno“, takže obchody z něj importovat nejde. Ve Freedom 24 vytvoř výpis znovu bez seskupení (v nastavení reportu vypni seskupování obchodů).</p>`);
         if(jeVykaz) vykazu++;
         all.push(...txs); skippedTotal+=skipped; prov=provider;
         if(roboHint) roboDetekovano=true;
@@ -3436,6 +3476,12 @@ async function handleFiles(files){
     const naRobo=pnl.filter(t=>t.provider==="REVOLUT_ROBO").length;
     notes.push(`<p>Výkaz zisků a ztrát Revolut${naRobo===pnl.length?" robo":""}: ${pnl.length} dividend, hrubě ${fmtKc(g)}, sražená daň ${fmtKc(w)}.</p>`+
       `<p style="color:var(--muted)">${prep?`${prep} dividend z výpisu obchodů (uložených po zdanění) se přepíše na hrubou částku se sraženou daní`:""}${prep&&nove?"; ":""}${nove?`${nove} ${prep?"chybějících se doplní":"se přidá"}`:""}.</p>`);
+  }
+  if(f24Pos.length){
+    const warn=reconcileF24(f24Pos, all);
+    notes.push(warn.length
+      ? `<p style="color:var(--warn)">Nesoulad s pozicemi ve Freedom 24:</p><ul style="margin:4px 0 8px 18px">`+warn.map(w=>`<li>${escapeHtml(w)}</li>`).join("")+`</ul>`
+      : `<p>Pozice Freedom 24 sedí s appkou ✓</p>`);
   }
   if(openLots.length){
     const {add, warn}=reconcileXtb(openLots, all);

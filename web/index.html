@@ -731,10 +731,11 @@ tr.grp-item td:first-child{padding-left:14px;} tr.grp-item{background:var(--surf
 <script>
 /* ================= KONFIGURACE ================= */
 const APP_VERSION = "2.1 (14. 6. 2026) — administrace";
-const FOOTER_VERSION = "v3.18 · 28. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
+const FOOTER_VERSION = "v3.19 · 28. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
 
 // Seznam změn — nejnovější nahoře. Při každé úpravě appky sem přidat řádek.
 const CHANGELOG = [
+  {v:"v3.19", d:"28. 9. 2026", items:["Oprava propadu zisku 7. 10. 2025: Colt CZ označený jako stažený z burzy se oceňoval nákupní cenou, ale v dolarech místo v korunách — 30 akcií tak v grafu „stálo“ asi 490 tis. Kč místo 23 tis. Kč a při prodeji zisk spadl. Měna se teď bere podle burzy","Titul označený jako stažený, pro který appka zná funkční symbol (Colt CZ → COLT.PR), se na něj sám vrátí a má zase skutečné ceny"]},
   {v:"v3.18", d:"28. 9. 2026", items:["Import z Freedom 24 pozná obchody, které už v appce jsou ze starší podoby výpisu (s jinými čísly obchodů), podle titulu, dne, kusů a ceny — nezdvojí je a v okně importu napíše, kolik jich přeskočí"]},
   {v:"v3.17", d:"28. 9. 2026", items:[
     "Import z Freedom 24 zná novější podobu výpisu se sloupcem „Trade ID/Order ID“ — dřív ho vůbec nerozpoznal",
@@ -1591,6 +1592,15 @@ function txFor(key){
   return TX.filter(t=>set.includes(t.provider));
 }
 function txCurrency(t){ return t.currency || (META[t.ticker]&&META[t.ticker].currency) || "USD"; }
+/* měna podle přípony burzy v tickeru (i s „!“ pro stažené tituly) */
+const SUFFIX_CUR={PR:"CZK", DE:"EUR", F:"EUR", MU:"EUR", DU:"EUR", BE:"EUR", HM:"EUR", SG:"EUR", PA:"EUR", AS:"EUR", MI:"EUR", MC:"EUR",
+  VI:"EUR", BR:"EUR", LS:"EUR", HE:"EUR", IR:"EUR", AT:"EUR", L:"GBP", SW:"CHF", CO:"DKK", ST:"SEK", OL:"NOK", WA:"PLN",
+  TO:"CAD", HK:"HKD", T:"JPY", AX:"AUD"};
+function suffixCurrency(tk){
+  const m=String(tk).replace(/^!/,"").match(/\.([A-Z]+)$/);
+  if(!m) return /-USD$/.test(tk) ? "USD" : null;
+  return SUFFIX_CUR[m[1]] || null;
+}
 /* ===== Štěpení akcií =====
    Yahoo historické ceny zpětně přepočítává na dnešní počet akcií (NVDA po štěpení
    10:1 ukazuje v roce 2023 desetinovou cenu), kdežto výpis brokera má původní kusy
@@ -4080,8 +4090,16 @@ async function loadAllData(){
     const txs=TX.filter(t=>t.ticker===e.ticker && t.price>0 && t.type!=="DIVIDEND")
                 .sort((a,b)=>a.date.localeCompare(b.date));
     if(!txs.length) continue;
+    // Mají-li obchody skutečnou částku v Kč (XTB), oceníme přímo v korunách.
+    if(txs.every(t=>t.total_czk!=null && t.total_czk!=="" && t.quantity>0)){
+      DAILY[e.ticker]={dates:txs.map(t=>t.date), closes:txs.map(t=>+t.total_czk/t.quantity)};
+      META[e.ticker]={currency:"CZK", approx:true};
+      continue;
+    }
     DAILY[e.ticker]={dates:txs.map(t=>t.date), closes:txs.map(t=>t.price)};
-    META[e.ticker]={currency: txs[0].currency||"USD", approx:true};
+    // Měna: z obchodu, jinak podle burzy v tickeru (XTB měnu u obchodů neuvádí —
+    // Colt CZ z pražské burzy se dřív bral v dolarech a „stál“ 490 tis. Kč místo 23 tis.)
+    META[e.ticker]={currency: txs[0].currency || suffixCurrency(e.ticker) || "USD", approx:true};
   }
 
   const curs=new Set();
@@ -4122,6 +4140,10 @@ async function refreshAll(clearPx, deferRender){
       await sb(`transactions?id=in.(${hermes.join(",")})`, {method:"PATCH", body:JSON.stringify({ticker:"RMS.PA"})});
       localStorage.removeItem("px:ZEPP"); TX=await loadTx(); toast("Opraveno mapování: HMI → Hermès (RMS.PA)");
     }
+    // Titul ručně označený jako stažený („!CZG.PR“), ke kterému appka mezitím zná
+    // funkční symbol (CZG.PR → COLT.PR), se vrátí na ten symbol — bude mít ceny.
+    for(const tk of new Set(TX.map(t=>t.ticker)))
+      if(tk.startsWith("!") && !SYMBOL_OVERRIDES[tk]){ const to=SYMBOL_OVERRIDES[tk.slice(1)]; if(to && !to.startsWith("!")) SYMBOL_OVERRIDES[tk]=to; }
     const mig=[...new Set(TX.map(t=>t.ticker))].filter(tk=>SYMBOL_OVERRIDES[tk] && SYMBOL_OVERRIDES[tk]!==tk);
     if(mig.length){
       for(const tk of mig){ await remapTicker(tk, SYMBOL_OVERRIDES[tk]); localStorage.removeItem("px:"+tk); }

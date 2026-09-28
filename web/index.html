@@ -731,10 +731,15 @@ tr.grp-item td:first-child{padding-left:14px;} tr.grp-item{background:var(--surf
 <script>
 /* ================= KONFIGURACE ================= */
 const APP_VERSION = "2.1 (14. 6. 2026) — administrace";
-const FOOTER_VERSION = "v3.13 · 28. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
+const FOOTER_VERSION = "v3.14 · 28. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
 
 // Seznam změn — nejnovější nahoře. Při každé úpravě appky sem přidat řádek.
 const CHANGELOG = [
+  {v:"v3.14", d:"28. 9. 2026", items:[
+    "Kontrola proti kompletnímu výpisu z Revolutu: realizovaný zisk sedí s výkazem Revolutu na centy",
+    "Štěpení akcií: Yahoo zpětně přepočítává staré ceny (NVDA, NFLX, CRWD, NVO…), kdežto výpis má původní kusy — graf pak ukazoval hodnotu desetkrát nižší, u zpětného sloučení (Virgin Galactic, Canoo) dvacetkrát vyšší. Appka štěpení pozná z cen a obchody přepočte",
+    "Hermès (u Revolutu HMI) se chybně bral jako jiná firma (Zepp Health); teď má správné ceny z pařížské burzy",
+    "Tituly stažené z burzy (Nikola, Avidity) se v grafu oceňují vlastními nákupními cenami místo nuly — dřív v době jejich držení propadal zisk"]},
   {v:"v3.13", d:"28. 9. 2026", items:["Oprava importu z XTB: výpis s nákupy i dividendami končil chybou „All object keys must match“"]},
   {v:"v3.12", d:"28. 9. 2026", items:[
     "Obchody z XTB počítají se skutečnou částkou v korunách z výpisu, včetně kurzové přirážky XTB (~0,5 % při nákupu i prodeji). Realizovaný zisk, vloženo i daňový podklad tak sedí s XTB na korunu — dřív byl zisk z XTB o desítky tisíc vyšší, protože appka přepočítávala kurzem ECB",
@@ -1097,7 +1102,8 @@ function parseCSV(text){
 /* ruční převody symbolů na Yahoo (aplikují se při importu); "!" = delistovaný titul, cena se nestahuje */
 const SYMBOL_OVERRIDES = {
   "QDV5":"QDV5.DE", "SPPW":"SPPW.DE", "ETLZ":"ETLZ.DE", "NOV1":"NOV.DE",
-  "BRK.B":"BRK-B", "BRKB":"BRK-B", "HMI":"ZEPP",
+  "BRK.B":"BRK-B", "BRKB":"BRK-B", "HMI":"RMS.PA",   // HMI u Revolutu = Hermès (FR0000052292), ne Zepp Health
+
   "NKLAQ":"!NKLAQ", "RNAM":"!RNAM",
   "NOVOB.DK":"NOVO-B.CO", "NOVOB.CO":"NOVO-B.CO",
   "BY6.DE":"BY6.F", "IUSN":"IUSN.DE",
@@ -1530,6 +1536,34 @@ function txFor(key){
   return TX.filter(t=>set.includes(t.provider));
 }
 function txCurrency(t){ return t.currency || (META[t.ticker]&&META[t.ticker].currency) || "USD"; }
+/* ===== Štěpení akcií =====
+   Yahoo historické ceny zpětně přepočítává na dnešní počet akcií (NVDA po štěpení
+   10:1 ukazuje v roce 2023 desetinovou cenu), kdežto výpis brokera má původní kusy
+   a ceny. Graf pak oceňoval 0,1 akcie NVDA desetinovou cenou, u zpětného sloučení
+   (SPCE 1:20, Canoo) naopak dvacetinásobně. Proxy data o štěpeních nevrací, ale
+   prozradí je poměr ceny obchodu k ceně z Yahoo v týž den: je-li blízko 2, 4, 10,
+   1/20…, jde o štěpení a obchod přepočteme na dnešní jednotky (kusy × f, cena ÷ f).
+   Částky v Kč se nemění. Jiné odchylky (spin-off FDX 1,24) se nechávají být. */
+const SPLIT_F=[2,3,4,5,6,8,10,12,15,20,25,30,40,50,100];
+function detectSplits(){
+  const cands=[...SPLIT_F, ...SPLIT_F.map(x=>1/x)];
+  for(const t of TX){
+    t._f=1;
+    if(t.type==="DIVIDEND" || !(t.price>0)) continue;
+    const m=META[t.ticker], d=DAILY[t.ticker];
+    if(!m || m.approx || m.crypto || !d || !d.dates.length || t.date<d.dates[0]) continue;
+    if(t.currency && t.currency!==m.currency) continue;
+    const c=priceAt(t.ticker,t.date); if(!(c>0)) continue;
+    const r=t.price/c;
+    if(Math.abs(Math.log(r)) < Math.log(1.6)) continue;          // běžný pohyb, žádné štěpení
+    let best=null, bd=Infinity;
+    for(const f of cands){ const dd=Math.abs(Math.log(r/f)); if(dd<bd){ bd=dd; best=f; } }
+    if(bd < Math.log(1.15)) t._f=best;
+  }
+}
+/* kusy a cena v jednotkách, ve kterých počítá Yahoo (po štěpeních) */
+const qN = t => t.quantity*(t._f||1);
+const pN = t => t.price!=null ? t.price/(t._f||1) : null;
 /* Částka obchodu v Kč. U XTB je ve výpisu skutečná částka, která odešla/přišla na
    korunový účet (total_czk) — obsahuje i kurzovou přirážku XTB (~0,5 % při nákupu
    i prodeji). Jinak přepočet kurzem ECB ke dni obchodu. */
@@ -1631,8 +1665,8 @@ function computeSeries(prov){
     }
     for(const t of (byDate[d]||[])){
       const c2=czkOf(t);
-      if(t.type==="BUY"){ qty[t.ticker]=(qty[t.ticker]||0)+t.quantity; inv+=c2; }
-      else { qty[t.ticker]=(qty[t.ticker]||0)-t.quantity; inv-=c2; }
+      if(t.type==="BUY"){ qty[t.ticker]=(qty[t.ticker]||0)+qN(t); inv+=c2; }
+      else { qty[t.ticker]=(qty[t.ticker]||0)-qN(t); inv-=c2; }
       if(tracked(t.provider)) continue;
       if(t.type==="SELL") pool.push({amt:c2, exp:addDays(d,POOL_DAYS)});
       else { let need=c2;   // nákup nejdřív spotřebuje peníze z nedávných prodejů/dividend
@@ -1662,7 +1696,7 @@ function computePositions(prov){
   // Bez převodu by se průměr počítal ze směsi měn — třeba krypto koupené jednou
   // v Kč a jednou v dolarech.
   const pxIn = t => {
-    const u = t.price!=null ? t.price : (t.total||0)/(t.quantity||1);
+    const u = t.price!=null ? pN(t) : (t.total||0)/(qN(t)||1);
     const from=txCurrency(t), to=(META[t.ticker]&&META[t.ticker].currency)||"USD";
     if(from===to) return u;
     const a=fxAt(from,t.date), b=fxAt(to,t.date);
@@ -1671,8 +1705,8 @@ function computePositions(prov){
   for(const t of txs){
     const key=t.ticker+"|"+t.provider;
     const p = pos[key] = pos[key]||{ticker:t.ticker, provider:t.provider, raw:t.raw_symbol, qty:0, cost:0};
-    if(t.type==="BUY"){ p.cost+=t.quantity*pxIn(t); p.qty+=t.quantity; }
-    else { const avg=p.qty>0?p.cost/p.qty:0; p.cost-=t.quantity*avg; p.qty-=t.quantity; }
+    if(t.type==="BUY"){ p.cost+=qN(t)*pxIn(t); p.qty+=qN(t); }
+    else { const avg=p.qty>0?p.cost/p.qty:0; p.cost-=qN(t)*avg; p.qty-=qN(t); }
   }
   // XTB páruje prodej s nejstarším nákupem a průměrnou cenu ukazuje z nákupů, které
   // pořád drží. Vážený průměr (ostatní brokeři) by se po částečném prodeji od XTB
@@ -1866,7 +1900,7 @@ async function buildIntraday(prov){
     // u jednoho nesmí přecenit kusy držené u druhého
     const k=t.ticker+"|"+t.provider;
     const b=boughtToday[k]||(boughtToday[k]={qty:0, cost:0});
-    b.qty+=t.quantity; b.cost+=cash;
+    b.qty+=qN(t); b.cost+=cash;
   }
   let ref=0;
   for(const p of positions){
@@ -3576,7 +3610,7 @@ async function renderHistChart(txs, cur){
     if(t.type==="DIVIDEND" || t.date<labels[0]) continue;
     let mi=labels.length-1;
     for(let j=0;j<labels.length;j++){ if(labels[j]>t.date){ mi=Math.max(0,j-1); break; } if(j===labels.length-1) mi=j; }
-    markers.push({i:mi, v:t.price!=null?t.price:vals[mi], color:t.type==="BUY"?"var(--green)":"var(--red)"});
+    markers.push({i:mi, v:t.price!=null?pN(t):vals[mi], color:t.type==="BUY"?"var(--green)":"var(--red)"});
   }
   const axF=v=>fmtNum(v, Math.abs(v)>=100?0:2)+"\u00A0"+(CUR_SYM[cur]||cur||"");
   const fmt=x=>{ const dt=new Date(x+"T12:00:00"); return dt.getDate()+". "+(dt.getMonth()+1)+"."; };
@@ -3670,20 +3704,22 @@ function fifo(txs){
   for(const t of sorted){
     const key=t.provider+"|"+t.ticker, cur=txCurrency(t);
     lots[key]=lots[key]||[];
-    const unit = t.price!=null ? t.price : ((t.total||0)/(t.quantity||1));
+    // kusy a cena po štěpeních (viz detectSplits); f převádí zpět na skutečně obchodované kusy
+    const q=qN(t), f=t._f||1;
+    const unit = t.price!=null ? pN(t) : ((t.total||0)/(q||1));
     // Kč za kus: ze skutečné částky (XTB), jinak cena × kurz ECB ke dni obchodu
-    const czk = t.total_czk!=null && t.total_czk!=="" && t.quantity>0 ? +t.total_czk/t.quantity : unit*(fxAt(cur,t.date)||0);
-    if(t.type==="BUY"){ lots[key].push({date:t.date, qty:t.quantity, price:unit, cur, czk}); continue; }
-    let rem=t.quantity;
+    const czk = t.total_czk!=null && t.total_czk!=="" && q>0 ? +t.total_czk/q : unit*(fxAt(cur,t.date)||0);
+    if(t.type==="BUY"){ lots[key].push({date:t.date, qty:q, price:unit, cur, czk}); continue; }
+    let rem=q;
     while(rem>1e-9 && lots[key].length){
       const lot=lots[key][0], take=Math.min(rem, lot.qty);
-      out.push({sellDate:t.date, buyDate:lot.date, ticker:t.ticker, raw:t.raw_symbol, provider:t.provider, qty:take, cur,
+      out.push({sellDate:t.date, buyDate:lot.date, ticker:t.ticker, raw:t.raw_symbol, provider:t.provider, qty:take/f, cur,
         income: take*czk,
         cost:   take*lot.czk});
       lot.qty-=take; rem-=take;
       if(lot.qty<=1e-9) lots[key].shift();
     }
-    if(rem>1e-9) out.push({sellDate:t.date, buyDate:null, ticker:t.ticker, raw:t.raw_symbol, provider:t.provider, qty:rem, cur,
+    if(rem>1e-9) out.push({sellDate:t.date, buyDate:null, ticker:t.ticker, raw:t.raw_symbol, provider:t.provider, qty:rem/f, cur,
       income:rem*czk, cost:0, warn:true});
   }
   return {out, lots};
@@ -3839,7 +3875,10 @@ async function loadAllData(){
   // totiž počítal do „vloženo“, ale do hodnoty vůbec — zisk byl o celou jeho cenu
   // stlačený a v den prodeje skokem povyskočil (svislý schod v grafu Zisk).
   // Takhle přispívá do zisku nulou, dokud se neprodá.
-  for(const e of [...priceErrors]){
+  // Totéž pro tituly označené jako stažené z burzy („!“) — ty se ani nestahují.
+  const bezCen=[...new Set([...priceErrors.map(e=>e.ticker), ...Object.keys(first).filter(tk=>tk.startsWith("!"))])];
+  for(const tk of bezCen){
+    const e={ticker:tk};
     const txs=TX.filter(t=>t.ticker===e.ticker && t.price>0 && t.type!=="DIVIDEND")
                 .sort((a,b)=>a.date.localeCompare(b.date));
     if(!txs.length) continue;
@@ -3864,6 +3903,7 @@ async function loadAllData(){
     d.closes=d.closes.map((c,i)=> c!=null ? c*(fxAt("USD", d.dates[i])||0) : null);
     META[tk]=Object.assign(META[tk]||{}, {currency:"CZK", crypto:true});
   }
+  detectSplits();
   buildCalendar();
   if(priceErrors.length)
     showErr("Nepodařilo se načíst data pro: "+[...new Set(priceErrors.map(e=>e.ticker))].join(", ")+". Zkontroluj mapování tickerů v Nastavení.");
@@ -3877,6 +3917,13 @@ async function refreshAll(clearPx, deferRender){
     TX=await loadTx();
     if(!TX.length){ $("#loading").style.display="none"; $("#emptyState").style.display="block"; return; }
     // automatická oprava tickerů v databázi podle vestavěného mapování
+    // Dřívější mapování HMI→ZEPP bylo chybné: Revolut pod HMI vede Hermès (v EUR).
+    // Takové řádky přepíšeme cíleně podle původního symbolu a měny.
+    const hermes=TX.filter(t=>t.ticker==="ZEPP" && t.raw_symbol==="HMI" && t.currency==="EUR").map(t=>t.id);
+    if(hermes.length){
+      await sb(`transactions?id=in.(${hermes.join(",")})`, {method:"PATCH", body:JSON.stringify({ticker:"RMS.PA"})});
+      localStorage.removeItem("px:ZEPP"); TX=await loadTx(); toast("Opraveno mapování: HMI → Hermès (RMS.PA)");
+    }
     const mig=[...new Set(TX.map(t=>t.ticker))].filter(tk=>SYMBOL_OVERRIDES[tk] && SYMBOL_OVERRIDES[tk]!==tk);
     if(mig.length){
       for(const tk of mig){ await remapTicker(tk, SYMBOL_OVERRIDES[tk]); localStorage.removeItem("px:"+tk); }

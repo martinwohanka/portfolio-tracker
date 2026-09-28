@@ -731,10 +731,11 @@ tr.grp-item td:first-child{padding-left:14px;} tr.grp-item{background:var(--surf
 <script>
 /* ================= KONFIGURACE ================= */
 const APP_VERSION = "2.1 (14. 6. 2026) — administrace";
-const FOOTER_VERSION = "v3.12 · 28. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
+const FOOTER_VERSION = "v3.13 · 28. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
 
 // Seznam změn — nejnovější nahoře. Při každé úpravě appky sem přidat řádek.
 const CHANGELOG = [
+  {v:"v3.13", d:"28. 9. 2026", items:["Oprava importu z XTB: výpis s nákupy i dividendami končil chybou „All object keys must match“"]},
   {v:"v3.12", d:"28. 9. 2026", items:[
     "Obchody z XTB počítají se skutečnou částkou v korunách z výpisu, včetně kurzové přirážky XTB (~0,5 % při nákupu i prodeji). Realizovaný zisk, vloženo i daňový podklad tak sedí s XTB na korunu — dřív byl zisk z XTB o desítky tisíc vyšší, protože appka přepočítávala kurzem ECB",
     "Po nahrání výpisu z XTB se částky v Kč doplní i k už uloženým obchodům"]},
@@ -3392,6 +3393,11 @@ async function doImport(){
   // poznáme to z načtených transakcí (select=* ho vrací, i když je prázdný).
   let czkCol = !TX.length || TX.some(t=>Object.prototype.hasOwnProperty.call(t,"total_czk"));
   const strip = rows => rows.map(({total_czk, ...r})=>r);
+  // Hromadný zápis (PostgREST) chce u všech řádků stejná pole — jinak chyba
+  // PGRST102 „All object keys must match“. Nákupy z XTB mají total_czk, dividendy
+  // ne, a výpis může míchat i víc brokerů: chybějící pole doplníme jako null.
+  const sameKeys = rows => { const keys=[...new Set(rows.flatMap(r=>Object.keys(r)))];
+    return rows.map(r=>{ const o={}; for(const k of keys) o[k]= r[k]===undefined ? null : r[k]; return o; }); };
   const byHash=new Map(TX.filter(t=>t.import_hash).map(t=>[t.import_hash,t]));
   const upd=[];
   for(const r of uniq){
@@ -3411,10 +3417,10 @@ async function doImport(){
       await Promise.all(upd.slice(i,i+8).map(u=>sb(`transactions?id=eq.${u.id}`, {method:"PATCH", body:JSON.stringify(u.patch)})));
     }
     let res;
-    try{ res=await insertTx(czkCol ? uniq : strip(uniq)); }
+    try{ res=await insertTx(sameKeys(czkCol ? uniq : strip(uniq))); }
     catch(e){
       if(!/total_czk/.test(e.message)) throw e;
-      czkCol=false; res=await insertTx(strip(uniq));
+      czkCol=false; res=await insertTx(sameKeys(strip(uniq)));
     }
     $("#importModal").classList.remove("open");
     if(!czkCol && uniq.some(r=>r.total_czk!=null)) toast("Import hotový. Pro přesné částky v Kč u XTB je potřeba v databázi přidat sloupec total_czk.", 7000);

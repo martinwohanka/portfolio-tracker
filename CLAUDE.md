@@ -48,6 +48,17 @@ alter table transactions add constraint transactions_provider_check
 Ostatní tabulky brokera neomezují — hotovost i pořadí brokerů se ukládají
 jako JSON v `user_settings`.
 
+## Sloupec `target_ref` ve watchlistu
+
+Watchlist si ke cílové ceně ukládá i cenu v okamžiku nastavení cíle
+(`target_ref`) — podle ní appka pozná, jestli se čeká na růst, nebo pokles.
+Když sloupec v databázi chybí, appka uloží jen cíl a směr odhaduje z ceny při
+přidání titulu (`added_price`). Sloupec přidá majitel projektu v Supabase → SQL Editor:
+
+```sql
+alter table watchlist add column if not exists target_ref numeric;
+```
+
 ## Kontrola po každé změně
 
 Po nasazení každé změny `web/index.html` je potřeba:

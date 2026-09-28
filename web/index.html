@@ -731,10 +731,11 @@ tr.grp-item td:first-child{padding-left:14px;} tr.grp-item{background:var(--surf
 <script>
 /* ================= KONFIGURACE ================= */
 const APP_VERSION = "2.1 (14. 6. 2026) — administrace";
-const FOOTER_VERSION = "v3.07 · 27. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
+const FOOTER_VERSION = "v3.08 · 28. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
 
 // Seznam změn — nejnovější nahoře. Při každé úpravě appky sem přidat řádek.
 const CHANGELOG = [
+  {v:"v3.08", d:"28. 9. 2026", items:["Watchlist: směr cílové ceny (čekám na růst, nebo na pokles) se určuje podle ceny v okamžiku nastavení cíle, ne podle ceny při přidání titulu. Dřív třeba META s cílem 660 $ hlásila „cíl dosažen“ při ceně 722 $, protože byla do watchlistu přidaná za méně než 660 $","U cílů nastavených před touto verzí stačí cíl jednou znovu uložit (tužka → OK)"]},
   {v:"v3.07", d:"27. 9. 2026", items:["Zlatý býk je i na přihlašovací obrazovce nad názvem Fortivio"]},
   {v:"v3.06", d:"27. 9. 2026", items:[
     "Graf 1D o víkendu a svátcích: místo nekonečného načítání ukáže průběh posledního obchodního dne s datem, a když ani ten není (americké akcie o víkendu), hlášku „Trh je zavřený“. Načítání má časový limit a nikdy nevisí",
@@ -2747,12 +2748,18 @@ function fillTaxYears(){
   sel.innerHTML=ys.map(y=>`<option value="${y}"${y===prefer||(!ys.includes(prefer)&&y===ys[0])?" selected":""}>${y}</option>`).join("");
 }
 /* ================= WATCHLIST ================= */
+/* Směr cíle se určuje podle ceny v okamžiku, kdy byl cíl nastaven (target_ref),
+   ne podle ceny v den přidání do watchlistu. Titul přidaný za 600 s cílem 660
+   nastaveným při ceně 750 čeká na POKLES k 660 — dřív to appka brala jako čekání
+   na růst a při ceně 722 hlásila „cíl dosažen“. Starší cíle bez target_ref
+   se řídí cenou při přidání jako dřív. */
+const targetRef = w => w.target_ref!=null ? +w.target_ref : w.added_price;
 function targetHit(w, px){
   if(w.target==null || px==null) return false;
-  return (w.added_price!=null && w.target < w.added_price) ? px<=w.target : px>=w.target;
+  return targetDir(w)<0 ? px<=w.target : px>=w.target;
 }
-// +1 = čekáme na růst k cíli, -1 = cíl je pod nákupem (čekáme na propad)
-function targetDir(w){ return (w.added_price!=null && w.target!=null && w.target < w.added_price) ? -1 : 1; }
+// +1 = čekáme na růst k cíli, -1 = cíl je pod cenou při nastavení (čekáme na propad)
+function targetDir(w){ const ref=targetRef(w); return (ref!=null && w.target!=null && w.target < ref) ? -1 : 1; }
 
 /* Dnešní intradenní ceny titulů z watchlistu (5m svíčky vč. pre/after-marketu).
    Drží se odděleně od DAILY — u crypto je DAILY přepočtené na CZK kvůli pozicím,
@@ -3891,7 +3898,18 @@ document.body.addEventListener("click",async e=>{
     const inp=prompt(`Cílová cena pro ${w.ticker} (${cur}), prázdné = smazat:`, w.target!=null?w.target:"");
     if(inp===null) return;
     const val=inp.trim()===""?null:parseNum(inp);
-    try{ await updateWatch(w.id,{target:val}); w.target=val; renderWatchlist(); }
+    // uložit i cenu v okamžiku nastavení — podle ní se pozná, jestli čekáš na růst, nebo pokles
+    const ref = val==null ? null : watchPrice(w.ticker);
+    try{
+      try{ await updateWatch(w.id,{target:val, target_ref:ref}); w.target_ref=ref; }
+      catch(err){
+        // sloupec target_ref v databázi ještě není (viz CLAUDE.md) — uložit aspoň cíl
+        if(!/target_ref/.test(err.message)) throw err;
+        await updateWatch(w.id,{target:val});
+        toast("Cíl uložen. Pro správné hlídání poklesu je potřeba v databázi přidat sloupec target_ref.", 6000);
+      }
+      w.target=val; renderWatchlist();
+    }
     catch(err){ showErr(err.message); }
     return;
   }

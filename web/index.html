@@ -731,10 +731,11 @@ tr.grp-item td:first-child{padding-left:14px;} tr.grp-item{background:var(--surf
 <script>
 /* ================= KONFIGURACE ================= */
 const APP_VERSION = "2.1 (14. 6. 2026) — administrace";
-const FOOTER_VERSION = "v3.09 · 28. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
+const FOOTER_VERSION = "v3.10 · 28. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
 
 // Seznam změn — nejnovější nahoře. Při každé úpravě appky sem přidat řádek.
 const CHANGELOG = [
+  {v:"v3.10", d:"28. 9. 2026", items:["Import z XTB porovná obchody s listem otevřených pozic, který XTB přikládá k výpisu. Nákupy, které v appce chybí (třeba ty, co starší verze importu přeskočila), sám doplní a vypíše je; jiné nesoulady v počtu kusů ukáže jako varování","Když je vše v pořádku, okno importu napíše „Otevřené pozice XTB sedí s appkou ✓“"]},
   {v:"v3.09", d:"28. 9. 2026", items:["Import z XTB zvládá nový formát výpisu, kde komentář obchodu obsahuje i ticker („OPEN BUY MELI.US 1 @ 1722.60“) — dřív se takové nákupy a prodeje tiše přeskočily"]},
   {v:"v3.08", d:"28. 9. 2026", items:["Watchlist: směr cílové ceny (čekám na růst, nebo na pokles) se určuje podle ceny v okamžiku nastavení cíle, ne podle ceny při přidání titulu. Dřív třeba META s cílem 660 $ hlásila „cíl dosažen“ při ceně 722 $, protože byla do watchlistu přidaná za méně než 660 $","U cílů nastavených před touto verzí stačí cíl jednou znovu uložit (tužka → OK)"]},
   {v:"v3.07", d:"27. 9. 2026", items:["Zlatý býk je i na přihlašovací obrazovce nad názvem Fortivio"]},
@@ -3232,18 +3233,67 @@ async function fileToTables(f){
         return xtb || dgr || ib || f24;
       });
       if(hi>-1) tables.push(rows.slice(hi).map(r=>r.map(c=>String(c==null?"":c))));
+      // XTB přikládá i list otevřených pozic (jednotlivé nákupy, které pořád drží) —
+      // slouží ke kontrole, jestli appce nějaký nákup nechybí
+      const oi = rows.findIndex(r=>{ const low=r.map(c=>String(c).trim().toLowerCase());
+        return low.includes("instrument/position") && low.includes("ticker") && low.includes("volume") && low.some(c=>c.startsWith("open price")); });
+      if(oi>-1) tables.openPos = rows.slice(oi).map(r=>r.map(c=>String(c==null?"":c)));
     }
-    if(!tables.length) throw new Error(`V „${f.name}" jsem nenašel list s transakcemi — čekám XTB cash operace nebo Freedom 24 (list „Trades").`);
+    if(!tables.length && !tables.openPos) throw new Error(`V „${f.name}" jsem nenašel list s transakcemi — čekám XTB cash operace nebo Freedom 24 (list „Trades").`);
     return tables;
   }
   return [parseCSV(await f.text())];
 }
 let pendingImport=null;
+/* list „Open Positions“ z XTB -> otevřené nákupy {ticker, qty, price, date, posId} */
+function parseXtbOpen(rows){
+  const head=rows[0].map(h=>h.trim().toLowerCase());
+  const ix=n=>head.findIndex(h=>h===n||h.startsWith(n));
+  const iP=ix("instrument/position"), iT=ix("ticker"), iTy=ix("type"), iV=ix("volume"), iO=ix("open price"), iD=ix("open time");
+  const lots=[];
+  for(const r of rows.slice(1)){
+    if(String(r[iTy]||"").trim().toUpperCase()!=="BUY") continue;   // souhrnné řádky titulu typ nemají
+    const raw=String(r[iT]||"").trim(), qty=parseNum(r[iV]), price=parseNum(r[iO]), date=parseDate(r[iD]);
+    if(!raw || !(qty>0) || !(price>0) || !date) continue;
+    lots.push({raw, ticker:mapSymbol(xtbToYahoo(raw)), qty, price, date, posId:String(r[iP]||"").trim()});
+  }
+  return lots;
+}
+/* Porovná otevřené pozice z XTB s tím, co bude v appce po importu. Chybějící nákupy
+   (typicky obchod, který starší verze importu přeskočila) vrátí k doplnění,
+   ostatní nesoulady jako varování. */
+function reconcileXtb(lots, incoming){
+  const known=new Set(TX.map(t=>t.import_hash).filter(Boolean));
+  const xtb=[...TX.filter(t=>t.provider==="XTB"), ...incoming.filter(t=>t.provider==="XTB" && !(t.uid && known.has(t.uid)))];
+  const have={}; for(const t of xtb){ if(t.type==="DIVIDEND") continue; have[t.ticker]=(have[t.ticker]||0)+(t.type==="BUY"?t.quantity:-t.quantity); }
+  const want={}, byTk={}; for(const l of lots){ want[l.ticker]=(want[l.ticker]||0)+l.qty; (byTk[l.ticker]=byTk[l.ticker]||[]).push(l); }
+  const near=(a,b)=>Math.abs(new Date(a)-new Date(b))<=864e5*1.01;   // UTC vs. místní datum
+  const add=[], warn=[];
+  for(const tk of new Set([...Object.keys(want), ...Object.keys(have).filter(k=>have[k]>1e-6)])){
+    const w=want[tk]||0, h=have[tk]||0;
+    if(h < w-1e-6){
+      let miss=w-h;
+      for(const l of (byTk[tk]||[]).slice().sort((a,b)=>a.date.localeCompare(b.date))){
+        const uz = xtb.some(t=>t.type==="BUY" && t.ticker===tk && near(t.date,l.date) && Math.abs(t.quantity-l.qty)<1e-6 && Math.abs((t.price||0)-l.price)<0.006);
+        if(uz || l.qty>miss+1e-6) continue;
+        add.push({provider:"XTB", raw_symbol:l.raw, ticker:tk, type:"BUY", date:l.date, quantity:l.qty, price:l.price,
+                  total:l.qty*l.price, currency:null, uid:"XTBPOS:"+(l.posId||[tk,l.date,l.qty,l.price].join(":"))});
+        miss-=l.qty;
+        if(miss<=1e-6) break;
+      }
+      if(miss>1e-6) warn.push(`${tk}: v XTB ${fmtNum(w,4)} ks, v appce ${fmtNum(w-miss,4)} ks — chybějící nákup se nepodařilo určit`);
+    } else if(h > w+1e-6){
+      warn.push(`${tk}: v appce ${fmtNum(h,4)} ks, v XTB ${fmtNum(w,4)} ks — nejspíš chybí prodej (nahraj výpis za delší období)`);
+    }
+  }
+  return {add, warn};
+}
 async function handleFiles(files){
-  const all=[]; const notes=[]; let skippedTotal=0; let roboDetekovano=false;
+  const all=[]; const notes=[]; let skippedTotal=0; let roboDetekovano=false; const openLots=[];
   for(const f of files){
     try{
       const tables=await fileToTables(f);
+      if(tables.openPos) openLots.push(...parseXtbOpen(tables.openPos));
       const cnt={BUY:0,SELL:0,DIVIDEND:0}; let prov=null;
       for(const rows of tables){
         const {provider, txs, skipped, roboHint}=parseStatement(rows, f.name);
@@ -3251,7 +3301,7 @@ async function handleFiles(files){
         if(roboHint) roboDetekovano=true;
         for(const t of txs) cnt[t.type]++;
       }
-      notes.push(`<p><b>${escapeHtml(f.name)}</b> → ${prov}: ${cnt.BUY}× nákup, ${cnt.SELL}× prodej, ${cnt.DIVIDEND}× dividenda</p>`);
+      if(tables.length) notes.push(`<p><b>${escapeHtml(f.name)}</b> → ${prov}: ${cnt.BUY}× nákup, ${cnt.SELL}× prodej, ${cnt.DIVIDEND}× dividenda</p>`);
     }catch(e){ notes.push(`<p style="color:var(--red)">${escapeHtml(e.message)}</p>`); }
   }
   // Revolut robo má v exportu stejnou hlavičku jako běžný revoluťácký účet,
@@ -3263,6 +3313,17 @@ async function handleFiles(files){
         <option value="REVOLUT_ROBO"${roboDetekovano?" selected":""}>Revolut robo</option>
       </select></label>`);
     if(roboDetekovano) notes.push(`<p style="color:var(--muted)">Vypadá to na výpis robo poradce (nákup celého košíku naráz), proto je předvybraný. Když to tak není, přepni zpět.</p>`);
+  }
+  if(openLots.length){
+    const {add, warn}=reconcileXtb(openLots, all);
+    const d=x=>x.split("-").reverse().join(". ");
+    if(add.length){
+      all.push(...add);
+      notes.push(`<p style="color:var(--warn)">Podle otevřených pozic v XTB appce chyběly tyto nákupy — doplním je:</p><ul style="margin:4px 0 8px 18px">`+
+        add.map(t=>`<li>${escapeHtml(t.ticker)} ${fmtNum(t.quantity,4)} ks za ${fmtPx(t.price)} (${d(t.date)})</li>`).join("")+`</ul>`);
+    }
+    if(warn.length) notes.push(`<p style="color:var(--warn)">Nesoulad s otevřenými pozicemi v XTB:</p><ul style="margin:4px 0 8px 18px">`+warn.map(w=>`<li>${escapeHtml(w)}</li>`).join("")+`</ul>`);
+    if(!add.length && !warn.length) notes.push(`<p>Otevřené pozice XTB sedí s appkou ✓</p>`);
   }
   if(skippedTotal) notes.push(`<p>${skippedTotal} řádků přeskočeno (vklady, poplatky, úroky…).</p>`);
   notes.push(`<p style="margin-top:8px">Duplicitní záznamy se automaticky přeskočí, import lze bezpečně opakovat.</p>`);
@@ -3292,6 +3353,11 @@ async function doImport(){
   const f24InDb=new Set(TX.filter(t=>t.provider==="FREEDOM24"&&t.import_hash&&t.import_hash.startsWith("F24:"))
                           .map(t=>t.import_hash.split("/")[0]));
   uniq=uniq.filter(r=>!(r.provider==="FREEDOM24" && f24InDb.has(String(r.import_hash).split("/")[0])));
+  // XTB: nákup doplněný dřív z otevřených pozic (XTBPOS:…) nesmí přibýt znovu,
+  // až přijde v cash operacích pod vlastním ID
+  const pos=TX.filter(t=>t.provider==="XTB" && String(t.import_hash||"").startsWith("XTBPOS:"));
+  uniq=uniq.filter(r=>!(r.provider==="XTB" && r.type==="BUY" && !String(r.import_hash).startsWith("XTBPOS:") &&
+    pos.some(t=>t.ticker===r.ticker && Math.abs(new Date(t.date)-new Date(r.date))<=864e5*1.01 && Math.abs(t.quantity-r.quantity)<1e-6 && Math.abs((t.price||0)-(r.price||0))<0.006)));
   $("#impConfirm").disabled=true;
   try{
     const res=await insertTx(uniq);

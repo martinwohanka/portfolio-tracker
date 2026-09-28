@@ -571,6 +571,13 @@ tr.grp-item td:first-child{padding-left:14px;} tr.grp-item{background:var(--surf
       <button class="btn" data-tax="xlsx">Stáhnout XLSX</button>
       <button class="btn" data-tax="pdf">PDF (tisk)</button>
     </div>
+    <h2 style="font-size:16px; margin:22px 0 4px">Export do Obsidianu</h2>
+    <p style="font-size:13px; color:var(--muted); margin-bottom:10px">
+      Stáhne poznámku v Markdownu se souhrnem, pozicemi, alokací, realizovanými zisky a dividendami
+      za brokery vybrané nahoře. Stačí ji přetáhnout do Obsidian vaultu.</p>
+    <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center">
+      <button class="btn" id="obsidianExport">Stáhnout poznámku (.md)</button>
+    </div>
     <div id="provOrderSection">
       <h2 style="font-size:16px; margin:22px 0 4px">Pořadí brokerů</h2>
       <p style="font-size:13px; color:var(--muted); margin-bottom:8px">Pořadí bublin s brokery nad grafem. Šipkami posuň nahoru/dolů.</p>
@@ -731,10 +738,11 @@ tr.grp-item td:first-child{padding-left:14px;} tr.grp-item{background:var(--surf
 <script>
 /* ================= KONFIGURACE ================= */
 const APP_VERSION = "2.1 (14. 6. 2026) — administrace";
-const FOOTER_VERSION = "v3.19 · 28. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
+const FOOTER_VERSION = "v3.20 · 28. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
 
 // Seznam změn — nejnovější nahoře. Při každé úpravě appky sem přidat řádek.
 const CHANGELOG = [
+  {v:"v3.20", d:"28. 9. 2026", items:["Export do Obsidianu (Nastavení): stáhne poznámku v Markdownu se souhrnem, pozicemi, alokací, realizovanými zisky a dividendami za vybrané brokery — s vlastnostmi (hodnota, zisk, datum) pro Obsidian"]},
   {v:"v3.19", d:"28. 9. 2026", items:["Oprava propadu zisku 7. 10. 2025: Colt CZ označený jako stažený z burzy se oceňoval nákupní cenou, ale v dolarech místo v korunách — 30 akcií tak v grafu „stálo“ asi 490 tis. Kč místo 23 tis. Kč a při prodeji zisk spadl. Měna se teď bere podle burzy","Titul označený jako stažený, pro který appka zná funkční symbol (Colt CZ → COLT.PR), se na něj sám vrátí a má zase skutečné ceny"]},
   {v:"v3.18", d:"28. 9. 2026", items:["Import z Freedom 24 pozná obchody, které už v appce jsou ze starší podoby výpisu (s jinými čísly obchodů), podle titulu, dne, kusů a ceny — nezdvojí je a v okně importu napíše, kolik jich přeskočí"]},
   {v:"v3.17", d:"28. 9. 2026", items:[
@@ -4053,6 +4061,79 @@ ${S.divNetOnly?'<p style="color:#a00;font-size:11px">U některých dividend Revo
   setTimeout(()=>{ try{w.print();}catch(e){} }, 400);
 }
 
+/* ================= EXPORT DO OBSIDIANU =================
+   Jedna Markdown poznámka s YAML hlavičkou (vlastnosti v Obsidianu) za výběr
+   brokerů nahoře. Čísla v tabulkách česky, ve vlastnostech jako prostá čísla. */
+function obsidianMarkdown(){
+  const prov=curProv, today=todayStr(), s=series(prov), n=s.value.length;
+  const val=n?s.value[n-1]:0, inv=n?s.invested[n-1]:0, pl=val-inv, plPct=inv>0?(val/inv-1)*100:null;
+  const kc=x=>x==null||isNaN(x)?"—":(rnd(x,0)<0?"−":"")+nfmt(Math.abs(rnd(x,0)),0)+" Kč";
+  const sg=x=>x==null||isNaN(x)?"—":sgnCh(rnd(x,0))+nfmt(Math.abs(rnd(x,0)),0)+" Kč";
+  const pc=x=>x==null||isNaN(x)?"—":sgnCh(rnd(x,1))+nfmt(Math.abs(rnd(x,1)),1)+" %";
+  const cell=x=>String(x).replace(/\|/g,"\\|");
+  const provs=prov==="ALL" ? [...availableProviders()] : prov.split("+");
+  const jmena=provOrder().filter(p=>provs.includes(p)).map(p=>PROV_NAME[p]||p);
+  const pos=computePositions(prov), cash=cashNow(prov)+pendingNow(prov);
+  const div=dividendSummary(prov);
+  const L=[];
+  L.push("---", `datum: ${today}`, "typ: portfolio", `brokeri: [${jmena.map(j=>JSON.stringify(j)).join(", ")}]`,
+    `hodnota_kc: ${Math.round(val)}`, `vlozeno_kc: ${Math.round(inv)}`, `zisk_kc: ${Math.round(pl)}`,
+    `zisk_pct: ${plPct==null?"":Math.round(plPct*10)/10}`, `dividendy_letos_kc: ${Math.round(div.thisYear)}`,
+    "tags: [fortivio, portfolio]", "---", "");
+  const [ry0,rm0,rd0]=today.split("-").map(Number);
+  L.push(`# Portfolio ${rd0}. ${rm0}. ${ry0}`, "", `Brokeři: ${jmena.join(", ")} · export z appky Fortivio ${FOOTER_VERSION.split(" · ")[0]}`, "");
+  L.push("## Souhrn", "", "| | |", "|---|---:|",
+    `| Hodnota | ${kc(val)} |`, `| Vloženo | ${kc(inv)} |`, `| Celkem P/L | ${sg(pl)} (${pc(plPct)}) |`);
+  for(const [lbl,d] of [["Týden",7],["Měsíc",31],["Od začátku roku",ytdDays()],["Rok",366]]){
+    const ch=periodChange(s,d); L.push(`| ${lbl} | ${ch?`${sg(ch.abs)} (${pc(ch.pct)})`:"—"} |`);
+  }
+  L.push(`| Dividendy po zdanění | ${kc(div.thisYear)} letos · ${kc(div.total)} celkem |`);
+  if(Math.abs(cash)>0.5) L.push(`| Hotovost | ${kc(cash)} |`);
+  L.push("");
+  // pozice
+  const total=pos.reduce((a,p)=>a+(p.valCzk||0),0)+Math.max(0,cash);
+  L.push("## Pozice", "", "| Titul | Broker | Ks | Prům. cena | Cena | Hodnota | Podíl | P/L |", "|---|---|---:|---:|---:|---:|---:|---:|");
+  for(const p of pos) L.push(`| ${cell(p.ticker)} | ${PROV_NAME[p.provider]||p.provider} | ${fmtNum(p.qty,4)} | ${p.avg?fmtPx(p.avg)+" "+p.currency:"—"} | ${p.price!=null?fmtPx(p.price)+" "+p.currency:"—"} | ${kc(p.valCzk)} | ${total>0?nfmt((p.valCzk||0)/total*100,1)+" %":"—"} | ${pc(p.pl)} |`);
+  if(Math.abs(cash)>0.5) L.push(`| Hotovost | | | | | ${kc(cash)} | ${total>0?nfmt(Math.max(0,cash)/total*100,1)+" %":"—"} | |`);
+  L.push("");
+  // alokace
+  const skup=(fn)=>{ const g={}; for(const p of pos){ const k=fn(p); g[k]=(g[k]||0)+(p.valCzk||0); } return Object.entries(g).sort((a,b)=>b[1]-a[1]); };
+  for(const [nadpis,fn] of [["podle měny",p=>p.currency],["podle země",countryLabel],["podle brokera",p=>PROV_NAME[p.provider]||p.provider]]){
+    L.push(`### Alokace ${nadpis}`, "", "| | Hodnota | Podíl |", "|---|---:|---:|");
+    for(const [k,v] of skup(fn)) L.push(`| ${cell(k)} | ${kc(v)} | ${total>0?nfmt(v/total*100,1)+" %":"—"} |`);
+    L.push("");
+  }
+  // realizované zisky po letech
+  const real=computeRealized(txFor(prov)); const ry={};
+  for(const r of real){ const y=r.sellDate.slice(0,4); const o=ry[y]=ry[y]||{zisk:0, prodeje:new Set()}; o.zisk+=r.income-r.cost; o.prodeje.add(r.provider+r.ticker+r.sellDate); }
+  if(Object.keys(ry).length){
+    L.push("## Realizované zisky", "", "| Rok | Zisk | Prodejů |", "|---|---:|---:|");
+    for(const y of Object.keys(ry).sort().reverse()) L.push(`| ${y} | ${sg(ry[y].zisk)} | ${ry[y].prodeje.size} |`);
+    L.push("");
+  }
+  // dividendy po letech
+  const dy={};
+  for(const t of txFor(prov)){ if(t.type!=="DIVIDEND") continue; const y=t.date.slice(0,4), fx=fxAt(txCurrency(t),t.date)||0;
+    const o=dy[y]=dy[y]||{hrube:0, dan:0, ciste:0}; o.hrube+=(t.total||0)*fx; o.dan+=(+t.wht||0)*fx; o.ciste+=czkOf(t); }
+  if(Object.keys(dy).length){
+    L.push("## Dividendy", "", "| Rok | Hrubě | Sražená daň | Po zdanění |", "|---|---:|---:|---:|");
+    for(const y of Object.keys(dy).sort().reverse()) L.push(`| ${y} | ${kc(dy[y].hrube)} | ${kc(dy[y].dan)} | ${kc(dy[y].ciste)} |`);
+    L.push("");
+  }
+  L.push("> [!note] Poznámka", "> Kurzy ECB ke dni obchodu, u XTB skutečné částky v Kč z výpisu. Podklad pro přehled, ne daňové poradenství.", "");
+  return L.join("\n");
+}
+function exportObsidian(){
+  if(!TX.length){ toast("Není co exportovat — žádné transakce."); return; }
+  const md=obsidianMarkdown();
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob([md],{type:"text/markdown;charset=utf-8"}));
+  a.download=`Fortivio portfolio ${todayStr()}.md`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 4000);
+  toast("Poznámka stažena — přetáhni ji do Obsidian vaultu.");
+}
+
 /* ================= LOAD & INIT ================= */
 async function loadAllData(){
   priceErrors=[]; META={}; DAILY={}; FX={}; SERIES={}; INTRA=null; EXT={};
@@ -4602,6 +4683,7 @@ $("#cryptoRealSave").addEventListener("click", async ()=>{
   }catch(e){ showErr(e.message); }
 });
 $("#adminAdd").addEventListener("click",adminAddEmail);
+$("#obsidianExport").addEventListener("click", exportObsidian);
 $("#txProv").addEventListener("change", e=>{ txProvSel=e.target.value; renderTxTable(); });
 $("#txGroup").addEventListener("change", renderTxTable);
 $("#adminEmail").addEventListener("keydown",e=>{ if(e.key==="Enter") adminAddEmail(); });

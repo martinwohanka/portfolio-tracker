@@ -731,10 +731,13 @@ tr.grp-item td:first-child{padding-left:14px;} tr.grp-item{background:var(--surf
 <script>
 /* ================= KONFIGURACE ================= */
 const APP_VERSION = "2.1 (14. 6. 2026) — administrace";
-const FOOTER_VERSION = "v3.11 · 28. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
+const FOOTER_VERSION = "v3.12 · 28. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
 
 // Seznam změn — nejnovější nahoře. Při každé úpravě appky sem přidat řádek.
 const CHANGELOG = [
+  {v:"v3.12", d:"28. 9. 2026", items:[
+    "Obchody z XTB počítají se skutečnou částkou v korunách z výpisu, včetně kurzové přirážky XTB (~0,5 % při nákupu i prodeji). Realizovaný zisk, vloženo i daňový podklad tak sedí s XTB na korunu — dřív byl zisk z XTB o desítky tisíc vyšší, protože appka přepočítávala kurzem ECB",
+    "Po nahrání výpisu z XTB se částky v Kč doplní i k už uloženým obchodům"]},
   {v:"v3.11", d:"28. 9. 2026", items:[
     "Kontrola proti kompletnímu výpisu z XTB: počty kusů, průměrné ceny i realizovaný zisk teď sedí s XTB",
     "Průměrná nákupní cena u XTB se počítá z nákupů, které opravdu držíš (XTB prodává od nejstaršího) — dřív se po částečném prodeji lišila, např. MU 460 $ místo 674 $",
@@ -1395,8 +1398,11 @@ function parseStatement(rows, fname){
       if(!m){ skipped++; continue; }
       const qty=parseNum(m[1]), price=parseNum(m[2]);
       if(!qty || !price){ skipped++; continue; }
+      // skutečná částka na účtu (vč. kurzové přirážky XTB) — jen u korunového účtu
+      const amt=parseNum(r[iA]);
+      const total_czk = CONFIG.XTB_ACCOUNT_CURRENCY===CONFIG.BASE_CURRENCY && amt ? Math.abs(amt) : null;
       txs.push({provider:"XTB", raw_symbol:sym, ticker:mapSymbol(xtbToYahoo(sym)), type, date,
-        quantity:qty, price, total:qty*price, currency:null, uid}); // měna titulu se doplní z Yahoo
+        quantity:qty, price, total:qty*price, currency:null, total_czk, uid}); // měna titulu se doplní z Yahoo
     }
     return {provider:"XTB", txs, skipped};
   }
@@ -1523,6 +1529,13 @@ function txFor(key){
   return TX.filter(t=>set.includes(t.provider));
 }
 function txCurrency(t){ return t.currency || (META[t.ticker]&&META[t.ticker].currency) || "USD"; }
+/* Částka obchodu v Kč. U XTB je ve výpisu skutečná částka, která odešla/přišla na
+   korunový účet (total_czk) — obsahuje i kurzovou přirážku XTB (~0,5 % při nákupu
+   i prodeji). Jinak přepočet kurzem ECB ke dni obchodu. */
+function czkOf(t){
+  if(t.total_czk!=null && t.total_czk!=="") return +t.total_czk;
+  return (t.total!=null?t.total:(t.quantity*(t.price||0)))*(fxAt(txCurrency(t), t.date)||0);
+}
 
 function buildCalendar(){
   if(!TX.length){ CAL=[]; return; }
@@ -1611,14 +1624,12 @@ function computeSeries(prov){
       if(!tracked(x.prov) && x.val>0) pool.push({amt:x.val, exp:addDays(d,POOL_DAYS)});   // oprava (záporná) do poolu nejde
     }
     for(const t of (allTx[d]||[])){
-      const fx=fxAt(txCurrency(t), d)||0;
-      const val=(t.total!=null?t.total:(t.quantity*(t.price||0)))*fx;
+      const val=czkOf(t);
       if(t.type==="BUY") cash-=val;
       else { cash+=val; if(t.type==="DIVIDEND") divCum+=val; }
     }
     for(const t of (byDate[d]||[])){
-      const cur=txCurrency(t), fx=fxAt(cur,d)||0;
-      const c2=(t.total!=null?t.total:(t.quantity*(t.price||0)))*fx;
+      const c2=czkOf(t);
       if(t.type==="BUY"){ qty[t.ticker]=(qty[t.ticker]||0)+t.quantity; inv+=c2; }
       else { qty[t.ticker]=(qty[t.ticker]||0)-t.quantity; inv-=c2; }
       if(tracked(t.provider)) continue;
@@ -1716,7 +1727,7 @@ function unrealizedCzk(p){
   if(p.valCzk==null) return 0;
   const {lots}=fifo(TX.filter(t=>t.ticker===p.ticker && t.provider===p.provider));
   let cost=0;
-  for(const l of (lots[p.provider+"|"+p.ticker]||[])) cost+=l.qty*l.price*(fxAt(l.cur,l.date)||0);
+  for(const l of (lots[p.provider+"|"+p.ticker]||[])) cost+=l.qty*l.czk;
   return p.valCzk - cost;
 }
 
@@ -1849,8 +1860,7 @@ async function buildIntraday(prov){
   const boughtToday={};
   for(const t of txFor(prov)){
     if(t.type!=="BUY" || t.date!==today2) continue;
-    const fx=fxAt(txCurrency(t),today2)||0;
-    const cash=(t.total!=null?t.total:(t.quantity*(t.price||0)))*fx;
+    const cash=czkOf(t);
     // klíč i s brokerem: stejný titul může ležet u dvou brokerů a dnešní nákup
     // u jednoho nesmí přecenit kusy držené u druhého
     const k=t.ticker+"|"+t.provider;
@@ -3378,23 +3388,40 @@ async function doImport(){
     pos.some(t=>t.ticker===r.ticker && Math.abs(new Date(t.date)-new Date(r.date))<=864e5*1.01 && Math.abs(t.quantity-r.quantity)<1e-6 && Math.abs((t.price||0)-(r.price||0))<0.006)));
   // Řádky, které už v databázi jsou, ale nová verze importu je čte jinak
   // (např. záporná oprava dividendy dřív uložená jako kladná) — opravíme je.
+  // Sloupec total_czk (skutečná částka v Kč u XTB) nemusí v databázi ještě být —
+  // poznáme to z načtených transakcí (select=* ho vrací, i když je prázdný).
+  let czkCol = !TX.length || TX.some(t=>Object.prototype.hasOwnProperty.call(t,"total_czk"));
+  const strip = rows => rows.map(({total_czk, ...r})=>r);
   const byHash=new Map(TX.filter(t=>t.import_hash).map(t=>[t.import_hash,t]));
   const upd=[];
   for(const r of uniq){
     const t=byHash.get(r.import_hash); if(!t) continue;
-    const diff=(a,b)=> (a==null)!==(b==null) || (a!=null && Math.abs(+a-+b)>0.005);
-    if(t.provider===r.provider && t.type===r.type && (diff(t.total,r.total) || diff(t.quantity,r.quantity) || diff(t.price,r.price)))
-      upd.push({id:t.id, patch:{total:r.total, quantity:r.quantity, price:r.price}});
+    const diff=(a,b)=> (a==null||a==="")!==(b==null||b==="") || (a!=null && a!=="" && Math.abs(+a-+b)>0.005);
+    if(t.provider!==r.provider || t.type!==r.type) continue;
+    const patch={};
+    if(diff(t.total,r.total) || diff(t.quantity,r.quantity) || diff(t.price,r.price)) Object.assign(patch,{total:r.total, quantity:r.quantity, price:r.price});
+    if(czkCol && r.total_czk!=null && diff(t.total_czk,r.total_czk)) patch.total_czk=r.total_czk;
+    if(Object.keys(patch).length) upd.push({id:t.id, patch});
   }
   $("#impConfirm").disabled=true;
   try{
-    for(const u of upd) await sb(`transactions?id=eq.${u.id}`, {method:"PATCH", body:JSON.stringify(u.patch)});
-    const res=await insertTx(uniq);
+    // opravy uložených řádků po skupinách, ať to u stovek řádků netrvá věčně
+    for(let i=0;i<upd.length;i+=8){
+      if(upd.length>20) $("#impConfirm").textContent=`Opravuji ${Math.min(i+8,upd.length)}/${upd.length}…`;
+      await Promise.all(upd.slice(i,i+8).map(u=>sb(`transactions?id=eq.${u.id}`, {method:"PATCH", body:JSON.stringify(u.patch)})));
+    }
+    let res;
+    try{ res=await insertTx(czkCol ? uniq : strip(uniq)); }
+    catch(e){
+      if(!/total_czk/.test(e.message)) throw e;
+      czkCol=false; res=await insertTx(strip(uniq));
+    }
     $("#importModal").classList.remove("open");
-    toast(`Importováno ${res.length} nových transakcí (${uniq.length-res.length-upd.length} duplicit přeskočeno${upd.length?`, ${upd.length} opraveno`:""}).`, 5000);
+    if(!czkCol && uniq.some(r=>r.total_czk!=null)) toast("Import hotový. Pro přesné částky v Kč u XTB je potřeba v databázi přidat sloupec total_czk.", 7000);
+    else toast(`Importováno ${res.length} nových transakcí (${Math.max(0,uniq.length-res.length-upd.length)} duplicit přeskočeno${upd.length?`, ${upd.length} doplněno/opraveno`:""}).`, 5000);
     await refreshAll(true);
   }catch(e){ showErr("Import selhal: "+e.message); }
-  $("#impConfirm").disabled=false;
+  $("#impConfirm").disabled=false; $("#impConfirm").textContent="Importovat";
 }
 
 
@@ -3638,18 +3665,20 @@ function fifo(txs){
     const key=t.provider+"|"+t.ticker, cur=txCurrency(t);
     lots[key]=lots[key]||[];
     const unit = t.price!=null ? t.price : ((t.total||0)/(t.quantity||1));
-    if(t.type==="BUY"){ lots[key].push({date:t.date, qty:t.quantity, price:unit, cur}); continue; }
+    // Kč za kus: ze skutečné částky (XTB), jinak cena × kurz ECB ke dni obchodu
+    const czk = t.total_czk!=null && t.total_czk!=="" && t.quantity>0 ? +t.total_czk/t.quantity : unit*(fxAt(cur,t.date)||0);
+    if(t.type==="BUY"){ lots[key].push({date:t.date, qty:t.quantity, price:unit, cur, czk}); continue; }
     let rem=t.quantity;
     while(rem>1e-9 && lots[key].length){
       const lot=lots[key][0], take=Math.min(rem, lot.qty);
       out.push({sellDate:t.date, buyDate:lot.date, ticker:t.ticker, raw:t.raw_symbol, provider:t.provider, qty:take, cur,
-        income: take*unit*(fxAt(cur,t.date)||0),
-        cost:   take*lot.price*(fxAt(lot.cur,lot.date)||0)});
+        income: take*czk,
+        cost:   take*lot.czk});
       lot.qty-=take; rem-=take;
       if(lot.qty<=1e-9) lots[key].shift();
     }
     if(rem>1e-9) out.push({sellDate:t.date, buyDate:null, ticker:t.ticker, raw:t.raw_symbol, provider:t.provider, qty:rem, cur,
-      income:rem*unit*(fxAt(cur,t.date)||0), cost:0, warn:true});
+      income:rem*czk, cost:0, warn:true});
   }
   return {out, lots};
 }
@@ -4172,8 +4201,7 @@ function cashAt(prov, d){
     let bal = (+c.amount) * (fxAt(c.currency||CONFIG.BASE_CURRENCY, c.date)||1);
     for(const t of TX){
       if(t.provider!==p || t.date<=c.date || t.date>d) continue;
-      const fx=fxAt(txCurrency(t), t.date)||0;
-      const val=(t.total!=null?t.total:(t.quantity*(t.price||0)))*fx;
+      const val=czkOf(t);
       if(t.type==="BUY") bal-=val;
       else bal+=val;              // SELL i DIVIDEND hotovost zvyšují
     }

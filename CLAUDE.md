@@ -59,6 +59,18 @@ přidání titulu (`added_price`). Sloupec přidá majitel projektu v Supabase �
 alter table watchlist add column if not exists target_ref numeric;
 ```
 
+## Sloupec `total_czk` v transakcích
+
+U obchodů z XTB (korunový účet) se ukládá i skutečná částka v Kč z výpisu
+(`total_czk`) — obsahuje kurzovou přirážku XTB, takže zisk, vloženo i daňový
+podklad sedí s XTB na korunu. Ostatní brokeři a starší řádky bez hodnoty se
+přepočítávají kurzem ECB. Opakovaný import XTB výpisu hodnotu doplní i ke
+stávajícím řádkům. Bez sloupce appka funguje dál, jen s kurzy ECB:
+
+```sql
+alter table transactions add column if not exists total_czk numeric;
+```
+
 ## Kontrola po každé změně
 
 Po nasazení každé změny `web/index.html` je potřeba:

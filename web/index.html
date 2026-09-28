@@ -731,10 +731,14 @@ tr.grp-item td:first-child{padding-left:14px;} tr.grp-item{background:var(--surf
 <script>
 /* ================= KONFIGURACE ================= */
 const APP_VERSION = "2.1 (14. 6. 2026) — administrace";
-const FOOTER_VERSION = "v3.15 · 28. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
+const FOOTER_VERSION = "v3.16 · 28. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
 
 // Seznam změn — nejnovější nahoře. Při každé úpravě appky sem přidat řádek.
 const CHANGELOG = [
+  {v:"v3.16", d:"28. 9. 2026", items:[
+    "Kontrola robo poradce proti výpisu a výkazu Revolutu: prodeje se párují s nákupy stejně jako u Revolutu a všech 14 ETF má správné ceny",
+    "Výkaz zisků a ztrát robo poradce se pozná podle titulů — jeho dividendy (distribuční ETF jako EMBH nebo UBUD) se přiřadí k robo účtu, ne k běžnému Revolutu",
+    "Výkaz bez dividend napíše, že není co doplnit, místo prázdného importu"]},
   {v:"v3.15", d:"28. 9. 2026", items:[
     "Import výkazu zisků a ztrát z Revolutu (Dokumenty → výkaz zisků a ztrát, CSV): dividendy z výpisu obchodů, které jsou jen po zdanění, přepíše na hrubou částku se sraženou daní a chybějící doplní",
     "U XTB se ke každé dividendě přiřadí sražená daň z výpisu",
@@ -3396,14 +3400,15 @@ function reconcileXtb(lots, incoming){
   return {add, warn};
 }
 async function handleFiles(files){
-  const all=[]; const notes=[]; let skippedTotal=0; let roboDetekovano=false; const openLots=[];
+  const all=[]; const notes=[]; let skippedTotal=0; let roboDetekovano=false; const openLots=[]; let vykazu=0;
   for(const f of files){
     try{
       const tables=await fileToTables(f);
       if(tables.openPos) openLots.push(...parseXtbOpen(tables.openPos));
       const cnt={BUY:0,SELL:0,DIVIDEND:0}; let prov=null;
       for(const rows of tables){
-        const {provider, txs, skipped, roboHint}=parseStatement(rows, f.name);
+        const {provider, txs, skipped, roboHint, pnl:jeVykaz}=parseStatement(rows, f.name);
+        if(jeVykaz) vykazu++;
         all.push(...txs); skippedTotal+=skipped; prov=provider;
         if(roboHint) roboDetekovano=true;
         for(const t of txs) cnt[t.type]++;
@@ -3422,11 +3427,14 @@ async function handleFiles(files){
     if(roboDetekovano) notes.push(`<p style="color:var(--muted)">Vypadá to na výpis robo poradce (nákup celého košíku naráz), proto je předvybraný. Když to tak není, přepni zpět.</p>`);
   }
   const pnl=all.filter(t=>t.pnl);
+  if(vykazu && !pnl.length)
+    notes.push(`<p style="color:var(--muted)">Výkaz zisků a ztrát neobsahuje žádné dividendy — není co doplnit. Prodeje v něm appka nepotřebuje, bere je z výpisu obchodů.</p>`);
   if(pnl.length){
     const m=matchRevolutPnl(pnl, all);
     const g=pnl.reduce((a,t)=>a+(t.total||0),0), w=pnl.reduce((a,t)=>a+(t.wht||0),0);
     const prep=m.filter(x=>x.match).length, nove=m.length-prep;
-    notes.push(`<p>Výkaz zisků a ztrát Revolut: ${pnl.length} dividend, hrubě ${fmtKc(g)}, sražená daň ${fmtKc(w)}.</p>`+
+    const naRobo=pnl.filter(t=>t.provider==="REVOLUT_ROBO").length;
+    notes.push(`<p>Výkaz zisků a ztrát Revolut${naRobo===pnl.length?" robo":""}: ${pnl.length} dividend, hrubě ${fmtKc(g)}, sražená daň ${fmtKc(w)}.</p>`+
       `<p style="color:var(--muted)">${prep?`${prep} dividend z výpisu obchodů (uložených po zdanění) se přepíše na hrubou částku se sraženou daní`:""}${prep&&nove?"; ":""}${nove?`${nove} ${prep?"chybějících se doplní":"se přidá"}`:""}.</p>`);
   }
   if(openLots.length){
@@ -3449,12 +3457,25 @@ async function handleFiles(files){
 }
 /* Párování dividend z výkazu zisků a ztrát Revolutu s dividendami, které už
    jsou v databázi (nebo ve stejné dávce z výpisu obchodů): stejný titul, datum ±3 dny. */
+/* Výkaz zisků a ztrát má robo poradce vlastní (jen s jeho ETF) — podle symbolu
+   poznáme, ke kterému účtu dividenda patří, a u robo přeložíme ticker na burzu. */
+function assignPnlProvider(pnlRows, batch){
+  const all=[...TX, ...(batch||[]).filter(t=>!t.pnl)];
+  const robo=new Set(all.filter(t=>t.provider==="REVOLUT_ROBO").map(t=>t.raw_symbol));
+  const bez=new Set(all.filter(t=>t.provider==="REVOLUT").map(t=>t.raw_symbol));
+  for(const r of pnlRows) if(robo.has(r.raw_symbol) && !bez.has(r.raw_symbol)){
+    r.provider="REVOLUT_ROBO"; r.ticker=mapSymbol(roboSymbol(r.raw_symbol));
+  }
+  return pnlRows;
+}
+const REV_PROVS=["REVOLUT","REVOLUT_ROBO"];
 function matchRevolutPnl(pnlRows, batch){
   const used=new Set(), out=[];
-  const db=TX.filter(t=>t.provider==="REVOLUT" && t.type==="DIVIDEND");
-  const bt=(batch||[]).filter(t=>t.provider==="REVOLUT" && t.type==="DIVIDEND" && !t.pnl);
+  assignPnlProvider(pnlRows, batch);
+  const db=TX.filter(t=>REV_PROVS.includes(t.provider) && t.type==="DIVIDEND");
+  const bt=(batch||[]).filter(t=>REV_PROVS.includes(t.provider) && t.type==="DIVIDEND" && !t.pnl);
   const dd=(a,b)=>Math.abs(new Date(a.date)-new Date(b.date));
-  const same=(t,r)=>(t.raw_symbol===r.raw_symbol || t.ticker===r.ticker) && dd(t,r)<=3*864e5;
+  const same=(t,r)=>t.provider===r.provider && (t.raw_symbol===r.raw_symbol || t.ticker===r.ticker) && dd(t,r)<=3*864e5;
   for(const r of pnlRows){
     const m=db.filter(t=>!used.has(t) && same(t,r)).sort((a,b)=>dd(a,r)-dd(b,r))[0];
     if(m){ used.add(m); out.push({row:r, match:m}); continue; }
@@ -3521,9 +3542,9 @@ async function doImport(){
     if(Object.keys(patch).length) upd.push({id:match.id, patch});
   }
   // A naopak: dividenda z výpisu obchodů nesmí přepsat ani zdvojit tu z výkazu.
-  const pnlInDb=TX.filter(t=>t.provider==="REVOLUT" && t.type==="DIVIDEND" && (t.wht!=null || t.currency==="CZK" || String(t.import_hash||"").startsWith("RVPNL:")));
-  uniq=uniq.filter(r=>fromPnl.has(r) || !(r.provider==="REVOLUT" && r.type==="DIVIDEND" &&
-    pnlInDb.some(t=>(t.raw_symbol===r.raw_symbol||t.ticker===r.ticker) && Math.abs(new Date(t.date)-new Date(r.date))<=3*864e5)));
+  const pnlInDb=TX.filter(t=>REV_PROVS.includes(t.provider) && t.type==="DIVIDEND" && (t.wht!=null || t.currency==="CZK" || String(t.import_hash||"").startsWith("RVPNL:")));
+  uniq=uniq.filter(r=>fromPnl.has(r) || !(REV_PROVS.includes(r.provider) && r.type==="DIVIDEND" &&
+    pnlInDb.some(t=>t.provider===r.provider && (t.raw_symbol===r.raw_symbol||t.ticker===r.ticker) && Math.abs(new Date(t.date)-new Date(r.date))<=3*864e5)));
   // Hromadný zápis (PostgREST) chce u všech řádků stejná pole — jinak chyba
   // PGRST102 „All object keys must match“. Nákupy z XTB mají total_czk, dividendy
   // ne, a výpis může míchat i víc brokerů: chybějící pole doplníme jako null.

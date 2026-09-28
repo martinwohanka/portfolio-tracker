@@ -1,0 +1,11 @@
+# Fortivio — stránku appky (index.html) si prohlížeč i CDN WEDOS musí před každým
+# použitím ověřit u serveru. Nezměněná stránka se nestahuje znovu (ETag → 304),
+# ale nová verze je vidět hned po nahrání — bez toho ji hosting nechal v mezipaměti
+# až 5 minut a prohlížeč ukazoval starou kopii ještě další hodinu
+# (stale-while-revalidate). Ikony a obrázky se dál drží dlouho.
+<IfModule mod_headers.c>
+  <FilesMatch "\.html?$">
+    Header set Cache-Control "no-cache"
+    Header unset Expires
+  </FilesMatch>
+</IfModule>

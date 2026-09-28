@@ -731,10 +731,15 @@ tr.grp-item td:first-child{padding-left:14px;} tr.grp-item{background:var(--surf
 <script>
 /* ================= KONFIGURACE ================= */
 const APP_VERSION = "2.1 (14. 6. 2026) — administrace";
-const FOOTER_VERSION = "v3.14 · 28. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
+const FOOTER_VERSION = "v3.15 · 28. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
 
 // Seznam změn — nejnovější nahoře. Při každé úpravě appky sem přidat řádek.
 const CHANGELOG = [
+  {v:"v3.15", d:"28. 9. 2026", items:[
+    "Import výkazu zisků a ztrát z Revolutu (Dokumenty → výkaz zisků a ztrát, CSV): dividendy z výpisu obchodů, které jsou jen po zdanění, přepíše na hrubou částku se sraženou daní a chybějící doplní",
+    "U XTB se ke každé dividendě přiřadí sražená daň z výpisu",
+    "Daňový podklad ukazuje dividendy v hrubé výši a zvlášť daň sraženou v zahraničí (pro zápočet); u dividend Revolutu bez výkazu upozorní, že jde o čistou částku",
+    "Zisk a řádek „Dividendy po zdanění“ počítají s tím, co opravdu přišlo na účet (hrubá dividenda minus sražená daň)"]},
   {v:"v3.14", d:"28. 9. 2026", items:[
     "Kontrola proti kompletnímu výpisu z Revolutu: realizovaný zisk sedí s výkazem Revolutu na centy",
     "Štěpení akcií: Yahoo zpětně přepočítává staré ceny (NVDA, NFLX, CRWD, NVO…), kdežto výpis má původní kusy — graf pak ukazoval hodnotu desetkrát nižší, u zpětného sloučení (Virgin Galactic, Canoo) dvacetkrát vyšší. Appka štěpení pozná z cen a obchody přepočte",
@@ -1082,7 +1087,10 @@ const remapTicker = (oldT, newT) => sb(`transactions?ticker=eq.${encodeURICompon
 /* ================= CSV PARSER ================= */
 function parseCSV(text){
   text = text.replace(/^\uFEFF/,"");
-  const firstLine = text.slice(0, text.indexOf("\n")>-1 ? text.indexOf("\n") : text.length);
+  // Oddělovač podle prvního řádku; když v něm žádný není (výkaz zisků a ztrát
+  // Revolutu začíná nadpisem „Income from Sells“), podle prvních pár řádků.
+  const lines = text.split(/\r?\n/);
+  const firstLine = /[;,\t]/.test(lines[0]) ? lines[0] : lines.slice(0,6).join("\n");
   const delim = [";","\t",","].map(d=>[d,(firstLine.match(new RegExp(d==="\t"?"\\t":"\\"+d,"g"))||[]).length])
                               .sort((a,b)=>b[1]-a[1])[0][0];
   const rows=[]; let row=[], cell="", q=false;
@@ -1163,6 +1171,30 @@ function xtbToYahoo(sym){
 function parseStatement(rows, fname){
   const head = rows[0].map(h=>h.trim().toLowerCase());
   const idx = names => { for(const n of names){ const i=head.findIndex(h=>h===n||h.startsWith(n)); if(i>-1) return i; } return -1; };
+
+  // REVOLUT – výkaz zisků a ztrát (trading-pnl-statement): sekce „Income from Sells“
+  // a „Other income & fees“. Bereme z něj dividendy: HRUBÁ částka a sražená daň
+  // (výpis obchodů má dividendy jen po zdanění). Při importu se přepíšou už uložené
+  // dividendy Revolutu (viz doImport), chybějící přibudou.
+  const oif = rows.findIndex(r=>String(r[0]||"").trim().toLowerCase()==="other income & fees");
+  if(String((rows[0]||[])[0]||"").trim().toLowerCase()==="income from sells" || oif>-1){
+    if(oif<0) throw new Error(`V „${fname}" chybí sekce „Other income & fees“ s dividendami.`);
+    const h=rows[oif+1].map(x=>String(x).trim().toLowerCase());
+    const c=n=>h.findIndex(x=>x===n||x.startsWith(n));
+    const iD=c("date"), iS=c("symbol"), iN=c("security name"), iG=c("gross amount"), iW=c("withholding"), iC=c("currency");
+    const txs=[]; let skipped=0;
+    for(const r of rows.slice(oif+2)){
+      const sym=String(r[iS]||"").trim().toUpperCase(), date=parseDate(r[iD]), cur=String(r[iC]||"").trim().toUpperCase();
+      const name=String(r[iN]||"").toLowerCase();
+      if(!sym || !date || !/dividend/.test(name)){ skipped++; continue; }   // odměny, poplatky…
+      const gross=parseNum(r[iG]); if(gross==null){ skipped++; continue; }
+      const wht=Math.abs(parseNum(r[iW])||0);
+      txs.push({provider:"REVOLUT", raw_symbol:sym, ticker:mapSymbol(sym), type:"DIVIDEND", date,
+        quantity:0, price:null, total:gross, currency:cur||"CZK", wht, pnl:true,
+        uid:"RVPNL:"+[date,sym,gross].join(":")});
+    }
+    return {provider:"REVOLUT", txs, skipped, pnl:true};
+  }
 
   // REVOLUT: Date, Ticker, Type, Quantity, Price per share, Total Amount, Currency
   if(idx(["ticker"])>-1 && idx(["total amount"])>-1){
@@ -1385,11 +1417,13 @@ function parseStatement(rows, fname){
   const iSym=idx(["symbol","ticker"]), iCom=idx(["comment","komentář","komentar"]);
   if(iSym>-1 && iCom>-1){
     const iTy=idx(["type","typ"]), iTi=idx(["time","čas","cas","date"]), iA=idx(["amount","částka","castka"]), iId=idx(["id"]);
-    const txs=[]; let skipped=0;
+    const txs=[]; let skipped=0; const whtRows=[];
     for(const r of rows.slice(1)){
       const tRaw=(r[iTy]||""), com=(r[iCom]||""), sym=(r[iSym]||"").trim();
       const uid = iId>-1 && (r[iId]||"").trim() ? "XTB:"+(r[iId]||"").trim() : null;
       const date=parseDate(r[iTi]);
+      // srážková daň z dividendy — přiřadí se k dividendě stejného titulu a dne níže
+      if(/withholding|srážkov|srazkov/i.test(tRaw) && sym && date){ whtRows.push({sym, date, amt:parseNum(r[iA])||0}); skipped++; continue; }
       let type = /purchase|n[aá]kup/i.test(tRaw)?"BUY" : /sell|sale|prodej/i.test(tRaw)?"SELL"
                : /^dividen/i.test(tRaw.trim())?"DIVIDEND" : null; // "Stock sell" i staré "Stock sale"
       if(!type || !sym || !date){ skipped++; continue; }
@@ -1411,6 +1445,14 @@ function parseStatement(rows, fname){
       txs.push({provider:"XTB", raw_symbol:sym, ticker:mapSymbol(xtbToYahoo(sym)), type, date,
         quantity:qty, price, total:qty*price, currency:null, total_czk, uid}); // měna titulu se doplní z Yahoo
     }
+    // Sražená daň (záporná částka, oprava kladná) k dividendě téhož titulu a dne,
+    // případně nejbližší do 3 dnů. Dividenda pak nese hrubou částku i daň (wht).
+    for(const w of whtRows){
+      const cand=txs.filter(t=>t.type==="DIVIDEND" && t.raw_symbol===w.sym && Math.abs(new Date(t.date)-new Date(w.date))<=3*864e5)
+                    .sort((a,b)=>Math.abs(new Date(a.date)-new Date(w.date))-Math.abs(new Date(b.date)-new Date(w.date)) || b.total-a.total);
+      if(cand.length) cand[0].wht=Math.round(((cand[0].wht||0)-w.amt)*100)/100;
+    }
+    for(const t of txs) if(t.type==="DIVIDEND" && t.wht==null) t.wht=0;
     return {provider:"XTB", txs, skipped};
   }
   throw new Error(`Nerozpoznaný formát „${fname}" — podporuji XTB, Revolut, Degiro, Interactive Brokers, Trading 212, Revolut crypto, Revolut robo a Freedom 24.`);
@@ -1568,6 +1610,8 @@ const pN = t => t.price!=null ? t.price/(t._f||1) : null;
    korunový účet (total_czk) — obsahuje i kurzovou přirážku XTB (~0,5 % při nákupu
    i prodeji). Jinak přepočet kurzem ECB ke dni obchodu. */
 function czkOf(t){
+  // dividenda: skutečně přijatá částka = hrubá − sražená daň (wht je ve stejné měně)
+  if(t.type==="DIVIDEND") return ((t.total||0) - (+t.wht||0))*(fxAt(txCurrency(t), t.date)||0);
   if(t.total_czk!=null && t.total_czk!=="") return +t.total_czk;
   return (t.total!=null?t.total:(t.quantity*(t.price||0)))*(fxAt(txCurrency(t), t.date)||0);
 }
@@ -1637,7 +1681,7 @@ function computeSeries(prov){
     if(t.type!=="DIVIDEND") continue;
     const c=cfg[t.provider];
     if(c && cashProvs.includes(t.provider) && t.date>c.date) continue;   // ty už běží přes hotovost
-    (divOut[t.date]=divOut[t.date]||[]).push({prov:t.provider, val:(t.total||0)*(fxAt(txCurrency(t), t.date)||0)});
+    (divOut[t.date]=divOut[t.date]||[]).push({prov:t.provider, val:czkOf(t)});
   }
   // Peníze „na cestě“ u brokerů bez zadané hotovosti: prodej, dividenda nebo
   // odeslání krypta, po kterém do pár dní přijde nákup (rebalanc, reinvestice,
@@ -1748,7 +1792,7 @@ function dividendSummary(prov){
   const yr=todayStr().slice(0,4); let total=0, thisYear=0;
   for(const t of txFor(prov)){
     if(t.type!=="DIVIDEND") continue;
-    const czk=(t.total||0)*(fxAt(txCurrency(t),t.date)||0);
+    const czk=czkOf(t);   // po sražené dani — co opravdu přišlo na účet
     total+=czk; if(t.date.slice(0,4)===yr) thisYear+=czk;
   }
   return {total, thisYear};
@@ -2283,7 +2327,7 @@ function renderCards(s){
 function renderDivLine(){
   const d = dividendSummary(curProv);
   $("#divLine").innerHTML = d.total>0.5
-    ? `Dividendy: <b class="num">${fmtKc(d.thisYear)}</b> letos · <b class="num">${fmtKc(d.total)}</b> celkem`
+    ? `Dividendy po zdanění: <b class="num">${fmtKc(d.thisYear)}</b> letos · <b class="num">${fmtKc(d.total)}</b> celkem`
     : "";
 }
 
@@ -3369,13 +3413,21 @@ async function handleFiles(files){
   }
   // Revolut robo má v exportu stejnou hlavičku jako běžný revoluťácký účet,
   // takže se nedá rozpoznat podle souboru — kam obchody patří, určí uživatel.
-  if(all.some(t=>t.provider==="REVOLUT")){
+  if(all.some(t=>t.provider==="REVOLUT" && !t.pnl)){
     notes.push(`<label style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin:12px 0; font-size:13.5px; color:var(--muted)">Zaúčtovat jako
       <select id="impTarget" class="setSel">
         <option value="REVOLUT"${roboDetekovano?"":" selected"}>Revolut</option>
         <option value="REVOLUT_ROBO"${roboDetekovano?" selected":""}>Revolut robo</option>
       </select></label>`);
     if(roboDetekovano) notes.push(`<p style="color:var(--muted)">Vypadá to na výpis robo poradce (nákup celého košíku naráz), proto je předvybraný. Když to tak není, přepni zpět.</p>`);
+  }
+  const pnl=all.filter(t=>t.pnl);
+  if(pnl.length){
+    const m=matchRevolutPnl(pnl, all);
+    const g=pnl.reduce((a,t)=>a+(t.total||0),0), w=pnl.reduce((a,t)=>a+(t.wht||0),0);
+    const prep=m.filter(x=>x.match).length, nove=m.length-prep;
+    notes.push(`<p>Výkaz zisků a ztrát Revolut: ${pnl.length} dividend, hrubě ${fmtKc(g)}, sražená daň ${fmtKc(w)}.</p>`+
+      `<p style="color:var(--muted)">${prep?`${prep} dividend z výpisu obchodů (uložených po zdanění) se přepíše na hrubou částku se sraženou daní`:""}${prep&&nove?"; ":""}${nove?`${nove} ${prep?"chybějících se doplní":"se přidá"}`:""}.</p>`);
   }
   if(openLots.length){
     const {add, warn}=reconcileXtb(openLots, all);
@@ -3395,13 +3447,30 @@ async function handleFiles(files){
   $("#impConfirm").style.display=all.length?"":"none";
   $("#importModal").classList.add("open");
 }
+/* Párování dividend z výkazu zisků a ztrát Revolutu s dividendami, které už
+   jsou v databázi (nebo ve stejné dávce z výpisu obchodů): stejný titul, datum ±3 dny. */
+function matchRevolutPnl(pnlRows, batch){
+  const used=new Set(), out=[];
+  const db=TX.filter(t=>t.provider==="REVOLUT" && t.type==="DIVIDEND");
+  const bt=(batch||[]).filter(t=>t.provider==="REVOLUT" && t.type==="DIVIDEND" && !t.pnl);
+  const dd=(a,b)=>Math.abs(new Date(a.date)-new Date(b.date));
+  const same=(t,r)=>(t.raw_symbol===r.raw_symbol || t.ticker===r.ticker) && dd(t,r)<=3*864e5;
+  for(const r of pnlRows){
+    const m=db.filter(t=>!used.has(t) && same(t,r)).sort((a,b)=>dd(a,r)-dd(b,r))[0];
+    if(m){ used.add(m); out.push({row:r, match:m}); continue; }
+    const b=bt.filter(t=>!used.has(t) && same(t,r)).sort((a,c)=>dd(a,r)-dd(c,r))[0];
+    if(b){ used.add(b); out.push({row:r, match:b, inBatch:true}); continue; }
+    out.push({row:r, match:null});
+  }
+  return out;
+}
 async function doImport(){
   if(!pendingImport||!pendingImport.length) return;
   // volba z importního okna: robo se ukládá pod vlastního brokera a tickery
   // se přeloží na evropské burzy (viz roboSymbol)
   const cil = $("#impTarget") ? $("#impTarget").value : null;
   if(cil==="REVOLUT_ROBO"){
-    pendingImport = pendingImport.map(t => t.provider==="REVOLUT"
+    pendingImport = pendingImport.map(t => t.provider==="REVOLUT" && !t.pnl
       ? {...t, provider:"REVOLUT_ROBO", ticker: mapSymbol(roboSymbol(t.raw_symbol))}
       : t);
   }
@@ -3423,24 +3492,51 @@ async function doImport(){
     pos.some(t=>t.ticker===r.ticker && Math.abs(new Date(t.date)-new Date(r.date))<=864e5*1.01 && Math.abs(t.quantity-r.quantity)<1e-6 && Math.abs((t.price||0)-(r.price||0))<0.006)));
   // Řádky, které už v databázi jsou, ale nová verze importu je čte jinak
   // (např. záporná oprava dividendy dřív uložená jako kladná) — opravíme je.
-  // Sloupec total_czk (skutečná částka v Kč u XTB) nemusí v databázi ještě být —
-  // poznáme to z načtených transakcí (select=* ho vrací, i když je prázdný).
-  let czkCol = !TX.length || TX.some(t=>Object.prototype.hasOwnProperty.call(t,"total_czk"));
-  const strip = rows => rows.map(({total_czk, ...r})=>r);
+  // Volitelné sloupce (total_czk = skutečná částka v Kč u XTB, wht = sražená daň
+  // z dividendy) nemusí v databázi ještě být — poznáme to z načtených transakcí
+  // (select=* je vrací, i když jsou prázdné).
+  const hasCol = c => !TX.length || TX.some(t=>Object.prototype.hasOwnProperty.call(t,c));
+  const OPT=["total_czk","wht"];
+  const cols=Object.fromEntries(OPT.map(c=>[c,hasCol(c)]));
+  let czkCol=cols.total_czk;
+  const strip = rows => rows.map(r=>{ const o={...r}; for(const c of OPT) if(!cols[c]) delete o[c]; return o; });
+  const diff=(a,b)=> (a==null||a==="")!==(b==null||b==="") || (a!=null && a!=="" && Math.abs(+a-+b)>0.005);
+  // Výkaz zisků a ztrát Revolutu: dividendy s hrubou částkou a sraženou daní
+  // nepřidáváme vedle těch z výpisu obchodů (ty jsou po zdanění), ale přepíšeme je.
+  const upd=[];
+  let pnlRows=uniq.filter(r=>r.pnl);
+  uniq=uniq.filter(r=>!r.pnl);
+  // Bez sloupce wht by se dividendy přepsaly na hrubé, ale daň by nebylo kam uložit
+  // (zisk by pak byl nadsazený) — výkaz v tom případě nepoužijeme vůbec.
+  const pnlBezSloupce = pnlRows.length && !cols.wht;
+  if(pnlBezSloupce) pnlRows=[];
+  const fromPnl=new Set();
+  for(const {row, match, inBatch} of matchRevolutPnl(pnlRows, uniq)){
+    const {pnl, ...clean}=row;
+    if(inBatch){ uniq=uniq.filter(r=>r!==match); uniq.push(clean); fromPnl.add(clean); continue; }
+    if(!match){ uniq.push(clean); fromPnl.add(clean); continue; }
+    const patch={};
+    if(diff(match.total,row.total) || match.currency!==row.currency){ patch.total=row.total; patch.currency=row.currency; }
+    if(cols.wht && diff(match.wht,row.wht)) patch.wht=row.wht;
+    if(Object.keys(patch).length) upd.push({id:match.id, patch});
+  }
+  // A naopak: dividenda z výpisu obchodů nesmí přepsat ani zdvojit tu z výkazu.
+  const pnlInDb=TX.filter(t=>t.provider==="REVOLUT" && t.type==="DIVIDEND" && (t.wht!=null || t.currency==="CZK" || String(t.import_hash||"").startsWith("RVPNL:")));
+  uniq=uniq.filter(r=>fromPnl.has(r) || !(r.provider==="REVOLUT" && r.type==="DIVIDEND" &&
+    pnlInDb.some(t=>(t.raw_symbol===r.raw_symbol||t.ticker===r.ticker) && Math.abs(new Date(t.date)-new Date(r.date))<=3*864e5)));
   // Hromadný zápis (PostgREST) chce u všech řádků stejná pole — jinak chyba
   // PGRST102 „All object keys must match“. Nákupy z XTB mají total_czk, dividendy
   // ne, a výpis může míchat i víc brokerů: chybějící pole doplníme jako null.
   const sameKeys = rows => { const keys=[...new Set(rows.flatMap(r=>Object.keys(r)))];
     return rows.map(r=>{ const o={}; for(const k of keys) o[k]= r[k]===undefined ? null : r[k]; return o; }); };
   const byHash=new Map(TX.filter(t=>t.import_hash).map(t=>[t.import_hash,t]));
-  const upd=[];
   for(const r of uniq){
     const t=byHash.get(r.import_hash); if(!t) continue;
-    const diff=(a,b)=> (a==null||a==="")!==(b==null||b==="") || (a!=null && a!=="" && Math.abs(+a-+b)>0.005);
     if(t.provider!==r.provider || t.type!==r.type) continue;
     const patch={};
     if(diff(t.total,r.total) || diff(t.quantity,r.quantity) || diff(t.price,r.price)) Object.assign(patch,{total:r.total, quantity:r.quantity, price:r.price});
     if(czkCol && r.total_czk!=null && diff(t.total_czk,r.total_czk)) patch.total_czk=r.total_czk;
+    if(cols.wht && r.wht!=null && diff(t.wht,r.wht)) patch.wht=r.wht;
     if(Object.keys(patch).length) upd.push({id:t.id, patch});
   }
   $("#impConfirm").disabled=true;
@@ -3450,14 +3546,18 @@ async function doImport(){
       if(upd.length>20) $("#impConfirm").textContent=`Opravuji ${Math.min(i+8,upd.length)}/${upd.length}…`;
       await Promise.all(upd.slice(i,i+8).map(u=>sb(`transactions?id=eq.${u.id}`, {method:"PATCH", body:JSON.stringify(u.patch)})));
     }
-    let res;
-    try{ res=await insertTx(sameKeys(czkCol ? uniq : strip(uniq))); }
-    catch(e){
-      if(!/total_czk/.test(e.message)) throw e;
-      czkCol=false; res=await insertTx(sameKeys(strip(uniq)));
+    let res=[];
+    if(uniq.length){
+      try{ res=await insertTx(sameKeys(strip(uniq))); }
+      catch(e){
+        const c=OPT.find(c=>cols[c] && e.message.includes(c)); if(!c) throw e;
+        cols[c]=false; czkCol=cols.total_czk; res=await insertTx(sameKeys(strip(uniq)));
+      }
     }
     $("#importModal").classList.remove("open");
-    if(!czkCol && uniq.some(r=>r.total_czk!=null)) toast("Import hotový. Pro přesné částky v Kč u XTB je potřeba v databázi přidat sloupec total_czk.", 7000);
+    const chybi=OPT.filter(c=>!cols[c] && uniq.some(r=>r[c]!=null && r[c]!==0));
+    if(pnlBezSloupce) toast("Výkaz zisků a ztrát nešel použít: v databázi chybí sloupec wht pro sraženou daň (viz CLAUDE.md).", 8000);
+    else if(chybi.length) toast(`Import hotový. Pro ${chybi.includes("wht")?"sraženou daň z dividend":"přesné částky v Kč u XTB"} je potřeba v databázi přidat sloupec ${chybi.join(" a ")}.`, 7000);
     else toast(`Importováno ${res.length} nových transakcí (${Math.max(0,uniq.length-res.length-upd.length)} duplicit přeskočeno${upd.length?`, ${upd.length} doplněno/opraveno`:""}).`, 5000);
     await refreshAll(true);
   }catch(e){ showErr("Import selhal: "+e.message); }
@@ -3658,7 +3758,7 @@ function renderHistTx(txs, cur){
   for(const t of txs){
     if(t.type==="BUY"){ bought+=t.quantity; buyCost+=t.quantity*(t.price||0); }
     else if(t.type==="SELL") sold+=t.quantity;
-    else divCzk+=(t.total||0)*(fxAt(txCurrency(t),t.date)||0);
+    else divCzk+=czkOf(t);
   }
   let sum=`Nakoupeno <b class="num" style="color:var(--text)">${fmtNum(bought,4)} ks</b>`+
     (bought>0?` · prům. ${fmtCur(buyCost/bought,cur)}`:"")+
@@ -3747,7 +3847,10 @@ function buildTaxData(year){
   }));
   const divs = taxableTx.filter(t=>t.type==="DIVIDEND" && t.date.slice(0,4)===y).map(t=>{
     const cur=txCurrency(t), fx=fxAt(cur,t.date)||0;
-    return {date:t.date, ticker:t.ticker, provider:t.provider, amount:t.total||0, cur, fx, czk:(t.total||0)*fx};
+    // wht==null: sražená daň neznámá — u Revolutu bez výkazu zisků a ztrát je částka ČISTÁ
+    const known=t.wht!=null && t.wht!=="";
+    return {date:t.date, ticker:t.ticker, provider:t.provider, amount:t.total||0, cur, fx, czk:(t.total||0)*fx,
+      whtCzk: known ? (+t.wht||0)*fx : null, netOnly: !known && String(t.provider).startsWith("REVOLUT")};
   }).sort((a,b)=>a.date.localeCompare(b.date));
   const tax = sales.filter(s=>!s.exempt), ex = sales.filter(s=>s.exempt);
   const sum = a=>a.reduce((x,s)=>x+s,0);
@@ -3755,6 +3858,8 @@ function buildTaxData(year){
     incomeTax: sum(tax.map(s=>s.income)), costTax: sum(tax.map(s=>s.cost)),
     incomeEx:  sum(ex.map(s=>s.income)),
     divCzk:    sum(divs.map(d=>d.czk)),
+    whtCzk:    sum(divs.map(d=>d.whtCzk||0)),
+    divNetOnly: divs.some(d=>d.netOnly),
     warns:     sales.some(s=>s.warn)
   };
   S.profit = S.incomeTax - S.costTax;
@@ -3786,19 +3891,20 @@ async function exportTaxXlsx(year){
     ["Test limitu 100 000 Kč (§4/1/w)", S.under100k ? "Úhrn neosvobozených příjmů nepřekročil 100 000 Kč — příjmy jsou od daně osvobozeny" : "Limit překročen — příjmy se uvádějí v přiznání"],
     [],
     ["DIVIDENDY (§8)"],
-    ["Úhrn přijatých dividend (Kč)", r2(S.divCzk)],
+    ["Úhrn dividend v hrubé výši (Kč)", r2(S.divCzk)],
+    ["Daň sražená v zahraničí (Kč, pro zápočet)", r2(S.whtCzk)],
     [],
     ["POZNÁMKY"],
     ["Přepočty měn: denní kurzy ECB (Frankfurter). Pro přiznání lze použít jednotný kurz GFŘ nebo kurzy ČNB — částky se mohou mírně lišit."],
     ["Výdaje = nabývací cena FIFO bez poplatků brokera; poplatky lze případně doplnit z výpisů."],
-    ["Dividendy XTB jsou v hrubé výši, sražená daň v zahraničí (pro zápočet) viz daňový přehled brokera. U Revolutu ověř hrubou/čistou částku ve výpisu."],
+    ["Dividendy v hrubé výši, sražená daň z výpisu XTB a z výkazu zisků a ztrát Revolutu."+(S.divNetOnly?" POZOR: u některých dividend Revolutu je jen čistá částka (sloupec Sražená daň je prázdný) — nahraj do appky výkaz zisků a ztrát.":"")],
     ["Vygenerováno aplikací Fortivio — podklad, nikoli daňové poradenství."]
   ];
   if(S.warns) souhrn.splice(9,0,["UPOZORNĚNÍ","U některých prodejů se nepodařilo dohledat nákup (import nepokrývá celou historii) — výdaj je 0, doplň ručně."]);
   const prodeje=[["Datum prodeje","Datum nabytí","Titul","Broker","Ks","Měna","Příjem (Kč)","Výdaj (Kč)","Zisk/ztráta (Kč)","Časový test 3 roky"]];
   for(const s of sales) prodeje.push([s.date, s.buyDate, s.ticker, s.provider, r2(s.qty), s.cur, r2(s.income), r2(s.cost), r2(s.income-s.cost), s.exempt?"osvobozeno":"ne"]);
-  const dividendy=[["Datum","Titul","Broker","Částka","Měna","Kurz","Kč"]];
-  for(const d of divs) dividendy.push([d.date, d.ticker, d.provider, r2(d.amount), d.cur, r2(d.fx), r2(d.czk)]);
+  const dividendy=[["Datum","Titul","Broker","Hrubá částka","Měna","Kurz","Hrubě Kč","Sražená daň Kč"]];
+  for(const d of divs) dividendy.push([d.date, d.ticker, d.provider, r2(d.amount), d.cur, r2(d.fx), r2(d.czk), d.whtCzk==null?(d.netOnly?"čistá částka":""):r2(d.whtCzk)]);
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(souhrn), "Souhrn");
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(prodeje), "Prodeje");
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(dividendy), "Dividendy");
@@ -3809,7 +3915,7 @@ function exportTaxPdf(year){
   const {sales,divs,S}=buildTaxData(year);
   const esc=escapeHtml;
   const salesRows = sales.map(s=>`<tr${s.warn?' style="color:#a00"':''}><td class="l">${s.date}</td><td class="l">${esc(s.buyDate)}</td><td class="l">${esc(s.ticker)}</td><td class="l">${s.provider}</td><td>${fmtNum(s.qty,4)}</td><td>${txF2(s.income)}</td><td>${txF2(s.cost)}</td><td>${txF2(s.income-s.cost)}</td><td class="l">${s.exempt?"osvobozeno":"ne"}</td></tr>`).join("") || '<tr><td class="l" colspan="9">Žádné prodeje v tomto roce.</td></tr>';
-  const divRows = divs.map(d=>`<tr><td class="l">${d.date}</td><td class="l">${esc(d.ticker)}</td><td class="l">${d.provider}</td><td>${txF2(d.amount)} ${d.cur}</td><td>${txF2(d.fx)}</td><td>${txF2(d.czk)}</td></tr>`).join("") || '<tr><td class="l" colspan="6">Žádné dividendy v tomto roce.</td></tr>';
+  const divRows = divs.map(d=>`<tr><td class="l">${d.date}</td><td class="l">${esc(d.ticker)}</td><td class="l">${d.provider}</td><td>${txF2(d.amount)} ${d.cur}</td><td>${txF2(d.fx)}</td><td>${txF2(d.czk)}</td><td>${d.whtCzk==null?(d.netOnly?"čistá částka":"—"):txF2(d.whtCzk)}</td></tr>`).join("") || '<tr><td class="l" colspan="7">Žádné dividendy v tomto roce.</td></tr>';
   const html = `<!DOCTYPE html><html lang="cs"><head><meta charset="utf-8"><title>Daňový podklad ${year}</title>
 <style>body{font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#000;margin:28px}
 h1{font-size:18px;margin:0 0 2px} .sub{color:#555;font-size:11px;margin-bottom:16px}
@@ -3829,14 +3935,16 @@ th,td{border:1px solid #aaa;padding:3px 6px;text-align:right} th{background:#eee
 <tr class="b"><td>Dílčí základ daně §10 (min. 0)</td><td>${txF2(S.base)} Kč</td></tr>
 <tr><td>Příjmy osvobozené časovým testem 3 let</td><td>${txF2(S.incomeEx)} Kč</td></tr>
 <tr><td>Test 100 000 Kč (§4 odst. 1 písm. w)</td><td class="l" style="text-align:right">${S.under100k?"nepřekročeno — osvobozeno":"překročeno"}</td></tr>
-<tr class="b"><td>Úhrn přijatých dividend (§8)</td><td>${txF2(S.divCzk)} Kč</td></tr>
+<tr class="b"><td>Úhrn dividend v hrubé výši (§8)</td><td>${txF2(S.divCzk)} Kč</td></tr>
+<tr><td>Daň sražená v zahraničí (pro zápočet)</td><td>${txF2(S.whtCzk)} Kč</td></tr>
 </table>
 ${S.warns?'<p style="color:#a00;font-size:11px">Upozornění: u některých prodejů nebyl v importované historii dohledán nákup — výdaj je uveden 0 Kč, doplň ručně.</p>':''}
 <h2>Prodeje (${sales.length})</h2>
 <table><tr><th class="l">Prodáno</th><th class="l">Nabyto</th><th class="l">Titul</th><th class="l">Broker</th><th>Ks</th><th>Příjem (Kč)</th><th>Výdaj (Kč)</th><th>Zisk/ztráta</th><th class="l">Časový test</th></tr>${salesRows}</table>
 <h2>Dividendy (${divs.length})</h2>
-<table><tr><th class="l">Datum</th><th class="l">Titul</th><th class="l">Broker</th><th>Částka</th><th>Kurz</th><th>Kč</th></tr>${divRows}</table>
-<p class="note">Přepočty měn denními kurzy ECB; pro přiznání lze použít jednotný kurz GFŘ nebo kurzy ČNB, částky se mohou mírně lišit. Výdaje jsou nabývací ceny metodou FIFO bez poplatků brokera. Dividendy XTB v hrubé výši — sraženou daň pro zápočet doplň z daňového přehledu brokera; u Revolutu ověř, zda výpis uvádí hrubou částku. Tento dokument je podklad, nikoli daňové poradenství.</p>
+<table><tr><th class="l">Datum</th><th class="l">Titul</th><th class="l">Broker</th><th>Hrubá částka</th><th>Kurz</th><th>Hrubě Kč</th><th>Sražená daň Kč</th></tr>${divRows}</table>
+${S.divNetOnly?'<p style="color:#a00;font-size:11px">U některých dividend Revolutu je jen čistá částka po zdanění — nahraj do appky výkaz zisků a ztrát (Revolut → Dokumenty), ten doplní hrubou částku a sraženou daň.</p>':''}
+<p class="note">Přepočty měn denními kurzy ECB; pro přiznání lze použít jednotný kurz GFŘ nebo kurzy ČNB, částky se mohou mírně lišit. Výdaje jsou nabývací ceny metodou FIFO bez poplatků brokera. Dividendy v hrubé výši; sražená daň pochází z výpisu XTB a z výkazu zisků a ztrát Revolutu — před podáním ji ověř s daňovými přehledy brokerů. Tento dokument je podklad, nikoli daňové poradenství.</p>
 <button class="noprint" onclick="window.print()" style="margin-top:14px;padding:8px 16px">Vytisknout / uložit jako PDF</button>
 </body></html>`;
   const w=window.open("","_blank");
@@ -4273,7 +4381,7 @@ function divSinceBaseline(prov, d){
     if(d < c.date) continue;
     for(const t of TX){
       if(t.provider!==p || t.type!=="DIVIDEND" || t.date<=c.date || t.date>d) continue;
-      sum += (t.total||0)*(fxAt(txCurrency(t), t.date)||0);
+      sum += czkOf(t);
     }
   }
   return sum;

@@ -71,6 +71,19 @@ stávajícím řádkům. Bez sloupce appka funguje dál, jen s kurzy ECB:
 alter table transactions add column if not exists total_czk numeric;
 ```
 
+## Sloupec `wht` v transakcích
+
+Sražená daň z dividendy (withholding tax) ve stejné měně jako `total`. U XTB se
+bere z řádků „Withholding tax“ výpisu, u Revolutu z výkazu zisků a ztrát
+(trading-pnl-statement), který zároveň přepíše dividendy z výpisu obchodů
+(ty jsou po zdanění) na hrubé částky. Zisk počítá s dividendou po zdanění,
+daňový podklad s hrubou částkou a sraženou daní. Bez sloupce se výkaz Revolutu
+nepoužije:
+
+```sql
+alter table transactions add column if not exists wht numeric;
+```
+
 ## Kontrola po každé změně
 
 Po nasazení každé změny `web/index.html` je potřeba:

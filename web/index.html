@@ -92,6 +92,8 @@ header h1 span{color:var(--accent);} header h1 .brand-name{color:var(--text);}
 .btn:disabled{opacity:.5; cursor:default;}
 .btn.icon{padding:8px 10px; font-size:15px; line-height:1; justify-content:center; min-width:38px;}
 .btn.icon svg{display:block;}
+#btnRefresh.busy{color:var(--accent); pointer-events:none;}
+#btnRefresh.busy span{display:inline-block; animation:sp 1s linear infinite;}
 
 .tabs{display:flex; gap:6px; margin:14px 0 4px; overflow-x:auto; scrollbar-width:none;}
 .tabs::-webkit-scrollbar{display:none;}
@@ -357,7 +359,7 @@ tr.grp-item td:first-child{padding-left:14px;} tr.grp-item{background:var(--surf
 .spin{display:inline-block; width:14px; height:14px; border:2px solid var(--faint); border-top-color:var(--accent);
   border-radius:50%; animation:sp .7s linear infinite; vertical-align:-2px;}
 @keyframes sp{to{transform:rotate(360deg)}}
-@media (prefers-reduced-motion:reduce){.spin{animation:none} #toast{transition:none}}
+@media (prefers-reduced-motion:reduce){.spin, #btnRefresh.busy span{animation:none} #toast{transition:none}}
 
 @media (max-width:760px){
   .cards{grid-template-columns:repeat(3,1fr);}
@@ -423,7 +425,7 @@ tr.grp-item td:first-child{padding-left:14px;} tr.grp-item{background:var(--surf
   <h1><svg class="brand-bull" viewBox="10 7 80 80" aria-hidden="true"><path fill="var(--brand)" d="M50,31 C45,31 41,32 38,34 C31,34 25,31 22,26 C19,21 19,15 23,9 C15,13 11,20 12,27 C13,35 20,40 30,41 L34,41 C28,41 23,42 19,43 C21,49 27,51 34,49 C35,56 37,60 41,64 C43,67 44,70 43,73 C41,77 42,81 45,84 C47,85 49,86 50,86 C51,86 53,85 55,84 C58,81 59,77 57,73 C56,70 57,67 59,64 C63,60 65,56 66,49 C73,51 79,49 81,43 C77,42 72,41 66,41 L70,41 C80,40 87,35 88,27 C89,20 85,13 77,9 C81,15 81,21 78,26 C75,31 69,34 62,34 C59,32 55,31 50,31Z"/><path d="M0,22 L12,11 L17,15 L27,5 L32,9 L43,-1" transform="translate(37.5 39.7) scale(0.605)" fill="none" stroke="var(--bg)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="brand-name">Fortivio<span>.</span></span></h1>
   <div class="hdr-actions">
     <button class="btn icon" id="btnPrivacy" title="Soukromý režim — skrýt částky">👁</button>
-    <button class="btn icon" id="btnRefresh" title="Aktualizovat ceny">&#10227;</button>
+    <button class="btn icon" id="btnRefresh" title="Aktualizovat ceny"><span>&#10227;</span></button>
     <button class="btn icon primary" id="btnImport" title="Import výpisu (CSV / XLSX)" aria-label="Import">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M12 3v10m0 0 4-4m-4 4-4-4"/>
@@ -738,10 +740,11 @@ tr.grp-item td:first-child{padding-left:14px;} tr.grp-item{background:var(--surf
 <script>
 /* ================= KONFIGURACE ================= */
 const APP_VERSION = "2.1 (14. 6. 2026) — administrace";
-const FOOTER_VERSION = "v3.20 · 28. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
+const FOOTER_VERSION = "v3.21 · 29. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
 
 // Seznam změn — nejnovější nahoře. Při každé úpravě appky sem přidat řádek.
 const CHANGELOG = [
+  {v:"v3.21", d:"29. 9. 2026", items:["Po návratu do appky (třeba na iPhonu z plochy) se ceny samy aktualizují, když byly načtené před víc než 5 minutami — není potřeba klikat na ⟳. Dokud nová čísla nedorazí, zůstávají vidět původní a točí se jen tlačítko ⟳","Při otevření appky se stahují ceny starší než 5 minut (dřív až 15 minut)"]},
   {v:"v3.20", d:"28. 9. 2026", items:["Export do Obsidianu (Nastavení): stáhne poznámku v Markdownu se souhrnem, pozicemi, alokací, realizovanými zisky a dividendami za vybrané brokery — s vlastnostmi (hodnota, zisk, datum) pro Obsidian"]},
   {v:"v3.19", d:"28. 9. 2026", items:["Oprava propadu zisku 7. 10. 2025: Colt CZ označený jako stažený z burzy se oceňoval nákupní cenou, ale v dolarech místo v korunách — 30 akcií tak v grafu „stálo“ asi 490 tis. Kč místo 23 tis. Kč a při prodeji zisk spadl. Měna se teď bere podle burzy","Titul označený jako stažený, pro který appka zná funkční symbol (Colt CZ → COLT.PR), se na něj sám vrátí a má zase skutečné ceny"]},
   {v:"v3.18", d:"28. 9. 2026", items:["Import z Freedom 24 pozná obchody, které už v appce jsou ze starší podoby výpisu (s jinými čísly obchodů), podle titulu, dne, kusů a ceny — nezdvojí je a v okně importu napíše, kolik jich přeskočí"]},
@@ -914,6 +917,9 @@ const CONFIG = {
   XTB_ACCOUNT_CURRENCY: "CZK",  // měna tvého XTB účtu (částky dividend v exportu)
   BASE_CURRENCY: "CZK"
 };
+// PX_MAX_AGE: ceny starší než 5 minut se při načítání stáhnou znovu; appka se po
+// návratu z pozadí (iPhone) sama obnoví, když byla data načtená před víc než AUTO_REFRESH_AFTER
+const PX_MAX_AGE = 5*60*1000, AUTO_REFRESH_AFTER = 5*60*1000;
 const PRICE_TTL = 15*60*1000, FX_TTL = 6*60*60*1000, WPX_TTL = 5*60*1000;
 
 /* ================= STAV ================= */
@@ -924,6 +930,8 @@ let FX = {};                 // currency -> {dates:[], rates:[]} (na CZK)
 let CAL = [];                // sjednocený denní kalendář (YYYY-MM-DD)
 let SERIES = {};             // provider -> {value:[], invested:[]}
 let INTRA = null;            // cache intradenní série {prov, points}
+let LAST_LOAD = 0;           // kdy se naposledy načetla data (ms)
+let DATA_SWAP = false;       // data se právě přenačítají — render() počká
 let EXT = {};                // ticker -> {state:"pre"|"after", price} mimo obchodní hodiny
 let SECTORS = {};            // ticker -> sektor (z Yahoo search, cache 7 dní)
 let WATCH = null;            // watchlist (řádky ze Supabase), null = nenačteno
@@ -1532,9 +1540,14 @@ function pickRange(firstDate){
   return days<330?"1y" : days<700?"2y" : days<1780?"5y" : days<3600?"10y" : "max";
 }
 async function loadDaily(ticker, firstDate){
-  const key = `px:${ticker}`;
-  const c = lsGet(key, PRICE_TTL);
+  const c = lsGet(`px:${ticker}`, PX_MAX_AGE);
   if(c && c.firstDate<=firstDate && c.series.dates.length) { META[ticker]=c.meta; DAILY[ticker]=c.series; return; }
+  const d = await fetchDaily(ticker, firstDate);
+  META[ticker]=d.meta; DAILY[ticker]=d.series;
+}
+/* Stáhne denní ceny z Yahoo a uloží je do mezipaměti — globální data nemění,
+   takže se dá volat i na pozadí, zatímco appka ukazuje původní čísla. */
+async function fetchDaily(ticker, firstDate){
   const res = await fetchChart(ticker, pickRange(firstDate), "1d");
   let cur = (res.meta.currency||"USD");
   let div = 1;
@@ -1559,9 +1572,9 @@ async function loadDaily(ticker, firstDate){
     if(rmp!=null){ dates.push(todayStr()); vals.push(rmp/div); }
     else throw new Error("prázdná data");
   }
-  META[ticker]={currency:cur};
-  DAILY[ticker]={dates, closes:vals};
-  lsSet(key, {meta:META[ticker], series:DAILY[ticker], firstDate});
+  const d = {meta:{currency:cur}, series:{dates, closes:vals}};
+  lsSet(`px:${ticker}`, {...d, firstDate});
+  return d;
 }
 
 /* ================= KURZY (Frankfurter / ECB) ================= */
@@ -2226,6 +2239,7 @@ const PALETTE = ["#3987E5","#D95926","#199E70","#C98500","#D55181","#9085E9","#5
 function series(prov){ return SERIES[prov] || (SERIES[prov]=computeSeries(prov)); }
 
 function render(){
+  if(DATA_SWAP) return;       // obnova dat na pozadí — vykreslí se, až doběhne
   const s = series(curProv);
   const n = s.value.length;
   const val = n ? s.value[n-1] : 0;
@@ -4206,13 +4220,17 @@ async function loadAllData(){
     showErr("Nepodařilo se načíst data pro: "+[...new Set(priceErrors.map(e=>e.ticker))].join(", ")+". Zkontroluj mapování tickerů v Nastavení.");
   else $("#errBox").style.display="none";
 }
-async function refreshAll(clearPx, deferRender){
+// quiet: obnova na pozadí — obsah zůstane vidět, žádná načítací obrazovka;
+// vrací true, když se data opravdu načetla
+async function refreshAll(clearPx, deferRender, quiet){
   if(clearPx) for(const k of Object.keys(localStorage)) if(k.startsWith("px:")) localStorage.removeItem(k);
-  $("#loading").style.display="block"; $("#content").style.display="none"; $("#emptyState").style.display="none";
+  if(!quiet){ $("#loading").style.display="block"; $("#content").style.display="none"; $("#emptyState").style.display="none"; }
   try{
     $("#loadingMsg").textContent="Načítám transakce…";
-    TX=await loadTx();
-    if(!TX.length){ $("#loading").style.display="none"; $("#emptyState").style.display="block"; return; }
+    const tx=await loadTx();
+    DATA_SWAP=true;             // od teď až do konce jsou data rozpracovaná — nevykreslovat
+    TX=tx;
+    if(!TX.length){ $("#loading").style.display="none"; $("#content").style.display="none"; $("#emptyState").style.display="block"; return true; }
     // automatická oprava tickerů v databázi podle vestavěného mapování
     // Dřívější mapování HMI→ZEPP bylo chybné: Revolut pod HMI vede Hermès (v EUR).
     // Takové řádky přepíšeme cíleně podle původního symbolu a měny.
@@ -4237,13 +4255,16 @@ async function refreshAll(clearPx, deferRender){
     const pruned=new Set([...selProvs].filter(p=>avail.has(p)));
     selProvs = pruned.size ? pruned : new Set(avail);
     curProv=provKey();
+    DATA_SWAP=false; LAST_LOAD=Date.now();
     $("#loading").style.display="none"; $("#content").style.display="block";
     updateProvTabs();
     if(!deferRender) render();
+    return true;
   }catch(e){
     $("#loading").style.display="none";
     showErr("Chyba: "+e.message);
-  }
+    return false;
+  }finally{ DATA_SWAP=false; }
 }
 
 /* ================= UDÁLOSTI ================= */
@@ -4326,6 +4347,7 @@ $("#allocLegend").addEventListener("click",e=>{
 });
 $("#impConfirm").addEventListener("click",doImport);
 $("#btnRefresh").addEventListener("click", async ()=>{
+  if(REFRESHING) return;        // právě běží automatická obnova
   WPX={};
   for(const k of Object.keys(localStorage)) if(k.startsWith("wpx:")) localStorage.removeItem(k);
   await refreshAll(true);
@@ -4714,12 +4736,52 @@ function applySettings(){
 /* ================= MINUTOVÁ AKTUALIZACE ================= */
 let liveBusy=false;
 setInterval(async ()=>{
-  if(curPeriod!=="1D" || document.hidden || liveBusy) return;
+  if(curPeriod!=="1D" || document.hidden || liveBusy || REFRESHING) return;
   if($("#content").style.display==="none") return;
   liveBusy=true;
   try{ INTRA=null; await renderIntraday(true); }catch(e){}
   liveBusy=false;
 }, 60000);
+
+/* ================= OBNOVA PO NÁVRATU DO APPKY =================
+   Na iPhonu appka z plochy po přepnutí jinam jen „usne“ a po návratu ukazovala
+   ceny z doby, kdy byla naposledy otevřená. Když od posledního načtení uběhlo
+   víc než 5 minut, ceny se samy stáhnou znovu. Původní čísla zůstávají vidět,
+   dokud nejsou nová (točí se jen tlačítko ⟳), a když síť ještě není (hned po
+   probuzení telefonu), nic se nepřepíše — zkusí se to znovu za chvíli. */
+let REFRESHING=false, retryTimer=null;
+async function autoRefresh(){
+  clearTimeout(retryTimer);
+  if(REFRESHING || document.hidden || !USER || !TX.length) return;
+  if($("#content").style.display==="none") return;              // přihlášení, načítání…
+  if($("#importModal").classList.contains("open")) return;      // rozdělaný import
+  if(Date.now()-LAST_LOAD < AUTO_REFRESH_AFTER) return;
+  REFRESHING=true; $("#btnRefresh").classList.add("busy");
+  try{
+    // 1) nové ceny a kurzy jen do mezipaměti — na obrazovce se zatím nic nemění
+    const first={};
+    for(const t of TX) if(!t.ticker.startsWith("!") && (!first[t.ticker]||t.date<first[t.ticker])) first[t.ticker]=t.date;
+    const failed=[];
+    await Promise.all([
+      ...Object.keys(first).map(tk=>fetchDaily(tk, first[tk]).catch(()=>failed.push(tk))),
+      ...Object.keys(FX).map(c=>lsGet(`fx:${c}`, FX_TTL) ? null : loadFx(c, TX[0].date).catch(()=>failed.push(c)))
+    ]);
+    // titul, který měl ceny a teď je stáhnout nešlo = síť nejede; nic nepřepisovat
+    if(failed.some(tk=>FX[tk] || (DAILY[tk] && !(META[tk]||{}).approx))){
+      if(!document.hidden) retryTimer=setTimeout(autoRefresh, 20000);
+      return;
+    }
+    // 2) přepočet z čerstvé mezipaměti (+ transakce, kdyby přibyly odjinud)
+    WPX={};
+    for(const k of Object.keys(localStorage)) if(k.startsWith("wpx:")) localStorage.removeItem(k);
+    if(await refreshAll(false, false, true)) checkTargetAlerts();
+  }finally{
+    REFRESHING=false; $("#btnRefresh").classList.remove("busy");
+  }
+}
+document.addEventListener("visibilitychange", ()=>{ if(!document.hidden) autoRefresh(); });
+window.addEventListener("pageshow", e=>{ if(e.persisted) autoRefresh(); });
+window.addEventListener("online", ()=>autoRefresh());
 
 /* ================= AUTH FLOW ================= */
 function hideSplash(){ const b=$("#bootSplash"); if(b) b.remove(); }

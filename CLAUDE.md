@@ -100,7 +100,8 @@ titul za den ohlásil jen jednou na každé úrovni.
 - Výběr brokerů (od v3.23) je jen v appce: `alert_settings.providers` (jsonb pole,
   `null` = všichni včetně budoucích) určuje, z jakých brokerů appka počítá
   `holdings` — server o brokerech neví a nemění se. Bez sloupce appka uloží zbytek
-  nastavení a výběr brokerů ukáže jako nedostupný:
+  nastavení a výběr brokerů ukáže jako nedostupný (v produkci sloupec už je,
+  spuštěno 1. 10. 2026, výběr ověřen na iPhonu):
   ```sql
   alter table alert_settings add column if not exists providers jsonb;
   ```

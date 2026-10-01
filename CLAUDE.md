@@ -104,11 +104,31 @@ titul za den ohlásil jen jednou na každé úrovni.
   cron) — do repozitáře ani do appky nepatří. Servisní klíč má funkce v prostředí
   Supabase automaticky.
 - Změna funkce: upravit `index.ts` a majitel ji znovu nasadí v Supabase →
-  Edge Functions → price-alerts → Code (vložit celý soubor → Deploy).
+  Edge Functions → price-alerts → Code (Cmd+A, vložit celý soubor → Deploy).
+  Kód kopírovat tlačítkem **Copy raw file** na GitHubu — při kopírování
+  z náhledu souboru se konec ztratil a nasazení skončilo chybou „Unexpected eof“.
+  Zkontrolovat, že vložený kód končí `});` a má stejný počet řádků jako soubor.
 - Lokální test: Deno (`npx -y deno@2`) s podvrženým Supabase a push serverem.
 
-Nastavení na serveru (jednou): nasadit funkci `price-alerts` a spustit
-`supabase/upozorneni.sql` (místo `<ANON_KEY>` veřejný klíč z `CONFIG`).
+**Stav: nasazeno a funguje (od v3.22, 1. 10. 2026).** Funkce `price-alerts`
+je v Supabase nasazená, `supabase/upozorneni.sql` je spuštěné (tabulky + cron
+`fortivio-upozorneni` každých 5 minut) a zkušební notifikace na iPhone (appka
+z plochy) dorazila. Při novém projektu by se postup opakoval: nasadit funkci
+a spustit SQL (místo `<ANON_KEY>` veřejný klíč z `CONFIG`).
+
+Ověření, že funkce běží (bez přihlášení jde jen tohle — `test` a `run` chtějí
+uživatele, resp. heslo cronu z `push_config`):
+
+```sh
+curl -s -X POST https://gqzkhvdnnndtvyvxmctx.supabase.co/functions/v1/price-alerts \
+  -H "apikey: $ANON" -H "Authorization: Bearer $ANON" \
+  -H 'content-type: application/json' -d '{"action":"vapid"}'   # → {"key":"B…"}
+```
+
+Pokud odpověď obsahuje `"source":"@supabase/server"`, běží v Supabase výchozí
+šablona funkce místo `index.ts` — je potřeba kód znovu vložit a nasadit.
+Jestli běží cron, ukáže Supabase → Edge Functions → price-alerts → Logs
+(volání každých 5 minut se stavem 200).
 
 ## Kontrola po každé změně
 

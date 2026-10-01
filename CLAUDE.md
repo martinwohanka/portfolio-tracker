@@ -97,6 +97,13 @@ titul za den ohlásil jen jednou na každé úrovni.
   (`push_subs`), ukládá nastavení a **seznam držených titulů s počty kusů**
   (`alert_settings.holdings`) — server transakce nepočítá. Seznam se aktualizuje
   po každém načtení dat.
+- Výběr brokerů (od v3.23) je jen v appce: `alert_settings.providers` (jsonb pole,
+  `null` = všichni včetně budoucích) určuje, z jakých brokerů appka počítá
+  `holdings` — server o brokerech neví a nemění se. Bez sloupce appka uloží zbytek
+  nastavení a výběr brokerů ukáže jako nedostupný:
+  ```sql
+  alter table alert_settings add column if not exists providers jsonb;
+  ```
 - `web/sw.js` je service worker jen pro notifikace, **nic necachuje** (kvůli
   `.htaccess` no-cache a okamžitým novým verzím). Nepřidávat do něj `fetch` handler.
 - Na iPhonu push funguje jen v appce přidané na plochu s `web/manifest.json`.

@@ -346,6 +346,8 @@ tr.grp-item td:first-child{padding-left:14px;} tr.grp-item{background:var(--surf
 .push-row{display:flex; align-items:center; justify-content:space-between; gap:12px; font-size:13.5px; color:var(--muted);}
 .push-row input[type=checkbox]{width:18px; height:18px; accent-color:var(--accent);}
 .push-num{width:76px; text-align:right;}
+.push-row .badge{margin-right:8px;}
+#pushProvs .push-row{color:var(--text);}
 #pushStatus .ok{color:var(--green);} #pushStatus .warn{color:var(--muted);}
 .setSel{background:var(--bg); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:6px 10px; font-size:13px; font-family:inherit;}
 
@@ -584,6 +586,9 @@ tr.grp-item td:first-child{padding-left:14px;} tr.grp-item{background:var(--surf
       <label class="push-row">Hlídat i watchlist <input type="checkbox" id="pushWatch"></label>
       <label class="push-row">I pre-market a after-hours <input type="checkbox" id="pushExt"></label>
       <label class="push-row">Celé portfolio dnes <input type="checkbox" id="pushPort"></label>
+      <div style="font-size:13.5px; color:var(--muted); margin-top:4px">Pozice u brokerů
+        <span style="display:block; font-size:12.5px; color:var(--faint); margin-top:2px">Tituly a portfolio se hlídají jen u zaškrtnutých brokerů.</span></div>
+      <div id="pushProvs" style="display:grid; gap:8px"></div>
     </div>
     <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:12px">
       <button class="btn primary" id="pushOn">Zapnout upozornění</button>
@@ -767,10 +772,11 @@ tr.grp-item td:first-child{padding-left:14px;} tr.grp-item{background:var(--surf
 <script>
 /* ================= KONFIGURACE ================= */
 const APP_VERSION = "2.1 (14. 6. 2026) — administrace";
-const FOOTER_VERSION = "v3.22 · 1. 10. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
+const FOOTER_VERSION = "v3.23 · 1. 10. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
 
 // Seznam změn — nejnovější nahoře. Při každé úpravě appky sem přidat řádek.
 const CHANGELOG = [
+  {v:"v3.23", d:"1. 10. 2026", items:["Upozornění na pohyb cen: v Nastavení jde vybrat, u kterých brokerů se mají pozice hlídat — tituly i „portfolio dnes“ se pak počítají jen z nich. Watchlist se hlídá dál podle vlastního přepínače"]},
   {v:"v3.22", d:"1. 10. 2026", items:["Upozornění na pohyb cen (Nastavení → Upozornění na pohyb cen): notifikace do telefonu, když se titul z pozic nebo watchlistu pohne proti včerejšímu závěru o víc než nastavené procento (výchozí 2 %), i v pre-marketu a after-hours, a když se o víc pohne celé portfolio. Hlídá se každých 5 minut v pracovní dny, každý titul se za den ohlásí jen jednou na každé úrovni (2 %, 4 %, 6 %…)","Klepnutí na notifikaci otevře detail titulu","Na iPhonu fungují upozornění v appce otevřené z ikony na ploše — ikonu přidanou dřív je potřeba odebrat a přidat znovu"]},
   {v:"v3.21", d:"29. 9. 2026", items:["Po návratu do appky (třeba na iPhonu z plochy) se ceny samy aktualizují, když byly načtené před víc než 5 minutami — není potřeba klikat na ⟳. Dokud nová čísla nedorazí, zůstávají vidět původní a točí se jen tlačítko ⟳","Při otevření appky se stahují ceny starší než 5 minut (dřív až 15 minut)"]},
   {v:"v3.20", d:"28. 9. 2026", items:["Export do Obsidianu (Nastavení): stáhne poznámku v Markdownu se souhrnem, pozicemi, alokací, realizovanými zisky a dividendami za vybrané brokery — s vlastnostmi (hodnota, zisk, datum) pro Obsidian"]},
@@ -2643,7 +2649,7 @@ function renderView(){
   else if(v==="alokace") renderAlloc();
   else if(v==="transakce") renderTxTable();
   else if(v==="watchlist") renderWatchlist();
-  else if(v==="nastaveni"){ renderTickerMap(); renderCash(); renderCryptoReal(); renderProvOrder(); fillTaxYears(); }
+  else if(v==="nastaveni"){ renderPushUI(); renderTickerMap(); renderCash(); renderCryptoReal(); renderProvOrder(); fillTaxYears(); }
 }
 let posSort = {key:"valCzk", dir:-1};
 const POS_COLS = [["ticker","Titul",""],["qty","Ks","r"],["avg","Prům. nákup. cena","r hide-m"],
@@ -4184,6 +4190,7 @@ function exportObsidian(){
 let ALERTS=null;            // řádek alert_settings; null = upozornění nejsou zapnutá / tabulka chybí
 let PUSH_SUB=null;          // odběr tohoto zařízení
 let ALERT_PENDING=null;     // nastavení změněné ještě před zapnutím — uloží se se zapnutím
+let ALERT_NO_PROV=false;    // v alert_settings chybí sloupec providers (výběr brokerů se neuloží)
 const ALERT_DEF={threshold:2, portfolio_threshold:2, watchlist:true, extended:true, portfolio:true};
 const pushSupported = () => "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
 const isIOS = () => /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform==="MacIntel" && navigator.maxTouchPoints>1);
@@ -4198,9 +4205,16 @@ async function alertsApi(action){
   return j;
 }
 // držené tituly pro server: symbol Yahoo + počet kusů (po štěpení), bez titulů bez cen
+// brokeři, u kterých se hlídají pozice; null v nastavení = všichni (i budoucí)
+function alertProvs(){
+  const a={...(ALERTS||{}), ...(ALERT_PENDING||{})};
+  const avail=[...availableProviders()];
+  return Array.isArray(a.providers) ? avail.filter(p=>a.providers.includes(p)) : avail;
+}
 function alertHoldings(){
-  const m={};
-  for(const p of computePositions("ALL")){
+  const m={}, provs=alertProvs();
+  if(!provs.length) return [];
+  for(const p of computePositions(provs.join("+"))){
     if(p.ticker.startsWith("!") || (META[p.ticker]||{}).approx) continue;
     const sym=AUTO_SFX[p.ticker]||p.ticker;
     m[sym]=(m[sym]||0)+p.qty;
@@ -4209,7 +4223,18 @@ function alertHoldings(){
 }
 async function saveAlerts(patch){
   const row={...ALERT_DEF, ...(ALERTS||{}), ...patch, user_id:USER.id, updated_at:new Date().toISOString()};
-  await sb("alert_settings", {method:"POST", headers:{Prefer:"resolution=merge-duplicates,return=minimal"}, body:JSON.stringify([row])});
+  if(ALERT_NO_PROV) delete row.providers;
+  const post=()=>sb("alert_settings", {method:"POST", headers:{Prefer:"resolution=merge-duplicates,return=minimal"}, body:JSON.stringify([row])});
+  try{ await post(); }
+  catch(e){
+    // starší databáze bez sloupce providers: uložit aspoň zbytek
+    if(!("providers" in row) || !/providers/.test(e.message)) throw e;
+    ALERT_NO_PROV=true; delete row.providers;
+    if(ALERT_PENDING) delete ALERT_PENDING.providers;
+    if(ALERTS) delete ALERTS.providers;
+    if("holdings" in patch) row.holdings=alertHoldings();   // bez výběru = všichni brokeři
+    await post();
+  }
   ALERTS=row;
 }
 // po každém načtení dat: server musí znát aktuální pozice (nákupy, prodeje, import na Macu…)
@@ -4221,6 +4246,7 @@ async function syncAlertHoldings(){
 }
 async function loadAlerts(){
   try{ const r=await sb(`alert_settings?select=*&user_id=eq.${USER.id}`); ALERTS=(r&&r[0])||null; }catch(e){ ALERTS=null; }
+  if(ALERTS && !("providers" in ALERTS)) ALERT_NO_PROV=true;
   if(pushSupported()){
     try{
       const reg=await navigator.serviceWorker.register("sw.js");
@@ -4235,6 +4261,11 @@ function renderPushUI(){
   const a={...ALERT_DEF, ...(ALERTS||{}), ...(ALERT_PENDING||{})};
   $("#pushThr").value=a.threshold; $("#pushPThr").value=a.portfolio_threshold;
   $("#pushWatch").checked=!!a.watchlist; $("#pushExt").checked=!!a.extended; $("#pushPort").checked=!!a.portfolio;
+  const avail=availableProviders(), sel=new Set(alertProvs());
+  $("#pushProvs").innerHTML = provOrder().filter(p=>avail.has(p)).map(p=>`
+    <label class="push-row"><span><span class="badge ${p}">${PROV_SHORT[p]}</span>${PROV_NAME[p]}</span>
+      <input type="checkbox" data-pushprov="${p}" ${sel.has(p)?"checked":""} ${ALERT_NO_PROV?"disabled":""}></label>`).join("")
+    + (ALERT_NO_PROV ? '<p style="font-size:12.5px; color:var(--faint)">Výběr brokerů zatím nejde uložit — v databázi chybí sloupec <code>providers</code> (viz CLAUDE.md).</p>' : "");
   let msg, on=false, can=true;
   if(!pushSupported()){
     can=false;
@@ -4312,10 +4343,24 @@ for(const id of ["pushThr","pushPThr","pushWatch","pushExt","pushPort"])
     const num=el=>{ const v=parseFloat(String(el.value).replace(",", ".")); return v>=0.5 && v<=20 ? Math.round(v*10)/10 : 2; };
     const patch={threshold:num($("#pushThr")), portfolio_threshold:num($("#pushPThr")),
       watchlist:$("#pushWatch").checked, extended:$("#pushExt").checked, portfolio:$("#pushPort").checked};
-    if(!ALERTS){ ALERT_PENDING=patch; return; }   // před zapnutím se uloží až se zapnutím
+    if(!ALERTS){ ALERT_PENDING={...(ALERT_PENDING||{}), ...patch}; return; }   // před zapnutím se uloží až se zapnutím
     try{ await saveAlerts(patch); toast("Uloženo."); }catch(e){ showErr(e.message); }
     renderPushUI();
   });
+$("#pushProvs").addEventListener("change", async e=>{
+  if(!e.target.matches("[data-pushprov]")) return;
+  const avail=availableProviders();
+  const checked=$$("#pushProvs [data-pushprov]").filter(x=>x.checked).map(x=>x.dataset.pushprov);
+  // všichni zaškrtnutí = null, aby se hlídal i broker přidaný později
+  const providers = [...avail].every(p=>checked.includes(p)) ? null : checked;
+  if(!ALERTS){ ALERT_PENDING={...(ALERT_PENDING||{}), providers}; return; }
+  try{
+    ALERTS={...ALERTS, providers};
+    await saveAlerts({providers, holdings:alertHoldings()});
+    toast(checked.length ? "Uloženo." : "Uloženo — pozice se teď nehlídají u žádného brokera.");
+  }catch(err){ showErr(err.message); }
+  renderPushUI();
+});
 // klepnutí na notifikaci: otevřít detail titulu (?t=NVDA, nebo zpráva od service workeru)
 async function openFromPush(url){
   let tk=null; try{ tk=new URL(url, location.href).searchParams.get("t"); }catch(e){}

@@ -26,8 +26,10 @@ create table if not exists public.alert_settings (
   extended            boolean not null default true,
   portfolio           boolean not null default true,
   holdings            jsonb   not null default '[]'::jsonb,
+  providers           jsonb,                       -- brokeři pro hlídání pozic, null = všichni
   updated_at          timestamptz not null default now()
 );
+alter table public.alert_settings add column if not exists providers jsonb;   -- pro databáze z verze v3.22
 alter table public.alert_settings enable row level security;
 drop policy if exists "vlastni nastaveni" on public.alert_settings;
 create policy "vlastni nastaveni" on public.alert_settings for all to authenticated

@@ -13,6 +13,7 @@
 <link rel="icon" type="image/png" sizes="64x64" href="fortivio-64.png">
 <link rel="icon" type="image/png" sizes="512x512" href="fortivio-512.png">
 <link rel="apple-touch-icon" sizes="180x180" href="fortivio-180.png">
+<link rel="manifest" href="manifest.json">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -342,6 +343,10 @@ tr.grp-item td:first-child{padding-left:14px;} tr.grp-item{background:var(--surf
   padding:6px 10px; font-size:13px; font-family:inherit; flex:1; min-width:90px; max-width:160px;
 }
 .map-row .raw{color:var(--muted); flex:1; min-width:80px; max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.push-row{display:flex; align-items:center; justify-content:space-between; gap:12px; font-size:13.5px; color:var(--muted);}
+.push-row input[type=checkbox]{width:18px; height:18px; accent-color:var(--accent);}
+.push-num{width:76px; text-align:right;}
+#pushStatus .ok{color:var(--green);} #pushStatus .warn{color:var(--muted);}
 .setSel{background:var(--bg); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:6px 10px; font-size:13px; font-family:inherit;}
 
 #toast{position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(80px);
@@ -564,6 +569,28 @@ tr.grp-item td:first-child{padding-left:14px;} tr.grp-item{background:var(--surf
         </select></label>
     </div>
 
+    <h2 style="font-size:16px; margin:22px 0 4px">Upozornění na pohyb cen</h2>
+    <p style="font-size:13px; color:var(--muted); margin-bottom:10px">
+      Notifikace do telefonu, když se titul z tvých pozic nebo watchlistu pohne proti včerejšímu závěru
+      o víc než nastavené procento (i v pre-marketu a after-hours), a když se tolik pohne celé portfolio.
+      Hlídá se každých 5 minut v pracovní dny 9:00–2:00. Každý titul se za den ohlásí jen jednou na každé úrovni
+      (2 %, 4 %, 6 %…).</p>
+    <div id="pushStatus" style="font-size:13.5px; margin-bottom:10px"></div>
+    <div id="pushOpts" style="display:grid; gap:10px; max-width:420px">
+      <label class="push-row">Práh u titulu
+        <span><input type="number" id="pushThr" class="setSel push-num" min="0.5" max="20" step="0.5" inputmode="decimal"> %</span></label>
+      <label class="push-row">Práh u celého portfolia
+        <span><input type="number" id="pushPThr" class="setSel push-num" min="0.5" max="20" step="0.5" inputmode="decimal"> %</span></label>
+      <label class="push-row">Hlídat i watchlist <input type="checkbox" id="pushWatch"></label>
+      <label class="push-row">I pre-market a after-hours <input type="checkbox" id="pushExt"></label>
+      <label class="push-row">Celé portfolio dnes <input type="checkbox" id="pushPort"></label>
+    </div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:12px">
+      <button class="btn primary" id="pushOn">Zapnout upozornění</button>
+      <button class="btn" id="pushTest">Poslat zkušební notifikaci</button>
+      <button class="btn" id="pushOff">Vypnout na tomto zařízení</button>
+    </div>
+
     <h2 style="font-size:16px; margin:22px 0 4px">Daňový podklad (ČR)</h2>
     <p style="font-size:13px; color:var(--muted); margin-bottom:10px">
       Přehled realizovaných prodejů (§10) s FIFO párováním nákupů, časovým testem 3 let a kontrolou limitu 100 000 Kč,
@@ -740,10 +767,11 @@ tr.grp-item td:first-child{padding-left:14px;} tr.grp-item{background:var(--surf
 <script>
 /* ================= KONFIGURACE ================= */
 const APP_VERSION = "2.1 (14. 6. 2026) — administrace";
-const FOOTER_VERSION = "v3.21 · 29. 9. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
+const FOOTER_VERSION = "v3.22 · 1. 10. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
 
 // Seznam změn — nejnovější nahoře. Při každé úpravě appky sem přidat řádek.
 const CHANGELOG = [
+  {v:"v3.22", d:"1. 10. 2026", items:["Upozornění na pohyb cen (Nastavení → Upozornění na pohyb cen): notifikace do telefonu, když se titul z pozic nebo watchlistu pohne proti včerejšímu závěru o víc než nastavené procento (výchozí 2 %), i v pre-marketu a after-hours, a když se o víc pohne celé portfolio. Hlídá se každých 5 minut v pracovní dny, každý titul se za den ohlásí jen jednou na každé úrovni (2 %, 4 %, 6 %…)","Klepnutí na notifikaci otevře detail titulu","Na iPhonu fungují upozornění v appce otevřené z ikony na ploše — ikonu přidanou dřív je potřeba odebrat a přidat znovu"]},
   {v:"v3.21", d:"29. 9. 2026", items:["Po návratu do appky (třeba na iPhonu z plochy) se ceny samy aktualizují, když byly načtené před víc než 5 minutami — není potřeba klikat na ⟳. Dokud nová čísla nedorazí, zůstávají vidět původní a točí se jen tlačítko ⟳","Při otevření appky se stahují ceny starší než 5 minut (dřív až 15 minut)"]},
   {v:"v3.20", d:"28. 9. 2026", items:["Export do Obsidianu (Nastavení): stáhne poznámku v Markdownu se souhrnem, pozicemi, alokací, realizovanými zisky a dividendami za vybrané brokery — s vlastnostmi (hodnota, zisk, datum) pro Obsidian"]},
   {v:"v3.19", d:"28. 9. 2026", items:["Oprava propadu zisku 7. 10. 2025: Colt CZ označený jako stažený z burzy se oceňoval nákupní cenou, ale v dolarech místo v korunách — 30 akcií tak v grafu „stálo“ asi 490 tis. Kč místo 23 tis. Kč a při prodeji zisk spadl. Měna se teď bere podle burzy","Titul označený jako stažený, pro který appka zná funkční symbol (Colt CZ → COLT.PR), se na něj sám vrátí a má zase skutečné ceny"]},
@@ -4148,6 +4176,161 @@ function exportObsidian(){
   toast("Poznámka stažena — přetáhni ji do Obsidian vaultu.");
 }
 
+/* ================= UPOZORNĚNÍ NA POHYB CEN (Web Push) =================
+   Notifikace posílá server — Supabase Edge Function „price-alerts“ (supabase/functions),
+   kterou každých 5 minut spouští pg_cron (supabase/upozorneni.sql). Appka jen přihlásí
+   zařízení k odběru, uloží nastavení a seznam držených titulů s počty kusů (server
+   transakce nepočítá). Na iPhonu funguje jen v appce otevřené z ikony na ploše. */
+let ALERTS=null;            // řádek alert_settings; null = upozornění nejsou zapnutá / tabulka chybí
+let PUSH_SUB=null;          // odběr tohoto zařízení
+let ALERT_PENDING=null;     // nastavení změněné ještě před zapnutím — uloží se se zapnutím
+const ALERT_DEF={threshold:2, portfolio_threshold:2, watchlist:true, extended:true, portfolio:true};
+const pushSupported = () => "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+const isIOS = () => /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform==="MacIntel" && navigator.maxTouchPoints>1);
+const isStandalone = () => (window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone===true;
+async function alertsApi(action){
+  const r=await fetch(`${CONFIG.SUPABASE_URL}/functions/v1/price-alerts`, {method:"POST",
+    headers:{apikey:CONFIG.SUPABASE_ANON_KEY, Authorization:`Bearer ${await freshToken()}`, "Content-Type":"application/json"},
+    body:JSON.stringify({action})});
+  const j=await r.json().catch(()=>({}));
+  if(r.status===404) throw new Error("Na serveru zatím není nasazená funkce price-alerts.");
+  if(!r.ok) throw new Error(j.error||j.message||`price-alerts ${r.status}`);
+  return j;
+}
+// držené tituly pro server: symbol Yahoo + počet kusů (po štěpení), bez titulů bez cen
+function alertHoldings(){
+  const m={};
+  for(const p of computePositions("ALL")){
+    if(p.ticker.startsWith("!") || (META[p.ticker]||{}).approx) continue;
+    const sym=AUTO_SFX[p.ticker]||p.ticker;
+    m[sym]=(m[sym]||0)+p.qty;
+  }
+  return Object.keys(m).sort().map(s=>({s, q:+m[s].toPrecision(10)}));
+}
+async function saveAlerts(patch){
+  const row={...ALERT_DEF, ...(ALERTS||{}), ...patch, user_id:USER.id, updated_at:new Date().toISOString()};
+  await sb("alert_settings", {method:"POST", headers:{Prefer:"resolution=merge-duplicates,return=minimal"}, body:JSON.stringify([row])});
+  ALERTS=row;
+}
+// po každém načtení dat: server musí znát aktuální pozice (nákupy, prodeje, import na Macu…)
+async function syncAlertHoldings(){
+  if(!ALERTS || !TX.length) return;
+  const h=alertHoldings();
+  if(JSON.stringify(h)===JSON.stringify(ALERTS.holdings||[])) return;
+  try{ await saveAlerts({holdings:h}); }catch(e){}
+}
+async function loadAlerts(){
+  try{ const r=await sb(`alert_settings?select=*&user_id=eq.${USER.id}`); ALERTS=(r&&r[0])||null; }catch(e){ ALERTS=null; }
+  if(pushSupported()){
+    try{
+      const reg=await navigator.serviceWorker.register("sw.js");
+      PUSH_SUB=await reg.pushManager.getSubscription();
+    }catch(e){ PUSH_SUB=null; }
+  }
+  renderPushUI();
+  syncAlertHoldings();      // když data doběhla dřív než nastavení
+}
+function renderPushUI(){
+  const st=$("#pushStatus"); if(!st) return;
+  const a={...ALERT_DEF, ...(ALERTS||{}), ...(ALERT_PENDING||{})};
+  $("#pushThr").value=a.threshold; $("#pushPThr").value=a.portfolio_threshold;
+  $("#pushWatch").checked=!!a.watchlist; $("#pushExt").checked=!!a.extended; $("#pushPort").checked=!!a.portfolio;
+  let msg, on=false, can=true;
+  if(!pushSupported()){
+    can=false;
+    msg = isIOS() && !isStandalone()
+      ? 'Na iPhonu fungují upozornění jen v appce otevřené z plochy: v Safari klepni na Sdílet → <b>Přidat na plochu</b> a otevři Fortivio z nové ikony. Ikonu přidanou před verzí v3.22 je potřeba odebrat a přidat znovu.'
+      : "Tento prohlížeč upozornění nepodporuje.";
+  }else if(Notification.permission==="denied"){
+    can=false;
+    msg = isIOS() ? "Oznámení jsou pro Fortivio zakázaná — povol je v iPhonu: Nastavení → Oznámení → Fortivio."
+                  : "Oznámení jsou pro tuto stránku v prohlížeči zakázaná — povol je v nastavení webu.";
+  }else if(PUSH_SUB && ALERTS){
+    on=true; msg='<span class="ok">✓ Zapnuto na tomto zařízení</span>';
+  }else msg='<span class="warn">Na tomto zařízení vypnuto.</span>';
+  st.innerHTML=msg;
+  $("#pushOn").style.display = can && !on ? "" : "none";
+  $("#pushTest").style.display = on ? "" : "none";
+  $("#pushOff").style.display = on ? "" : "none";
+  $("#pushOpts").style.display = can ? "grid" : "none";
+}
+function b64uBytes(s){
+  const b=atob((s+"===".slice((s.length+3)%4)).replace(/-/g,"+").replace(/_/g,"/"));
+  return Uint8Array.from(b, c=>c.charCodeAt(0));
+}
+$("#pushOn").addEventListener("click", async ()=>{
+  const btn=$("#pushOn"); btn.disabled=true; btn.textContent="Zapínám…";
+  try{
+    // iOS chce žádost o povolení přímo po klepnutí — proto jako první krok
+    const perm=await Notification.requestPermission();
+    if(perm!=="granted"){ renderPushUI(); throw new Error("Bez povolení oznámení to nepůjde."); }
+    const reg=await navigator.serviceWorker.register("sw.js");
+    await navigator.serviceWorker.ready;
+    const {key}=await alertsApi("vapid");
+    let sub=await reg.pushManager.getSubscription();
+    if(!sub) sub=await reg.pushManager.subscribe({userVisibleOnly:true, applicationServerKey:b64uBytes(key)});
+    const j=sub.toJSON();
+    await saveAlerts({...(ALERT_PENDING||{}), holdings:alertHoldings()});
+    ALERT_PENDING=null;
+    await sb("push_subs", {method:"POST", headers:{Prefer:"resolution=merge-duplicates,return=minimal"},
+      body:JSON.stringify([{endpoint:j.endpoint, p256dh:j.keys.p256dh, auth:j.keys.auth, user_id:USER.id,
+        device:(isIOS()?"iPhone/iPad":navigator.platform||"")+" · "+new Date().toLocaleDateString("cs-CZ")}])});
+    PUSH_SUB=sub;
+    toast("Upozornění zapnutá — pro jistotu pošli zkušební notifikaci.", 4000);
+  }catch(e){
+    showErr(/relation|alert_settings|push_subs|PGRST/.test(e.message)
+      ? "Upozornění zatím nejsou na serveru nastavená (chybí tabulky v Supabase — viz supabase/upozorneni.sql)."
+      : "Upozornění se nepodařilo zapnout: "+e.message);
+  }
+  btn.disabled=false; btn.textContent="Zapnout upozornění";
+  renderPushUI();
+});
+$("#pushOff").addEventListener("click", async ()=>{
+  if(!confirm("Vypnout upozornění na tomto zařízení?")) return;
+  try{
+    if(PUSH_SUB){
+      const ep=PUSH_SUB.endpoint;
+      await PUSH_SUB.unsubscribe().catch(()=>{});
+      await sb(`push_subs?endpoint=eq.${encodeURIComponent(ep)}`, {method:"DELETE"});
+    }
+    PUSH_SUB=null; toast("Upozornění na tomto zařízení vypnuta.");
+  }catch(e){ showErr(e.message); }
+  renderPushUI();
+});
+$("#pushTest").addEventListener("click", async ()=>{
+  const btn=$("#pushTest"); btn.disabled=true;
+  try{
+    const r=await alertsApi("test");
+    if(r.error) throw new Error(r.error);
+    toast(r.sent ? `Odesláno — hlídám ${r.watched} ${r.watched===1?"titul":r.watched>1&&r.watched<5?"tituly":"titulů"}, notifikace dorazí do pár vteřin.` : "Notifikaci se nepodařilo doručit — zkus upozornění vypnout a znovu zapnout.", 5000);
+  }catch(e){ showErr("Zkušební notifikace: "+e.message); }
+  btn.disabled=false;
+});
+// změna nastavení se ukládá hned (platí pro všechna zařízení)
+for(const id of ["pushThr","pushPThr","pushWatch","pushExt","pushPort"])
+  $("#"+id).addEventListener("change", async ()=>{
+    const num=el=>{ const v=parseFloat(String(el.value).replace(",", ".")); return v>=0.5 && v<=20 ? Math.round(v*10)/10 : 2; };
+    const patch={threshold:num($("#pushThr")), portfolio_threshold:num($("#pushPThr")),
+      watchlist:$("#pushWatch").checked, extended:$("#pushExt").checked, portfolio:$("#pushPort").checked};
+    if(!ALERTS){ ALERT_PENDING=patch; return; }   // před zapnutím se uloží až se zapnutím
+    try{ await saveAlerts(patch); toast("Uloženo."); }catch(e){ showErr(e.message); }
+    renderPushUI();
+  });
+// klepnutí na notifikaci: otevřít detail titulu (?t=NVDA, nebo zpráva od service workeru)
+async function openFromPush(url){
+  let tk=null; try{ tk=new URL(url, location.href).searchParams.get("t"); }catch(e){}
+  if(location.search.includes("t=")) history.replaceState(null, "", location.pathname);
+  if(!tk || !TX.length) return;
+  const tx=TX.find(t=>(AUTO_SFX[t.ticker]||t.ticker)===tk && computePositions(t.provider).some(p=>p.ticker===t.ticker));
+  if(tx) return showHistory(tx.ticker, tx.provider);
+  try{ if(WATCH===null) WATCH=await loadWatch(); }catch(e){ return; }
+  const w=WATCH.find(x=>x.ticker===tk && x.user_id===USER.id);
+  if(w) showWatchDetail(w);
+}
+if("serviceWorker" in navigator) navigator.serviceWorker.addEventListener("message", e=>{
+  if(e.data && e.data.type==="open") openFromPush(e.data.url);
+});
+
 /* ================= LOAD & INIT ================= */
 async function loadAllData(){
   priceErrors=[]; META={}; DAILY={}; FX={}; SERIES={}; INTRA=null; EXT={};
@@ -4259,6 +4442,7 @@ async function refreshAll(clearPx, deferRender, quiet){
     $("#loading").style.display="none"; $("#content").style.display="block";
     updateProvTabs();
     if(!deferRender) render();
+    syncAlertHoldings();
     return true;
   }catch(e){
     $("#loading").style.display="none";
@@ -4843,9 +5027,11 @@ async function boot(){
   // admin?
   try{ IS_ADMIN = await checkAdmin()===true; }catch(e){ IS_ADMIN=false; }
   if(IS_ADMIN){ $("#adminSection").style.display="block"; renderAdmin(); }
+  loadAlerts();                   // upozornění: nastavení a odběr tohoto zařízení (souběžně s daty)
   await refreshAll(false, true);  // načti data; výběr brokerů aplikuj až podle nich
   applySettings();
   render();
+  if(location.search.includes("t=")) openFromPush(location.href);   // otevřeno klepnutím na notifikaci
   // onboarding: žádné transakce -> uvítací overlay
   if(!TX.length) $("#onboard").classList.add("open");
   else checkTargetAlerts();          // watchlist: upozornění na dosažené cílové ceny

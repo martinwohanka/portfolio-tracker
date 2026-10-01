@@ -84,6 +84,32 @@ nepoužije:
 alter table transactions add column if not exists wht numeric;
 ```
 
+## Upozornění na pohyb cen (Web Push)
+
+Notifikace neposílá appka, ale serverová funkce Supabase
+`supabase/functions/price-alerts/index.ts` (Edge Function `price-alerts`), kterou
+každých 5 minut volá pg_cron. Funkce stahuje ceny přímo z Yahoo (ne přes proxy
+`yahoo`, aby nespotřebovávala volání funkcí), porovná je se včerejším závěrem
+a pošle notifikaci, když pohyb překročí práh. Tabulka `alert_log` hlídá, aby se
+titul za den ohlásil jen jednou na každé úrovni.
+
+- Appka (`web/index.html`, sekce UPOZORNĚNÍ) jen přihlásí zařízení k odběru
+  (`push_subs`), ukládá nastavení a **seznam držených titulů s počty kusů**
+  (`alert_settings.holdings`) — server transakce nepočítá. Seznam se aktualizuje
+  po každém načtení dat.
+- `web/sw.js` je service worker jen pro notifikace, **nic necachuje** (kvůli
+  `.htaccess` no-cache a okamžitým novým verzím). Nepřidávat do něj `fetch` handler.
+- Na iPhonu push funguje jen v appce přidané na plochu s `web/manifest.json`.
+- Klíče VAPID si funkce vytvoří sama a uloží do `push_config` (spolu s heslem pro
+  cron) — do repozitáře ani do appky nepatří. Servisní klíč má funkce v prostředí
+  Supabase automaticky.
+- Změna funkce: upravit `index.ts` a majitel ji znovu nasadí v Supabase →
+  Edge Functions → price-alerts → Code (vložit celý soubor → Deploy).
+- Lokální test: Deno (`npx -y deno@2`) s podvrženým Supabase a push serverem.
+
+Nastavení na serveru (jednou): nasadit funkci `price-alerts` a spustit
+`supabase/upozorneni.sql` (místo `<ANON_KEY>` veřejný klíč z `CONFIG`).
+
 ## Kontrola po každé změně
 
 Po nasazení každé změny `web/index.html` je potřeba:

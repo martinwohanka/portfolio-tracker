@@ -1,0 +1,15 @@
+{
+  "name": "Fortivio",
+  "short_name": "Fortivio",
+  "description": "Přehled investičního portfolia napříč brokery",
+  "lang": "cs",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0C1613",
+  "theme_color": "#0C1613",
+  "icons": [
+    { "src": "fortivio-180.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "fortivio-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

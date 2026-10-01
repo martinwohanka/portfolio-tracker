@@ -3,8 +3,10 @@
 # ale nová verze je vidět hned po nahrání — bez toho ji hosting nechal v mezipaměti
 # až 5 minut a prohlížeč ukazoval starou kopii ještě další hodinu
 # (stale-while-revalidate). Ikony a obrázky se dál drží dlouho.
+# Totéž platí pro service worker (sw.js) a manifest — jinak by se jejich změna
+# k zařízením dostávala se zpožděním.
 <IfModule mod_headers.c>
-  <FilesMatch "\.html?$">
+  <FilesMatch "(\.html?|sw\.js|manifest\.json)$">
     Header set Cache-Control "no-cache"
     Header unset Expires
   </FilesMatch>

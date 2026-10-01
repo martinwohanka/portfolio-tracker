@@ -10,6 +10,9 @@ databází Supabase. Nasazuje se prostým nahráním na webhosting.
 ```
 web/index.html                        aplikace (celá v jednom souboru)
 web/fortivio-*.png                    ikona aplikace (záložka prohlížeče, plocha iPhonu)
+web/manifest.json, web/sw.js          instalace na plochu a notifikace (Web Push)
+supabase/functions/price-alerts/      serverová funkce, která hlídá ceny a posílá notifikace
+supabase/upozorneni.sql               tabulky a plán spouštění pro upozornění
 scripts/kontrola.mjs                  kontrola souboru před nasazením
 .github/workflows/deploy-ftp.yml      automatické nahrání na FTP při push
 ```
@@ -24,6 +27,7 @@ scripts/kontrola.mjs                  kontrola souboru před nasazením
 | Přehled | hodnota portfolia v čase, zisk (celkově i dnes), graf s výběrem období a porovnáním vůči vloženým prostředkům |
 | Pozice | aktuální držené tituly, ceny přes Yahoo Finance, P/E, denní pohyb vč. pre/after-marketu |
 | Watchlist | sledované tituly bez nákupu, cílové ceny s upozorněním, sdílení watchlistu mezi uživateli |
+| Upozornění | notifikace do telefonu při pohybu titulu (pozice i watchlist, i pre/after-market) nebo celého portfolia o víc než nastavené procento |
 | Alokace | podle titulu, měny, sektoru, brokera i země |
 | Daně (ČR) | podklad pro §10 (realizované prodeje, FIFO, časový test 3 roky, limit 100 000 Kč) a §8 (dividendy) — export XLSX/PDF |
 

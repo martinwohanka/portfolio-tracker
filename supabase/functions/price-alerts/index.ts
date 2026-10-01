@@ -18,7 +18,10 @@
 import webpush from "npm:web-push@3.6.7";
 
 const SB_URL = Deno.env.get("SUPABASE_URL")!;
-const SB_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+// servisní klíč: starý (JWT), nebo nový „sb_secret_…“ z SUPABASE_SECRET_KEYS ({"default": "…"})
+const SB_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || (() => {
+  try { return JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS") || "{}").default || ""; } catch (_) { return ""; }
+})();
 const YAHOO = Deno.env.get("YAHOO_URL") || "https://query1.finance.yahoo.com";
 const VAPID_SUBJECT = "https://portfolio.wohanka.online";
 const UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15";
@@ -316,6 +319,7 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({}));
     const action = body.action || "run";
+    if (!SB_KEY) return json({ error: "Funkci chybí servisní klíč Supabase (SUPABASE_SERVICE_ROLE_KEY)." }, 500);
     const cfg = await config();
     if (action === "vapid") return json({ key: cfg.vapid_public });
     if (action === "run" && req.headers.get("x-cron-secret") === cfg.cron_secret) return json(await run(cfg, null));

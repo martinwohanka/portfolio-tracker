@@ -772,10 +772,11 @@ tr.grp-item td:first-child{padding-left:14px;} tr.grp-item{background:var(--surf
 <script>
 /* ================= KONFIGURACE ================= */
 const APP_VERSION = "2.1 (14. 6. 2026) — administrace";
-const FOOTER_VERSION = "v3.23 · 1. 10. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
+const FOOTER_VERSION = "v3.24 · 2. 10. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
 
 // Seznam změn — nejnovější nahoře. Při každé úpravě appky sem přidat řádek.
 const CHANGELOG = [
+  {v:"v3.24", d:"2. 10. 2026", items:["Oprava upozornění: appka otevřená na jiném zařízení (třeba v prohlížeči na Macu) po návratu přepsala výběr brokerů starou kopií nastavení, takže chodily notifikace i za odškrtnuté brokery. Nastavení se teď před každou aktualizací načte znovu a ukládá se jen to, co se opravdu změnilo"]},
   {v:"v3.23", d:"1. 10. 2026", items:["Upozornění na pohyb cen: v Nastavení jde vybrat, u kterých brokerů se mají pozice hlídat — tituly i „portfolio dnes“ se pak počítají jen z nich. Watchlist se hlídá dál podle vlastního přepínače"]},
   {v:"v3.22", d:"1. 10. 2026", items:["Upozornění na pohyb cen (Nastavení → Upozornění na pohyb cen): notifikace do telefonu, když se titul z pozic nebo watchlistu pohne proti včerejšímu závěru o víc než nastavené procento (výchozí 2 %), i v pre-marketu a after-hours, a když se o víc pohne celé portfolio. Hlídá se každých 5 minut v pracovní dny, každý titul se za den ohlásí jen jednou na každé úrovni (2 %, 4 %, 6 %…)","Klepnutí na notifikaci otevře detail titulu","Na iPhonu fungují upozornění v appce otevřené z ikony na ploše — ikonu přidanou dřív je potřeba odebrat a přidat znovu"]},
   {v:"v3.21", d:"29. 9. 2026", items:["Po návratu do appky (třeba na iPhonu z plochy) se ceny samy aktualizují, když byly načtené před víc než 5 minutami — není potřeba klikat na ⟳. Dokud nová čísla nedorazí, zůstávají vidět původní a točí se jen tlačítko ⟳","Při otevření appky se stahují ceny starší než 5 minut (dřív až 15 minut)"]},
@@ -4221,25 +4222,41 @@ function alertHoldings(){
   }
   return Object.keys(m).sort().map(s=>({s, q:+m[s].toPrecision(10)}));
 }
+/* Uloží změněná pole. Existující řádek se jen doplní (PATCH) — celý řádek by přepsal
+   nastavení změněné mezitím na jiném zařízení (appka otevřená na Macu by jinak vrátila
+   výběr brokerů z iPhonu na staré hodnoty). Nový řádek (první zapnutí) se založí celý. */
 async function saveAlerts(patch){
-  const row={...ALERT_DEF, ...(ALERTS||{}), ...patch, user_id:USER.id, updated_at:new Date().toISOString()};
-  if(ALERT_NO_PROV) delete row.providers;
-  const post=()=>sb("alert_settings", {method:"POST", headers:{Prefer:"resolution=merge-duplicates,return=minimal"}, body:JSON.stringify([row])});
-  try{ await post(); }
+  const now=new Date().toISOString();
+  const body = ALERTS ? {...patch, updated_at:now}
+                      : {...ALERT_DEF, ...patch, user_id:USER.id, updated_at:now};
+  if(ALERT_NO_PROV) delete body.providers;
+  const send=()=> ALERTS
+    ? sb(`alert_settings?user_id=eq.${USER.id}`, {method:"PATCH", headers:{Prefer:"return=minimal"}, body:JSON.stringify(body)})
+    : sb("alert_settings", {method:"POST", headers:{Prefer:"resolution=merge-duplicates,return=minimal"}, body:JSON.stringify([body])});
+  try{ await send(); }
   catch(e){
     // starší databáze bez sloupce providers: uložit aspoň zbytek
-    if(!("providers" in row) || !/providers/.test(e.message)) throw e;
-    ALERT_NO_PROV=true; delete row.providers;
+    if(!("providers" in body) || !/providers/.test(e.message)) throw e;
+    ALERT_NO_PROV=true; delete body.providers;
     if(ALERT_PENDING) delete ALERT_PENDING.providers;
     if(ALERTS) delete ALERTS.providers;
-    if("holdings" in patch) row.holdings=alertHoldings();   // bez výběru = všichni brokeři
-    await post();
+    if("holdings" in body){ delete patch.providers; body.holdings=alertHoldings(); }   // bez výběru = všichni brokeři
+    await send();
   }
-  ALERTS=row;
+  ALERTS={...(ALERTS||{}), ...body};
 }
 // po každém načtení dat: server musí znát aktuální pozice (nákupy, prodeje, import na Macu…)
+// Nastavení se před výpočtem načte znovu z databáze: výběr brokerů mohl mezitím
+// změnit jiné zařízení a podle staré kopie by se hlídali i odškrtnutí brokeři.
 async function syncAlertHoldings(){
-  if(!ALERTS || !TX.length) return;
+  if(!USER || !TX.length) return;
+  try{
+    const r=await sb(`alert_settings?select=*&user_id=eq.${USER.id}`);
+    ALERTS=(r&&r[0])||null;
+  }catch(e){ return; }
+  if(!ALERTS) return;                      // upozornění nejsou zapnutá
+  ALERT_NO_PROV=!("providers" in ALERTS);
+  renderPushUI();
   const h=alertHoldings();
   if(JSON.stringify(h)===JSON.stringify(ALERTS.holdings||[])) return;
   try{ await saveAlerts({holdings:h}); }catch(e){}

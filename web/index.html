@@ -772,10 +772,11 @@ tr.grp-item td:first-child{padding-left:14px;} tr.grp-item{background:var(--surf
 <script>
 /* ================= KONFIGURACE ================= */
 const APP_VERSION = "2.1 (14. 6. 2026) — administrace";
-const FOOTER_VERSION = "v3.26 · 7. 10. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
+const FOOTER_VERSION = "v3.27 · 7. 10. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
 
 // Seznam změn — nejnovější nahoře. Při každé úpravě appky sem přidat řádek.
 const CHANGELOG = [
+  {v:"v3.27", d:"7. 10. 2026", items:["Graf Zisk ukazuje zisk za vybrané období — začíná nulou a končí přesně částkou nad grafem (třeba „zisk za posledních 6 měsíců“). Dřív kreslil celkový zisk od prvního nákupu, takže osa s částkou nad grafem nesouhlasila; celkový zisk je dál v Celkem P/L a v období Max","Osy všech grafů (portfolio i detail titulu) mají kulaté hodnoty — 0, 250 tis., 500 tis., 750 tis. místo 271 tis. nebo 812 tis. — a u všech popisků stejný počet desetinných míst"]},
   {v:"v3.26", d:"7. 10. 2026", items:["Rychlejší import: po nahrání výpisu se ceny všech titulů nestahují znovu — dohledají se jen nové tituly a obrazovka zůstane vidět (točí se jen ⟳). Když výpis nepřinese nic nového, appka nic nepřenačítá a napíše „Nic nového — všech N transakcí už v appce je“"]},
   {v:"v3.25", d:"7. 10. 2026", items:["Oprava: appka načítala nejvýš 1 000 transakcí — nejnovější obchody nad tento počet chyběly v pozicích, hotovosti, zisku i v upozorněních (třeba nákup SPGI 6. 10.). Transakce se teď načítají všechny"]},
   {v:"v3.24", d:"2. 10. 2026", items:["Oprava upozornění: appka otevřená na jiném zařízení (třeba v prohlížeči na Macu) po návratu přepsala výběr brokerů starou kopií nastavení, takže chodily notifikace i za odškrtnuté brokery. Nastavení se teď před každou aktualizací načte znovu a ukládá se jen to, co se opravdu změnilo"]},
@@ -2304,7 +2305,9 @@ function render(){
     const ch = periodChange(s, periodDays(curPeriod));
     setHeroChange(ch);
     drawDailyChart(s, ch ? ch.fromIdx : 0);
-    $("#chartNote").textContent="";
+    const od = ch && CAL[Math.max(ch.fromIdx, firstNonZero(s.value))];
+    $("#chartNote").textContent = chartMode==="profit" && od && curPeriod!=="MAX"
+      ? `Zisk od ${od.slice(8,10).replace(/^0/,"")}. ${od.slice(5,7).replace(/^0/,"")}. ${od.slice(0,4)} — celkový zisk je v Celkem P/L.` : "";
   }
   renderView();
 }
@@ -2434,7 +2437,11 @@ function drawDailyChart(s, fromIdx){
   const fmt = d=>{ const dt=new Date(d+"T12:00:00"); return dt.getDate()+". "+(dt.getMonth()+1)+"."; };
   const fmtTip = d=>{ const dt=new Date(d+"T12:00:00"); return dt.getDate()+". "+(dt.getMonth()+1)+". "+dt.getFullYear(); };
   if(chartMode==="profit"){
-    const profit = s.value.slice(start).map((v,k)=>v - s.invested[start+k]);
+    // Zisk za vybrané období — od nuly na jeho začátku, takže poslední bod je přesně
+    // číslo nad grafem („zisk za posledních 6 měsíců“). Dřív graf ukazoval celkový
+    // zisk od prvního nákupu a osa se s částkou nad grafem neshodovala.
+    const p0 = s.value[start] - s.invested[start];
+    const profit = s.value.slice(start).map((v,k)=>v - s.invested[start+k] - p0);
     drawChart($("#chart"), labels, profit, {fmtX:fmt, fmtTip, refLine:0, isProfit:true});
   } else {
     drawChart($("#chart"), labels, s.value.slice(start), {invested:s.invested.slice(start), fmtX:fmt, fmtTip, fillGap:true});
@@ -2498,23 +2505,32 @@ async function renderIntraday(silent){
   }
 }
 
+/* ---- osa grafů: kulatý krok a desetinná místa ---- */
+function niceStep(raw){
+  if(!(raw>0)) return 1;
+  const p=Math.pow(10,Math.floor(Math.log10(raw))), m=raw/p;
+  return (m<=1?1:m<=2?2:m<=2.5?2.5:m<=5?5:10)*p;
+}
+// kolik desetinných míst potřebuje krok mřížky v dané jednotce (2,5 tis. → 1)
+function axisDec(st, unit=1){
+  for(let d=0; d<=4; d++){ const x=st/unit*Math.pow(10,d); if(Math.abs(x-Math.round(x))<1e-6*Math.max(1,x)) return d; }
+  return 4;
+}
+const axisNum=(v,d)=>v.toLocaleString("cs-CZ",{minimumFractionDigits:d, maximumFractionDigits:d});
+
 /* ---- obecné kreslení čárového grafu ---- */
 function drawChart(el, labels, value, o){
   o=o||{};
   const invested=o.invested||null, fmtX=o.fmtX||(x=>String(x)), refLine=o.refLine, isProfit=o.isProfit;
   const fmtV=o.fmtV||fmtKc;
-  const defAxis = v => {
+  // Popisky osy: jednotka podle největší hodnoty na ose (všechny popisky stejně),
+  // desetinná místa podle kroku mřížky — „1,25 mil.“, ne dvakrát „1,3 mil.“
+  const defAxis = (v, st) => {
     if(PRIVATE) return MASK;
-    const a=Math.abs(v), s=v<0?"−":"";
-    // Počet desetinných míst podle rozestupu čar — u plochého dne (rozpětí v řádu
-    // tisíců) by dvě desetinná místa v milionech daly dvakrát stejný popisek.
-    const krok=Math.abs(hi-lo)/3;
-    if(a>=1e6){
-      const dec = krok>=1e5 ? 1 : krok>=1e4 ? 2 : krok>=1e3 ? 3 : 4;
-      return s+(a/1e6).toLocaleString("cs-CZ",{minimumFractionDigits:dec, maximumFractionDigits:dec})+" mil.";
-    }
-    if(a>=1e4) return s+Math.round(a/1e3).toLocaleString("cs-CZ")+" tis.";
-    return s+Math.round(a).toLocaleString("cs-CZ")+" Kč";
+    const top=Math.max(Math.abs(hi),Math.abs(lo));
+    const [u,suf] = top>=1e6 ? [1e6," mil."] : top>=1e4 ? [1e3," tis."] : [1," Kč"];
+    if(Math.abs(v)<st*1e-6) return "0 Kč";
+    return (v<0?"−":"")+axisNum(Math.abs(v)/u, axisDec(st,u))+suf;
   };
   const fmtAxis = PRIVATE ? (()=>MASK) : (o.fmtAxis||defAxis);
   el.style.position="relative";
@@ -2535,17 +2551,30 @@ function drawChart(el, labels, value, o){
     const half=minSpan/2;
     lo=mid-half; hi=mid+half;
   }
-  const pad=(hi-lo)*0.08; lo-=pad; hi+=pad;
+  const pad=(hi-lo)*0.04; lo-=pad; hi+=pad;
   if(lo0>=0 && lo<0) lo=0;
+  // Mřížka po „kulatém“ kroku (1, 2, 2,5, 5 × 10ⁿ) a okraje osy na jeho násobcích —
+  // čáry tak leží na čitelných hodnotách (0, 250 tis., 500 tis., 750 tis.).
+  // Z kandidátních kroků vybereme ten, u kterého osa zabere nejmíň prázdného místa
+  // (3–6 čar), ať graf nevisí ve spodní polovině osy „0–3 mil.“ s hodnotami do 2 mil.
+  let best=null;
+  for(let t=2; t<=6; t++){
+    const st=niceStep((hi-lo)/t), a=Math.floor(lo/st+1e-9)*st, z=Math.ceil(hi/st-1e-9)*st, n=Math.round((z-a)/st);
+    if(n<2 || n>5) continue;
+    if(!best || z-a < best.z-best.a - 1e-9 || (Math.abs((z-a)-(best.z-best.a))<1e-9 && n<best.n)) best={st,a,z,n};
+  }
+  if(!best){ const st=niceStep((hi-lo)/3); best={st, a:Math.floor(lo/st+1e-9)*st, z:Math.ceil(hi/st-1e-9)*st}; best.n=Math.round((best.z-best.a)/st); }
+  const step=best.st; lo=best.a; hi=best.z;
+  const nGrid=best.n;
   const X=i=>pL+(W-pL-pR)*i/(value.length-1);
   const Y=v=>pT+(H-pT-pB)*(1-(v-lo)/(hi-lo));
   const path=a=>a.map((v,i)=>(i?"L":"M")+X(i).toFixed(1)+","+Y(v).toFixed(1)).join("");
   const up = value[value.length-1] >= (refLine!=null?refLine:value[0]);
   const col = o.color || (up ? "var(--green)" : "var(--red)");
   let svg = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">`;
-  for(let g=0;g<4;g++){ const y=pT+(H-pT-pB)*g/3;
+  for(let g=0;g<=nGrid;g++){ const gv=hi-step*g, y=Y(gv);
     svg+=`<line x1="${pL}" y1="${y}" x2="${W-pR}" y2="${y}" stroke="var(--border)" stroke-width="1"/>`;
-    svg+=`<text x="${pL}" y="${y-4}" font-size="11" fill="var(--faint)" class="num">${fmtAxis(hi-(hi-lo)*g/3)}</text>`;
+    svg+=`<text x="${pL}" y="${y-4}" font-size="11" fill="var(--faint)" class="num">${fmtAxis(gv, step)}</text>`;
   }
   if(refLine!=null) svg+=`<line x1="${pL}" y1="${Y(refLine)}" x2="${W-pR}" y2="${Y(refLine)}" stroke="var(--faint)" stroke-width="1" stroke-dasharray="3,4"/>`;
   // Výplň = mezera mezi hodnotou a vloženým, tedy zisk. Jen u hlavního grafu
@@ -3878,9 +3907,10 @@ async function renderHistChart(txs, cur){
       const spxCh=spxPct[spxPct.length-1];
       pctEl.innerHTML=`<span class="${cls(chPct)}">${escapeHtml(histState.ticker)} ${fmtPct(chPct)}</span> · <span class="${cls(spxCh)}">S&P 500 ${fmtPct(spxCh)}</span>`;
       const pf=v=>fmtNum(v,1)+" %";
+      const pfAx=(v,st)=>(v<-st*1e-6?"−":"")+axisNum(Math.abs(v), axisDec(st))+" %";
       const fmtL=x=>{ const dt=new Date(x+"T12:00:00"); return dt.getDate()+". "+(dt.getMonth()+1)+"."; };
       const fmtTipL=x=>{ const dt=new Date(x+"T12:00:00"); return dt.getDate()+". "+(dt.getMonth()+1)+". "+dt.getFullYear(); };
-      drawChart($("#histChart"), labels, tickPct, {fmtX:fmtL, fmtTip:fmtTipL, fmtV:pf, fmtAxis:pf, color:"var(--accent)", invested:spxPct, refLine:0, height:200});
+      drawChart($("#histChart"), labels, tickPct, {fmtX:fmtL, fmtTip:fmtTipL, fmtV:pf, fmtAxis:pfAx, color:"var(--accent)", invested:spxPct, refLine:0, height:200});
       $("#histLegend").innerHTML=`<span style="color:var(--accent)">▬</span> ${escapeHtml(histState.ticker)} &nbsp;<span style="color:var(--inv)">┅</span> S&P 500 · výkonnost v % od začátku období`;
       return;
     }
@@ -3894,7 +3924,7 @@ async function renderHistChart(txs, cur){
     for(let j=0;j<labels.length;j++){ if(labels[j]>t.date){ mi=Math.max(0,j-1); break; } if(j===labels.length-1) mi=j; }
     markers.push({i:mi, v:t.price!=null?pN(t):vals[mi], color:t.type==="BUY"?"var(--green)":"var(--red)"});
   }
-  const axF=v=>fmtNum(v, Math.abs(v)>=100?0:2)+"\u00A0"+(CUR_SYM[cur]||cur||"");
+  const axF=(v,st)=>(v<-st*1e-6?"−":"")+axisNum(Math.abs(v), axisDec(st))+"\u00A0"+(CUR_SYM[cur]||cur||"");
   const fmt=x=>{ const dt=new Date(x+"T12:00:00"); return dt.getDate()+". "+(dt.getMonth()+1)+"."; };
   const fmtTip=x=>{ const dt=new Date(x+"T12:00:00"); return dt.getDate()+". "+(dt.getMonth()+1)+". "+dt.getFullYear(); };
   drawChart($("#histChart"), labels, vals, {fmtX:fmt, fmtTip, fmtV:v=>fmtCur(v,cur), fmtAxis:axF, color:"var(--accent)", markers, height:200});
@@ -3926,7 +3956,7 @@ async function renderHistChart1D(ticker, cur){
     pctEl.textContent=`${fmtPct(chPct)} dnes`;
     pctEl.className="num "+cls(chPct);
     const fmtT=t=>{ const dt=new Date(t*1000); return dt.getHours()+":"+String(dt.getMinutes()).padStart(2,"0"); };
-    const axF=v=>fmtNum(v, Math.abs(v)>=100?0:2)+"\u00A0"+(CUR_SYM[cur]||cur||"");
+    const axF=(v,st)=>(v<-st*1e-6?"−":"")+axisNum(Math.abs(v), axisDec(st))+"\u00A0"+(CUR_SYM[cur]||cur||"");
     drawChart(chartEl, labels, vals, {fmtX:fmtT, fmtV:v=>fmtCur(v,cur), fmtAxis:axF, color:"var(--accent)", height:200});
     $("#histLegend").textContent=`ceny v ${cur}`;
   }catch(e){

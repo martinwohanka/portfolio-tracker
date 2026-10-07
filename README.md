@@ -13,6 +13,7 @@ web/fortivio-*.png                    ikona aplikace (záložka prohlížeče, p
 web/manifest.json, web/sw.js          instalace na plochu a notifikace (Web Push)
 supabase/functions/price-alerts/      serverová funkce, která hlídá ceny a posílá notifikace
 supabase/upozorneni.sql               tabulky a plán spouštění pro upozornění
+supabase/import-zkratka.sql           schránka pro import výpisů zkratkou z iPhonu
 scripts/kontrola.mjs                  kontrola souboru před nasazením
 .github/workflows/deploy-ftp.yml      automatické nahrání na FTP při push
 ```
@@ -23,7 +24,7 @@ scripts/kontrola.mjs                  kontrola souboru před nasazením
 | --- | --- |
 | Přístup | mobil i počítač, světlý i tmavý režim, na iPhonu lze přidat na plochu |
 | Účty | přihlášení e-mailem (magic link nebo kód), bez hesla; přístup jen pro povolené e-maily, správa přímo v appce |
-| Brokeři | import CSV/XLSX výpisu z XTB, Revolut (vč. robo poradce), Degiro, Interactive Brokers, Trading 212, Revolut crypto a Freedom 24 |
+| Brokeři | import CSV/XLSX výpisu (i zkratkou z listu sdílení na iPhonu) z XTB, Revolut (vč. robo poradce), Degiro, Interactive Brokers, Trading 212, Revolut crypto a Freedom 24 |
 | Přehled | hodnota portfolia v čase, zisk (celkově i dnes), graf s výběrem období a porovnáním vůči vloženým prostředkům |
 | Pozice | aktuální držené tituly, ceny přes Yahoo Finance, P/E, denní pohyb vč. pre/after-marketu |
 | Watchlist | sledované tituly bez nákupu, cílové ceny s upozorněním, sdílení watchlistu mezi uživateli |

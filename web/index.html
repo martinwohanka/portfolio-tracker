@@ -347,6 +347,13 @@ tr.grp-item td:first-child{padding-left:14px;} tr.grp-item{background:var(--surf
 .push-row input[type=checkbox]{width:18px; height:18px; accent-color:var(--accent);}
 .push-num{width:76px; text-align:right;}
 .push-row .badge{margin-right:8px;}
+.inbox-field{display:grid; grid-template-columns:1fr auto; gap:6px; align-items:center; margin-bottom:8px; min-width:0;}
+.inbox-field label{grid-column:1/-1; font-size:12.5px; color:var(--muted);}
+.inbox-field input{min-width:0; width:100%; font:12px ui-monospace,SFMono-Regular,Menlo,monospace; background:var(--bg); color:var(--text);
+  border:1px solid var(--border); border-radius:8px; padding:7px 9px; text-overflow:ellipsis;}
+#inboxSetup ol{margin:6px 0 10px 20px; font-size:13px; color:var(--muted); line-height:1.55;}
+#inboxSetup ol b{color:var(--text); font-weight:600;}
+#inboxHistory .row{font-size:12.5px; color:var(--muted); margin-top:4px;}
 #pushProvs .push-row{color:var(--text);}
 #pushStatus .ok{color:var(--green);} #pushStatus .warn{color:var(--muted);}
 .setSel{background:var(--bg); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:6px 10px; font-size:13px; font-family:inherit;}
@@ -596,6 +603,18 @@ tr.grp-item td:first-child{padding-left:14px;} tr.grp-item{background:var(--surf
       <button class="btn" id="pushOff">Vypnout na tomto zařízení</button>
     </div>
 
+    <h2 style="font-size:16px; margin:22px 0 4px">Import zkratkou z iPhonu</h2>
+    <p style="font-size:13px; color:var(--muted); margin-bottom:10px">
+      Výpis z XTB, Revolutu nebo Freedom 24 pošleš do Fortivia rovnou z listu sdílení na iPhonu
+      (zkratka „Do Fortivia“). Appka ho sama naimportuje, jakmile ji otevřeš — bez vybírání souboru.</p>
+    <div id="inboxStatus" style="font-size:13.5px; margin-bottom:10px"></div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center">
+      <button class="btn" id="inboxNewKey">Vytvořit klíč pro zkratku</button>
+      <button class="btn" id="inboxDelKey" style="display:none">Zrušit klíč</button>
+    </div>
+    <div id="inboxSetup" style="display:none; margin-top:12px"></div>
+    <div id="inboxHistory" style="margin-top:10px"></div>
+
     <h2 style="font-size:16px; margin:22px 0 4px">Daňový podklad (ČR)</h2>
     <p style="font-size:13px; color:var(--muted); margin-bottom:10px">
       Přehled realizovaných prodejů (§10) s FIFO párováním nákupů, časovým testem 3 let a kontrolou limitu 100 000 Kč,
@@ -772,10 +791,11 @@ tr.grp-item td:first-child{padding-left:14px;} tr.grp-item{background:var(--surf
 <script>
 /* ================= KONFIGURACE ================= */
 const APP_VERSION = "2.1 (14. 6. 2026) — administrace";
-const FOOTER_VERSION = "v3.27 · 7. 10. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
+const FOOTER_VERSION = "v3.28 · 7. 10. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
 
 // Seznam změn — nejnovější nahoře. Při každé úpravě appky sem přidat řádek.
 const CHANGELOG = [
+  {v:"v3.28", d:"7. 10. 2026", items:["Import zkratkou z iPhonu: výpis z XTB, Revolutu nebo Freedom 24 pošleš do Fortivia rovnou z listu sdílení (zkratka „Do Fortivia“) a appka ho při otevření sama naimportuje — bez vybírání souboru. Nastavení a návod jsou v Nastavení → Import zkratkou z iPhonu","Když import ze zkratky najde nesoulad s pozicemi u brokera, ukáže podrobnosti v okně importu"]},
   {v:"v3.27", d:"7. 10. 2026", items:["Graf Zisk ukazuje zisk za vybrané období — začíná nulou a končí přesně částkou nad grafem (třeba „zisk za posledních 6 měsíců“). Dřív kreslil celkový zisk od prvního nákupu, takže osa s částkou nad grafem nesouhlasila; celkový zisk je dál v Celkem P/L a v období Max","Osy všech grafů (portfolio i detail titulu) mají kulaté hodnoty — 0, 250 tis., 500 tis., 750 tis. místo 271 tis. nebo 812 tis. — a u všech popisků stejný počet desetinných míst"]},
   {v:"v3.26", d:"7. 10. 2026", items:["Rychlejší import: po nahrání výpisu se ceny všech titulů nestahují znovu — dohledají se jen nové tituly a obrazovka zůstane vidět (točí se jen ⟳). Když výpis nepřinese nic nového, appka nic nepřenačítá a napíše „Nic nového — všech N transakcí už v appce je“"]},
   {v:"v3.25", d:"7. 10. 2026", items:["Oprava: appka načítala nejvýš 1 000 transakcí — nejnovější obchody nad tento počet chyběly v pozicích, hotovosti, zisku i v upozorněních (třeba nákup SPGI 6. 10.). Transakce se teď načítají všechny"]},
@@ -2695,7 +2715,7 @@ function renderView(){
   else if(v==="alokace") renderAlloc();
   else if(v==="transakce") renderTxTable();
   else if(v==="watchlist") renderWatchlist();
-  else if(v==="nastaveni"){ renderPushUI(); renderTickerMap(); renderCash(); renderCryptoReal(); renderProvOrder(); fillTaxYears(); }
+  else if(v==="nastaveni"){ renderPushUI(); renderInboxUI(); renderTickerMap(); renderCash(); renderCryptoReal(); renderProvOrder(); fillTaxYears(); }
 }
 let posSort = {key:"valCzk", dir:-1};
 const POS_COLS = [["ticker","Titul",""],["qty","Ks","r"],["avg","Prům. nákup. cena","r hide-m"],
@@ -3568,7 +3588,8 @@ function reconcileXtb(lots, incoming){
   }
   return {add, warn};
 }
-async function handleFiles(files){
+// opts.auto: import ze schránky (zkratka) — okno se neotevře, vrací souhrn pro checkInbox
+async function handleFiles(files, opts={}){
   const all=[]; const notes=[]; let skippedTotal=0; let roboDetekovano=false; const openLots=[]; let vykazu=0; const f24Pos=[];
   for(const f of files){
     try{
@@ -3632,6 +3653,10 @@ async function handleFiles(files){
   pendingImport=all;
   $("#importSummary").innerHTML=notes.join("");
   $("#impConfirm").style.display=all.length?"":"none";
+  $("#impCancel").textContent="Zrušit";
+  if(opts.auto) return {count:all.length, notes,
+    error: notes.filter(n=>n.includes("var(--red)")).map(n=>{ const d=document.createElement("div"); d.innerHTML=n; return d.textContent; }).join(" ") || null,
+    warn: notes.some(n=>/Nesoulad/.test(n))};
   $("#importModal").classList.add("open");
 }
 /* Párování dividend z výkazu zisků a ztrát Revolutu s dividendami, které už
@@ -3664,8 +3689,8 @@ function matchRevolutPnl(pnlRows, batch){
   }
   return out;
 }
-async function doImport(){
-  if(!pendingImport||!pendingImport.length) return;
+async function doImport(opts={}){
+  if(!pendingImport||!pendingImport.length) return "Ve výpisu nejsou žádné obchody.";
   // volba z importního okna: robo se ukládá pod vlastního brokera a tickery
   // se přeloží na evropské burzy (viz roboSymbol)
   const cil = $("#impTarget") ? $("#impTarget").value : null;
@@ -3758,10 +3783,12 @@ async function doImport(){
     }
     $("#importModal").classList.remove("open");
     const chybi=OPT.filter(c=>!cols[c] && uniq.some(r=>r[c]!=null && r[c]!==0));
-    if(pnlBezSloupce) toast("Výkaz zisků a ztrát nešel použít: v databázi chybí sloupec wht pro sraženou daň (viz CLAUDE.md).", 8000);
-    else if(chybi.length) toast(`Import hotový. Pro ${chybi.includes("wht")?"sraženou daň z dividend":"přesné částky v Kč u XTB"} je potřeba v databázi přidat sloupec ${chybi.join(" a ")}.`, 7000);
-    else if(!res.length && !upd.length) toast(`Nic nového — všech ${uniq.length} transakcí už v appce je.`, 5000);
-    else toast(`Importováno ${res.length} nových transakcí (${Math.max(0,uniq.length-res.length-upd.length)} duplicit přeskočeno${upd.length?`, ${upd.length} doplněno/opraveno`:""}).`, 5000);
+    let msg;
+    if(pnlBezSloupce) msg="Výkaz zisků a ztrát nešel použít: v databázi chybí sloupec wht pro sraženou daň (viz CLAUDE.md).";
+    else if(chybi.length) msg=`Import hotový. Pro ${chybi.includes("wht")?"sraženou daň z dividend":"přesné částky v Kč u XTB"} je potřeba v databázi přidat sloupec ${chybi.join(" a ")}.`;
+    else if(!res.length && !upd.length) msg=`Nic nového — všech ${uniq.length} transakcí už v appce je.`;
+    else msg=`Importováno ${res.length} nových transakcí (${Math.max(0,uniq.length-res.length-upd.length)} duplicit přeskočeno${upd.length?`, ${upd.length} doplněno/opraveno`:""}).`;
+    toast((opts.auto?"Výpis ze zkratky: ":"")+msg, 7000);
     // Po importu se ceny znovu nestahují: stačí ty z mezipaměti, dohledají se jen
     // nové tituly (nebo starší obchody, než pokrývá mezipaměť). Obsah zůstane vidět,
     // točí se jen ⟳. Když se nic nezměnilo, není co přepočítávat.
@@ -3771,8 +3798,13 @@ async function doImport(){
       try{ await refreshAll(false, false, quiet); }
       finally{ REFRESHING=false; PX_STALE_OK=false; $("#btnRefresh").classList.remove("busy"); }
     }
-  }catch(e){ showErr("Import selhal: "+e.message); }
-  $("#impConfirm").disabled=false; $("#impConfirm").textContent="Importovat";
+    $("#impConfirm").disabled=false; $("#impConfirm").textContent="Importovat";
+    return msg;
+  }catch(e){
+    showErr("Import selhal: "+e.message);
+    $("#impConfirm").disabled=false; $("#impConfirm").textContent="Importovat";
+    return "Import selhal: "+e.message;
+  }
 }
 
 
@@ -4448,6 +4480,125 @@ if("serviceWorker" in navigator) navigator.serviceWorker.addEventListener("messa
   if(e.data && e.data.type==="open") openFromPush(e.data.url);
 });
 
+/* ================= IMPORT ZKRATKOU (schránka) =================
+   Zkratka na iPhonu pošle soubor výpisu na /rest/v1/rpc/inbox_upload (SQL v
+   supabase/import-zkratka.sql) s hlavičkou x-import-token. Soubor se uloží do
+   import_inbox a appka ho při otevření / návratu do popředí naimportuje stejným
+   kódem jako ruční import. V databázi je jen otisk klíče; klíč si appka pamatuje
+   v tomto zařízení, aby šel znovu zkopírovat do zkratky. */
+let INBOX_ON=true, INBOX_BUSY=false;
+const INBOX_URL = () => `${CONFIG.SUPABASE_URL}/rest/v1/rpc/inbox_upload`;
+const sha256Hex = async t => [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(t)))].map(b=>b.toString(16).padStart(2,"0")).join("");
+const hexBytes = h => { h=String(h||"").replace(/^\\x/,""); const a=new Uint8Array(h.length/2); for(let i=0;i<a.length;i++) a[i]=parseInt(h.substr(i*2,2),16); return a; };
+const fmtWhen = iso => { const d=new Date(iso); return `${d.getDate()}. ${d.getMonth()+1}. ${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; };
+async function renderInboxUI(){
+  const st=$("#inboxStatus"); if(!st || !USER) return;
+  let keys=null, hist=[];
+  try{ keys=await sb(`import_tokens?select=token_hash,created_at,last_used&user_id=eq.${USER.id}&order=created_at.desc`); }
+  catch(e){ st.innerHTML='<span style="color:var(--faint)">Zatím nejde použít — v Supabase chybí tabulky (spusť supabase/import-zkratka.sql).</span>';
+    $("#inboxNewKey").disabled=true; return; }
+  $("#inboxNewKey").disabled=false;
+  try{ hist=await sb(`import_inbox?select=filename,created_at,processed_at,result&user_id=eq.${USER.id}&order=created_at.desc&limit=3`); }catch(e){}
+  const k=keys&&keys[0];
+  let local=lsGet("inboxKey", Infinity);
+  if(local && (!k || await sha256Hex(local)!==k.token_hash)) local=null;   // klíč z jiného zařízení / starý
+  st.innerHTML = k
+    ? `<span style="color:var(--green)">✓ Klíč vytvořen ${fmtWhen(k.created_at)}</span>${k.last_used?` · naposledy použit ${fmtWhen(k.last_used)}`:" · zatím nepoužit"}`
+    : '<span style="color:var(--muted)">Zatím nenastaveno.</span>';
+  $("#inboxNewKey").textContent = k ? "Vytvořit nový klíč" : "Vytvořit klíč pro zkratku";
+  $("#inboxDelKey").style.display = k ? "" : "none";
+  renderInboxSetup(k && local ? local : null, !!k);
+  $("#inboxHistory").innerHTML = hist.length ? '<div style="font-size:12.5px; color:var(--muted)">Poslední výpisy ze zkratky:</div>'+hist.map(h=>
+    `<div class="row">${fmtWhen(h.created_at)} · ${escapeHtml(h.filename||"výpis")} — ${h.processed_at?escapeHtml(h.result||"zpracováno"):"čeká na zpracování"}</div>`).join("") : "";
+}
+function renderInboxSetup(key, hasKey){
+  const box=$("#inboxSetup");
+  if(!key){ box.style.display = hasKey ? "" : "none";
+    box.innerHTML = hasKey ? '<p style="font-size:12.5px; color:var(--faint)">Klíč se dá zkopírovat jen v zařízení, kde vznikl. Pro nastavení zkratky na jiném zařízení vytvoř nový klíč (starý tím přestane platit).</p>' : "";
+    return; }
+  const f=(lbl,val,id)=>`<div class="inbox-field"><label>${lbl}</label><input readonly id="${id}" value="${escapeHtml(val)}"><button class="btn" data-copy="${id}">Kopírovat</button></div>`;
+  box.style.display="";
+  box.innerHTML = `
+    ${f("URL","" + INBOX_URL(),"ibUrl")}
+    ${f("Záhlaví <b>apikey</b>",CONFIG.SUPABASE_ANON_KEY,"ibApi")}
+    ${f("Záhlaví <b>x-import-token</b> (tvůj klíč — nikomu ho neposílej)",key,"ibTok")}
+    ${f("Záhlaví <b>Content-Type</b>","application/octet-stream","ibCt")}
+    <details><summary style="cursor:pointer; font-size:13px">Jak nastavit zkratku na iPhonu</summary>
+    <ol>
+      <li>Otevři aplikaci <b>Zkratky</b> → <b>+</b> a pojmenuj zkratku <b>Do Fortivia</b>.</li>
+      <li>Přidej akci <b>Získat obsah URL</b> (Get Contents of URL) a do adresy vlož <b>URL</b> výše.</li>
+      <li>V akci rozbal další volby: metoda <b>POST</b>, přidej tři <b>záhlaví</b> — apikey, x-import-token a Content-Type s hodnotami výše.</li>
+      <li><b>Tělo požadavku</b>: <b>Soubor</b> a vyber proměnnou <b>Vstup zkratky</b>.</li>
+      <li>Přidej akci <b>Zobrazit oznámení</b> a jako text vlož proměnnou <b>Obsah URL</b>.</li>
+      <li>V nastavení zkratky (ikona ⓘ) zapni <b>Zobrazit v listu sdílení</b> a jako vstup nech <b>Soubory</b>.</li>
+    </ol>
+    <p style="font-size:13px; color:var(--muted)">Pak už jen: výpis v XTB (nebo jinde) → <b>Sdílet</b> → <b>Do Fortivia</b> → oznámení „Výpis přijat“ → otevři Fortivio.</p></details>`;
+}
+$("#inboxSetup").addEventListener("click", async e=>{
+  const b=e.target.closest("[data-copy]"); if(!b) return;
+  const inp=$("#"+b.dataset.copy);
+  try{ await navigator.clipboard.writeText(inp.value); }
+  catch(err){ inp.select(); document.execCommand && document.execCommand("copy"); }
+  toast("Zkopírováno.");
+});
+$("#inboxNewKey").addEventListener("click", async ()=>{
+  const btn=$("#inboxNewKey");
+  if(btn.textContent.startsWith("Vytvořit nový") && !confirm("Vytvořit nový klíč? Starý tím přestane platit a ve zkratce bude potřeba ho vyměnit.")) return;
+  btn.disabled=true;
+  try{
+    const key=[...crypto.getRandomValues(new Uint8Array(24))].map(b=>b.toString(16).padStart(2,"0")).join("");
+    await sb(`import_tokens?user_id=eq.${USER.id}`, {method:"DELETE"});
+    await sb("import_tokens", {method:"POST", headers:{Prefer:"return=minimal"}, body:JSON.stringify([{token_hash:await sha256Hex(key), user_id:USER.id}])});
+    lsSet("inboxKey", key);
+    toast("Klíč vytvořen — zkopíruj hodnoty do zkratky.", 5000);
+  }catch(err){ showErr("Klíč se nepodařilo vytvořit: "+err.message); }
+  btn.disabled=false;
+  renderInboxUI();
+});
+$("#inboxDelKey").addEventListener("click", async ()=>{
+  if(!confirm("Zrušit klíč? Zkratka pak přestane fungovat.")) return;
+  try{ await sb(`import_tokens?user_id=eq.${USER.id}`, {method:"DELETE"}); try{ localStorage.removeItem("inboxKey"); }catch(e){} toast("Klíč zrušen."); }
+  catch(err){ showErr(err.message); }
+  renderInboxUI();
+});
+// Výpisy ze zkratky čekající ve schránce → stejný import jako ruční (bez okna)
+async function checkInbox(){
+  if(INBOX_BUSY || !INBOX_ON || !USER || document.hidden) return;
+  if($("#content").style.display==="none" || !TX.length) return;      // data ještě nejsou načtená
+  if($("#importModal").classList.contains("open")) return;            // rozdělaný ruční import
+  INBOX_BUSY=true;
+  try{
+    let rows;
+    try{ rows=await sb(`import_inbox?select=id,filename,content&processed_at=is.null&user_id=eq.${USER.id}&order=created_at.asc&limit=10`); }
+    catch(e){ INBOX_ON=false; return; }                                   // tabulka zatím není
+    for(const r of rows||[]){
+      for(let i=0; REFRESHING && i<100; i++) await new Promise(ok=>setTimeout(ok,300));   // dobíhající obnova dat
+      // zabrat řádek, ať ho současně nezpracuje druhé zařízení
+      const got=await sb(`import_inbox?id=eq.${r.id}&processed_at=is.null`, {method:"PATCH", headers:{Prefer:"return=representation"},
+        body:JSON.stringify({processed_at:new Date().toISOString()})}).catch(()=>null);
+      if(!got || !got.length) continue;
+      const bytes=hexBytes(r.content), zip=bytes[0]===0x50 && bytes[1]===0x4b;
+      let name=String(r.filename||"vypis").replace(/[\\/]/g,"_");
+      if(zip && !/\.xlsx?$/i.test(name)) name += ".xlsx";               // CSV pozná appka podle obsahu
+      let msg;
+      try{
+        const sum=await handleFiles([new File([bytes], name)], {auto:true});
+        if(sum.error && !sum.count){ msg=sum.error; showErr("Výpis ze zkratky: "+msg); }
+        else{
+          msg=await doImport({auto:true});
+          if(sum.warn){                                                    // nesoulad s pozicemi ukázat
+            $("#impConfirm").style.display="none"; $("#impCancel").textContent="Zavřít";
+            $("#importModal").classList.add("open");
+          }
+        }
+      }catch(e){ msg="Import selhal: "+e.message; showErr(msg); }
+      await sb(`import_inbox?id=eq.${r.id}`, {method:"PATCH", body:JSON.stringify({result:String(msg||"").slice(0,500), content:null})}).catch(()=>{});
+    }
+  }finally{ INBOX_BUSY=false; }
+  const av=$$("#viewNav button").find(b=>b.classList.contains("active"));
+  if(av && av.dataset.v==="nastaveni") renderInboxUI();
+}
+
 /* ================= LOAD & INIT ================= */
 async function loadAllData(){
   priceErrors=[]; META={}; DAILY={}; FX={}; SERIES={}; INTRA=null; EXT={};
@@ -4646,7 +4797,7 @@ $("#allocLegend").addEventListener("click",e=>{
   ALLOC_STATE.open = ALLOC_STATE.open===k ? null : k;
   redrawAllocLegend();
 });
-$("#impConfirm").addEventListener("click",doImport);
+$("#impConfirm").addEventListener("click",()=>doImport());
 $("#btnRefresh").addEventListener("click", async ()=>{
   if(REFRESHING) return;        // právě běží automatická obnova
   WPX={};
@@ -5080,7 +5231,7 @@ async function autoRefresh(){
     REFRESHING=false; $("#btnRefresh").classList.remove("busy");
   }
 }
-document.addEventListener("visibilitychange", ()=>{ if(!document.hidden) autoRefresh(); });
+document.addEventListener("visibilitychange", ()=>{ if(!document.hidden){ autoRefresh(); setTimeout(checkInbox, 400); } });
 window.addEventListener("pageshow", e=>{ if(e.persisted) autoRefresh(); });
 window.addEventListener("online", ()=>autoRefresh());
 
@@ -5149,6 +5300,7 @@ async function boot(){
   applySettings();
   render();
   if(location.search.includes("t=")) openFromPush(location.href);   // otevřeno klepnutím na notifikaci
+  checkInbox();                   // výpisy poslané zkratkou
   // onboarding: žádné transakce -> uvítací overlay
   if(!TX.length) $("#onboard").classList.add("open");
   else checkTargetAlerts();          // watchlist: upozornění na dosažené cílové ceny

@@ -145,6 +145,22 @@ Pokud odpověď obsahuje `"source":"@supabase/server"`, běží v Supabase vých
 Jestli běží cron, ukáže Supabase → Edge Functions → price-alerts → Logs
 (volání každých 5 minut se stavem 200).
 
+## Import zkratkou z iPhonu (schránka)
+
+Od v3.28. Zkratka „Do Fortivia“ v listu sdílení pošle soubor výpisu beze změny
+(`Content-Type: application/octet-stream`) na `/rest/v1/rpc/inbox_upload` s hlavičkami
+`apikey` (veřejný klíč) a `x-import-token`. SQL funkce (`supabase/import-zkratka.sql`,
+security definer) ověří otisk klíče v `import_tokens` a uloží soubor do `import_inbox`.
+Appka (sekce IMPORT ZKRATKOU) při startu a po návratu do popředí zavolá `checkInbox()`:
+řádek nejdřív „zabere“ (PATCH `processed_at` jen když je null — kvůli dvěma zařízením),
+pak ho naimportuje **stejným kódem jako ruční import** (`handleFiles(…, {auto:true})`
++ `doImport({auto:true})`) a uloží výsledek do `result`, obsah smaže.
+
+- Parsování výpisů je jen v appce — server nic neparsuje, nic se nezdvojuje.
+- V databázi je jen SHA-256 otisk klíče; klíč si appka pamatuje v `localStorage`
+  zařízení, kde vznikl (aby šel znovu zkopírovat). Nový klíč starý zneplatní.
+- Bez tabulek sekce v Nastavení napíše, že je potřeba spustit SQL, a schránka se nekontroluje.
+
 ## Kontrola po každé změně
 
 Po nasazení každé změny `web/index.html` je potřeba:

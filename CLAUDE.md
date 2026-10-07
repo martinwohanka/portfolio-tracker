@@ -27,6 +27,13 @@ CI/FTP workflow, `scripts/kontrola.mjs` apod.), do changelogu nepatří.
 
 Před commitem vždy spustit `node scripts/kontrola.mjs`.
 
+## Limit 1 000 řádků v Supabase
+
+Supabase (PostgREST, nastavení „Max rows“) vrátí na jeden dotaz nejvýš 1 000 řádků
+— bez chyby, zbytek prostě chybí, i když dotaz má `limit=20000`. Transakce se proto
+načítají po stránkách (`loadTx`, od v3.25). Každý nový dotaz na tabulku, která může
+přerůst 1 000 řádků, musí stránkovat (`limit` + `offset`, stabilní `order` včetně `id`).
+
 ## Přidání nového brokera
 
 Seznam brokerů není jen v appce — tabulka `transactions` v Supabase má na

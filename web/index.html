@@ -772,10 +772,11 @@ tr.grp-item td:first-child{padding-left:14px;} tr.grp-item{background:var(--surf
 <script>
 /* ================= KONFIGURACE ================= */
 const APP_VERSION = "2.1 (14. 6. 2026) — administrace";
-const FOOTER_VERSION = "v3.24 · 2. 10. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
+const FOOTER_VERSION = "v3.25 · 7. 10. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
 
 // Seznam změn — nejnovější nahoře. Při každé úpravě appky sem přidat řádek.
 const CHANGELOG = [
+  {v:"v3.25", d:"7. 10. 2026", items:["Oprava: appka načítala nejvýš 1 000 transakcí — nejnovější obchody nad tento počet chyběly v pozicích, hotovosti, zisku i v upozorněních (třeba nákup SPGI 6. 10.). Transakce se teď načítají všechny"]},
   {v:"v3.24", d:"2. 10. 2026", items:["Oprava upozornění: appka otevřená na jiném zařízení (třeba v prohlížeči na Macu) po návratu přepsala výběr brokerů starou kopií nastavení, takže chodily notifikace i za odškrtnuté brokery. Nastavení se teď před každou aktualizací načte znovu a ukládá se jen to, co se opravdu změnilo"]},
   {v:"v3.23", d:"1. 10. 2026", items:["Upozornění na pohyb cen: v Nastavení jde vybrat, u kterých brokerů se mají pozice hlídat — tituly i „portfolio dnes“ se pak počítají jen z nich. Watchlist se hlídá dál podle vlastního přepínače"]},
   {v:"v3.22", d:"1. 10. 2026", items:["Upozornění na pohyb cen (Nastavení → Upozornění na pohyb cen): notifikace do telefonu, když se titul z pozic nebo watchlistu pohne proti včerejšímu závěru o víc než nastavené procento (výchozí 2 %), i v pre-marketu a after-hours, a když se o víc pohne celé portfolio. Hlídá se každých 5 minut v pracovní dny, každý titul se za den ohlásí jen jednou na každé úrovni (2 %, 4 %, 6 %…)","Klepnutí na notifikaci otevře detail titulu","Na iPhonu fungují upozornění v appce otevřené z ikony na ploše — ikonu přidanou dřív je potřeba odebrat a přidat znovu"]},
@@ -1121,7 +1122,20 @@ async function currentSession(){
   return null;
 }
 async function logout(){ await sbClient().auth.signOut(); location.reload(); }
-const loadTx = () => sb("transactions?select=*&order=date.asc&limit=20000");
+/* Supabase vrátí na jeden dotaz nejvýš 1 000 řádků (nastavení „Max rows“) — bez chyby,
+   zbytek prostě chybí. S víc transakcemi se tak nenačetly ty nejnovější (nákup SPGI
+   6. 10. 2026 v appce nebyl, hotovost neseděla). Načítáme proto po stránkách, dokud
+   nepřijde prázdná; řazení i podle id, aby se stránky nepřekrývaly ani nevynechávaly. */
+async function loadTx(){
+  const all=[];
+  for(let off=0;;){
+    const page=await sb(`transactions?select=*&order=date.asc,id.asc&limit=1000&offset=${off}`);
+    if(!page || !page.length) break;
+    all.push(...page); off+=page.length;
+    if(off>200000) break;     // pojistka
+  }
+  return all;
+}
 const insertTx = rows => sb("transactions?on_conflict=user_id,import_hash", {
   method:"POST",
   headers:{Prefer:"resolution=ignore-duplicates,return=representation"},

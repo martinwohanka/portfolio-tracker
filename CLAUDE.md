@@ -160,6 +160,12 @@ pak ho naimportuje **stejným kódem jako ruční import** (`handleFiles(…, {a
 - V databázi je jen SHA-256 otisk klíče; klíč si appka pamatuje v `localStorage`
   zařízení, kde vznikl (aby šel znovu zkopírovat). Nový klíč starý zneplatní.
 - Bez tabulek sekce v Nastavení napíše, že je potřeba spustit SQL, a schránka se nekontroluje.
+- **Stav: nasazeno a funguje (7. 10. 2026).** SQL je spuštěné, zkratka na iPhonu
+  (iOS 27) poslala výpis a appka ho naimportovala. V iOS 27 se akce jmenuje
+  „Načíst obsah“; častá chyba je proměnná „Vstup zkratky“ v poli URL místo adresy
+  a nepovolený přístup k supabase.co (ⓘ → Soukromí). Ověření bez přihlášení:
+  `curl -X POST …/rest/v1/rpc/inbox_upload -H "apikey: $ANON" -H 'Content-Type: application/octet-stream' --data-binary @soubor`
+  → 400 „Chybí klíč pro import“ = funkce běží.
 
 ## Kontrola po každé změně
 

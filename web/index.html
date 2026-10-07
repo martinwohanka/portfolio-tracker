@@ -772,10 +772,11 @@ tr.grp-item td:first-child{padding-left:14px;} tr.grp-item{background:var(--surf
 <script>
 /* ================= KONFIGURACE ================= */
 const APP_VERSION = "2.1 (14. 6. 2026) — administrace";
-const FOOTER_VERSION = "v3.25 · 7. 10. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
+const FOOTER_VERSION = "v3.26 · 7. 10. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
 
 // Seznam změn — nejnovější nahoře. Při každé úpravě appky sem přidat řádek.
 const CHANGELOG = [
+  {v:"v3.26", d:"7. 10. 2026", items:["Rychlejší import: po nahrání výpisu se ceny všech titulů nestahují znovu — dohledají se jen nové tituly a obrazovka zůstane vidět (točí se jen ⟳). Když výpis nepřinese nic nového, appka nic nepřenačítá a napíše „Nic nového — všech N transakcí už v appce je“"]},
   {v:"v3.25", d:"7. 10. 2026", items:["Oprava: appka načítala nejvýš 1 000 transakcí — nejnovější obchody nad tento počet chyběly v pozicích, hotovosti, zisku i v upozorněních (třeba nákup SPGI 6. 10.). Transakce se teď načítají všechny"]},
   {v:"v3.24", d:"2. 10. 2026", items:["Oprava upozornění: appka otevřená na jiném zařízení (třeba v prohlížeči na Macu) po návratu přepsala výběr brokerů starou kopií nastavení, takže chodily notifikace i za odškrtnuté brokery. Nastavení se teď před každou aktualizací načte znovu a ukládá se jen to, co se opravdu změnilo"]},
   {v:"v3.23", d:"1. 10. 2026", items:["Upozornění na pohyb cen: v Nastavení jde vybrat, u kterých brokerů se mají pozice hlídat — tituly i „portfolio dnes“ se pak počítají jen z nich. Watchlist se hlídá dál podle vlastního přepínače"]},
@@ -956,6 +957,7 @@ const CONFIG = {
 // PX_MAX_AGE: ceny starší než 5 minut se při načítání stáhnou znovu; appka se po
 // návratu z pozadí (iPhone) sama obnoví, když byla data načtená před víc než AUTO_REFRESH_AFTER
 const PX_MAX_AGE = 5*60*1000, AUTO_REFRESH_AFTER = 5*60*1000;
+let PX_STALE_OK = false;     // po importu: ceny z mezipaměti bez ohledu na stáří
 const PRICE_TTL = 15*60*1000, FX_TTL = 6*60*60*1000, WPX_TTL = 5*60*1000;
 
 /* ================= STAV ================= */
@@ -1589,7 +1591,7 @@ function pickRange(firstDate){
   return days<330?"1y" : days<700?"2y" : days<1780?"5y" : days<3600?"10y" : "max";
 }
 async function loadDaily(ticker, firstDate){
-  const c = lsGet(`px:${ticker}`, PX_MAX_AGE);
+  const c = lsGet(`px:${ticker}`, PX_STALE_OK ? Infinity : PX_MAX_AGE);
   if(c && c.firstDate<=firstDate && c.series.dates.length) { META[ticker]=c.meta; DAILY[ticker]=c.series; return; }
   const d = await fetchDaily(ticker, firstDate);
   META[ticker]=d.meta; DAILY[ticker]=d.series;
@@ -3729,8 +3731,17 @@ async function doImport(){
     const chybi=OPT.filter(c=>!cols[c] && uniq.some(r=>r[c]!=null && r[c]!==0));
     if(pnlBezSloupce) toast("Výkaz zisků a ztrát nešel použít: v databázi chybí sloupec wht pro sraženou daň (viz CLAUDE.md).", 8000);
     else if(chybi.length) toast(`Import hotový. Pro ${chybi.includes("wht")?"sraženou daň z dividend":"přesné částky v Kč u XTB"} je potřeba v databázi přidat sloupec ${chybi.join(" a ")}.`, 7000);
+    else if(!res.length && !upd.length) toast(`Nic nového — všech ${uniq.length} transakcí už v appce je.`, 5000);
     else toast(`Importováno ${res.length} nových transakcí (${Math.max(0,uniq.length-res.length-upd.length)} duplicit přeskočeno${upd.length?`, ${upd.length} doplněno/opraveno`:""}).`, 5000);
-    await refreshAll(true);
+    // Po importu se ceny znovu nestahují: stačí ty z mezipaměti, dohledají se jen
+    // nové tituly (nebo starší obchody, než pokrývá mezipaměť). Obsah zůstane vidět,
+    // točí se jen ⟳. Když se nic nezměnilo, není co přepočítávat.
+    if(res.length || upd.length){
+      const quiet = $("#content").style.display!=="none";      // první import: klasické načítání
+      REFRESHING=true; PX_STALE_OK=true; $("#btnRefresh").classList.add("busy");
+      try{ await refreshAll(false, false, quiet); }
+      finally{ REFRESHING=false; PX_STALE_OK=false; $("#btnRefresh").classList.remove("busy"); }
+    }
   }catch(e){ showErr("Import selhal: "+e.message); }
   $("#impConfirm").disabled=false; $("#impConfirm").textContent="Importovat";
 }

@@ -791,10 +791,11 @@ tr.grp-item td:first-child{padding-left:14px;} tr.grp-item{background:var(--surf
 <script>
 /* ================= KONFIGURACE ================= */
 const APP_VERSION = "2.1 (14. 6. 2026) — administrace";
-const FOOTER_VERSION = "v3.28 · 7. 10. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
+const FOOTER_VERSION = "v3.29 · 7. 10. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
 
 // Seznam změn — nejnovější nahoře. Při každé úpravě appky sem přidat řádek.
 const CHANGELOG = [
+  {v:"v3.29", d:"7. 10. 2026", items:["Návod na zkratku „Do Fortivia“ odpovídá iOS 27: akce se jmenuje „Načíst obsah“, další volby se rozbalí šipkou za adresou, v poli adresy nesmí být „Vstup zkratky“ a při prvním spuštění je potřeba povolit přístup k supabase.co"]},
   {v:"v3.28", d:"7. 10. 2026", items:["Import zkratkou z iPhonu: výpis z XTB, Revolutu nebo Freedom 24 pošleš do Fortivia rovnou z listu sdílení (zkratka „Do Fortivia“) a appka ho při otevření sama naimportuje — bez vybírání souboru. Nastavení a návod jsou v Nastavení → Import zkratkou z iPhonu","Když import ze zkratky najde nesoulad s pozicemi u brokera, ukáže podrobnosti v okně importu"]},
   {v:"v3.27", d:"7. 10. 2026", items:["Graf Zisk ukazuje zisk za vybrané období — začíná nulou a končí přesně částkou nad grafem (třeba „zisk za posledních 6 měsíců“). Dřív kreslil celkový zisk od prvního nákupu, takže osa s částkou nad grafem nesouhlasila; celkový zisk je dál v Celkem P/L a v období Max","Osy všech grafů (portfolio i detail titulu) mají kulaté hodnoty — 0, 250 tis., 500 tis., 750 tis. místo 271 tis. nebo 812 tis. — a u všech popisků stejný počet desetinných míst"]},
   {v:"v3.26", d:"7. 10. 2026", items:["Rychlejší import: po nahrání výpisu se ceny všech titulů nestahují znovu — dohledají se jen nové tituly a obrazovka zůstane vidět (točí se jen ⟳). Když výpis nepřinese nic nového, appka nic nepřenačítá a napíše „Nic nového — všech N transakcí už v appce je“"]},
@@ -4526,11 +4527,14 @@ function renderInboxSetup(key, hasKey){
     <details><summary style="cursor:pointer; font-size:13px">Jak nastavit zkratku na iPhonu</summary>
     <ol>
       <li>Otevři aplikaci <b>Zkratky</b> → <b>+</b> a pojmenuj zkratku <b>Do Fortivia</b>.</li>
-      <li>Přidej akci <b>Získat obsah URL</b> (Get Contents of URL) a do adresy vlož <b>URL</b> výše.</li>
-      <li>V akci rozbal další volby: metoda <b>POST</b>, přidej tři <b>záhlaví</b> — apikey, x-import-token a Content-Type s hodnotami výše.</li>
-      <li><b>Tělo požadavku</b>: <b>Soubor</b> a vyber proměnnou <b>Vstup zkratky</b>.</li>
+      <li>V <b>Hledat akce</b> najdi <b>Načíst obsah</b> (ve starším iOS „Získat obsah URL“) a za „Načíst obsah“ vlož <b>URL</b> výše.
+        Pozor: v tomhle poli musí být jen adresa — když se tam vloží proměnná „Vstup zkratky“, smaž ji.</li>
+      <li>Klepni na šipku v kroužku <b>›</b> za adresou: <b>Metoda</b> přepni na <b>POST</b> a v <b>Záhlaví</b> přidej tři položky — apikey, x-import-token a Content-Type s hodnotami výše.</li>
+      <li><b>Tělo požadavku</b>: <b>Soubor</b>, a do pole <b>Soubor</b> vyber proměnnou <b>Vstup zkratky</b>.</li>
       <li>Přidej akci <b>Zobrazit oznámení</b> a jako text vlož proměnnou <b>Obsah URL</b>.</li>
-      <li>V nastavení zkratky (ikona ⓘ) zapni <b>Zobrazit v listu sdílení</b> a jako vstup nech <b>Soubory</b>.</li>
+      <li>Ikona <b>ⓘ</b> → zapni <b>Zobrazit v listu sdílení</b>. V prvním bloku „Přijmout vstup typu“ nech jen <b>Soubory</b>.</li>
+      <li>Vyzkoušej ze sdílení (ne tlačítkem ▶ v editoru): <b>Soubory</b> → výpis → <b>Sdílet</b> → <b>Do Fortivia</b>.
+        Při prvním spuštění povol přístup k supabase.co (<b>Vždy povolit</b>). Kdyby zkratka hlásila nastavení soukromí: <b>ⓘ</b> → <b>Soukromí</b> a přístup povol.</li>
     </ol>
     <p style="font-size:13px; color:var(--muted)">Pak už jen: výpis v XTB (nebo jinde) → <b>Sdílet</b> → <b>Do Fortivia</b> → oznámení „Výpis přijat“ → otevři Fortivio.</p></details>`;
 }

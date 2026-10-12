@@ -9,6 +9,10 @@
 // Každý titul se za den ohlásí jen jednou na každé úrovni (2 %, 4 %, 6 %…),
 // pamatuje si to tabulka alert_log.
 //
+// Cílové ceny z watchlistu: když cena titulu dosáhne cíle (směr podle ceny při
+// nastavení cíle, stejně jako v appce), přijde jedna notifikace na každý cíl —
+// znovu až po změně cíle. Hlídá se i bez přepínače „Hlídat i watchlist“.
+//
 // Akce (POST {action}):
 //   vapid — veřejný klíč pro přihlášení k odběru (klíče se vytvoří samy při prvním volání)
 //   test  — zkušební notifikace přihlášenému uživateli s přehledem, co se hlídá
@@ -169,8 +173,9 @@ async function evaluate(onlyUser: string | null, opts: { dry?: boolean; ignoreWi
   const subs: any[] = await db(`push_subs?select=*${uf}`);
   const users = settings.filter((s) => subs.some((x) => x.user_id === s.user_id));
   if (!users.length) return { users: [] as any[], subs, quotes: 0 };
-  const wl: { user_id: string; ticker: string }[] = users.some((s) => s.watchlist)
-    ? await db(`watchlist?select=user_id,ticker${uf}`) : [];
+  // watchlist vždy — kvůli cílovým cenám (pohyby jen s přepínačem „Hlídat i watchlist“)
+  const wl: any[] = await db(`watchlist?select=*${uf}`);
+  const ownTargets = (u: string) => wl.filter((w) => w.user_id === u && w.ticker && !w.ticker.startsWith("!") && w.target != null && +w.target > 0);
 
   // seznam titulů za všechny uživatele (každý se stahuje jen jednou)
   const want = new Map<string, Set<string>>(); // user -> symboly
@@ -179,7 +184,7 @@ async function evaluate(onlyUser: string | null, opts: { dry?: boolean; ignoreWi
     if (s.watchlist) for (const w of wl) if (w.user_id === s.user_id && w.ticker && !w.ticker.startsWith("!")) set.add(w.ticker);
     want.set(s.user_id, set);
   }
-  const all = [...new Set([...want.values()].flatMap((x) => [...x]))];
+  const all = [...new Set([...[...want.values()].flatMap((x) => [...x]), ...users.flatMap((s) => ownTargets(s.user_id).map((w) => w.ticker))])];
   const now = Date.now() / 1000;
   const Q = new Map<string, Quote>();
   (await pool(all, 8, (s) => quote(s, now))).forEach((q, i) => { if (q) Q.set(all[i], q); });
@@ -191,6 +196,9 @@ async function evaluate(onlyUser: string | null, opts: { dry?: boolean; ignoreWi
   const since = new Date(Date.now() - 3 * 864e5).toISOString().slice(0, 10);
   const logRows: any[] = await db(`alert_log?select=*&day=gte.${since}${uf}`);
   const LOG = new Map(logRows.map((r) => [`${r.user_id}|${r.ticker}|${r.day}`, r.lvl as number]));
+  // ohlášené cíle (klíč T:ticker@cíl) — mimo třídenní okno, mažou se až se změnou cíle
+  const tgtRows: any[] = await db(`alert_log?select=user_id,ticker&ticker=like.T:*${uf}`);
+  const TGT = new Set(tgtRows.map((r) => `${r.user_id}|${r.ticker}`));
   const isNew = (u: string, k: string, day: string, lvl: number) => {
     const p = LOG.get(`${u}|${k}|${day}`);
     return !p || Math.sign(p) !== Math.sign(lvl) || Math.abs(lvl) > Math.abs(p);
@@ -226,6 +234,23 @@ async function evaluate(onlyUser: string | null, opts: { dry?: boolean; ignoreWi
         body: `${pxS(h.q.price, h.q.cur)} · ${h.czk != null ? "pozice " + kc(h.czk) : "watchlist"}`,
         tag: `t:${h.q.sym}`, url: `./?t=${encodeURIComponent(h.q.sym)}`,
       });
+    }
+    // cílové ceny z watchlistu
+    for (const w of ownTargets(u)) {
+      const q = Q.get(w.ticker), target = +w.target;
+      if (!q || !q.state || (q.state !== "open" && !s.extended)) continue;
+      const ref = w.target_ref != null ? +w.target_ref : (w.added_price != null ? +w.added_price : null);
+      const down = ref != null && target < ref;                 // čekalo se na propad
+      if (!(down ? q.price <= target : q.price >= target)) continue;
+      const key = `T:${w.ticker}@${target}`;
+      if (TGT.has(`${u}|${key}`)) continue;
+      msgs.push({
+        title: `🎯 ${w.ticker} — cíl ${pxS(target, q.cur)} dosažen`,
+        body: `Cena ${pxS(q.price, q.cur)}${STATE_LBL[q.state]} · ${down ? "klesla pod cíl" : "vystoupala nad cíl"} · watchlist`,
+        tag: `target:${w.ticker}`, url: `./?t=${encodeURIComponent(w.ticker)}`,
+      });
+      logs.push({ user_id: u, ticker: key, day: t.date, lvl: 1 });
+      TGT.add(`${u}|${key}`);
     }
     // celé portfolio: jen řádné seance, změna proti včerejším závěrům
     let port: any = null;
@@ -295,7 +320,7 @@ async function run(cfg: Cfg, onlyUser: string | null) {
     sent += await send(cfg, r.subs, u.user_id, u.msgs);
     if (u.logs.length) await upsert("alert_log", u.logs.map((l: any) => ({ ...l, sent_at: new Date().toISOString() })));
   }
-  if (!onlyUser) await db(`alert_log?day=lt.${new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 10)}`, { method: "DELETE" });
+  if (!onlyUser) await db(`alert_log?day=lt.${new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 10)}&ticker=not.like.T:*`, { method: "DELETE" });
   return { ...r, subs: undefined, sent };
 }
 

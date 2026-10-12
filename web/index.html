@@ -584,6 +584,7 @@ tr.grp-item td:first-child{padding-left:14px;} tr.grp-item{background:var(--surf
     <p style="font-size:13px; color:var(--muted); margin-bottom:10px">
       Notifikace do telefonu, když se titul z tvých pozic nebo watchlistu pohne proti včerejšímu závěru
       o víc než nastavené procento (i v pre-marketu a after-hours), a když se tolik pohne celé portfolio.
+      Navíc když titul z watchlistu dosáhne tvé cílové ceny — jednou na každý cíl.
       Hlídá se každých 5 minut v pracovní dny 9:00–2:00. Každý titul se za den ohlásí jen jednou na každé úrovni
       (2 %, 4 %, 6 %…).</p>
     <div id="pushStatus" style="font-size:13.5px; margin-bottom:10px"></div>
@@ -794,10 +795,11 @@ tr.grp-item td:first-child{padding-left:14px;} tr.grp-item{background:var(--surf
 <script>
 /* ================= KONFIGURACE ================= */
 const APP_VERSION = "2.1 (14. 6. 2026) — administrace";
-const FOOTER_VERSION = "v3.30 · 12. 10. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
+const FOOTER_VERSION = "v3.31 · 12. 10. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
 
 // Seznam změn — nejnovější nahoře. Při každé úpravě appky sem přidat řádek.
 const CHANGELOG = [
+  {v:"v3.31", d:"12. 10. 2026", items:["Upozornění na cílové ceny: když titul z watchlistu dosáhne tvého cíle (růst nad cíl nebo pokles pod cíl podle toho, na co čekáš), přijde notifikace do telefonu — jednou na každý cíl, znovu až po jeho změně. Hlídá se každých 5 minut v obchodní době, i v pre-marketu a after-hours, pokud je zapnutý"]},
   {v:"v3.30", d:"12. 10. 2026", items:["Upozornění na pohyb cen: v Nastavení je přehled hlídaných titulů — zvlášť z pozic a z watchlistu, s časem poslední aktualizace seznamu. Klepnutím na titul se otevře jeho detail","Zbytky pozic po prodeji (např. 0,000001 ks zlomkové akce) se už nehlídají — upozornění chodí jen na pozice od 100 Kč"]},
   {v:"v3.29", d:"7. 10. 2026", items:["Návod na zkratku „Do Fortivia“ odpovídá iOS 27: akce se jmenuje „Načíst obsah“, další volby se rozbalí šipkou za adresou, v poli adresy nesmí být „Vstup zkratky“ a při prvním spuštění je potřeba povolit přístup k supabase.co"]},
   {v:"v3.28", d:"7. 10. 2026", items:["Import zkratkou z iPhonu: výpis z XTB, Revolutu nebo Freedom 24 pošleš do Fortivia rovnou z listu sdílení (zkratka „Do Fortivia“) a appka ho při otevření sama naimportuje — bez vybírání souboru. Nastavení a návod jsou v Nastavení → Import zkratkou z iPhonu","Když import ze zkratky najde nesoulad s pozicemi u brokera, ukáže podrobnosti v okně importu"]},

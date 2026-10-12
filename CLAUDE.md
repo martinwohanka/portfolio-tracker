@@ -114,6 +114,10 @@ titul za den ohlásil jen jednou na každé úrovni.
   ```sql
   alter table alert_settings add column if not exists providers jsonb;
   ```
+- Cílové ceny z watchlistu (od v3.31, ve funkci): zásah cíle se vyhodnocuje stejně
+  jako v appce (směr podle `target_ref`, jinak `added_price`), notifikace jednou na
+  cíl — v `alert_log` pod klíčem `T:ticker@cíl`; tyhle řádky se při úklidu nemažou
+  (jinak by se po týdnu ozvaly znovu). Hlídá se i bez přepínače „Hlídat i watchlist“.
 - `web/sw.js` je service worker jen pro notifikace, **nic necachuje** (kvůli
   `.htaccess` no-cache a okamžitým novým verzím). Nepřidávat do něj `fetch` handler.
 - Na iPhonu push funguje jen v appce přidané na plochu s `web/manifest.json`.

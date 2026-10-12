@@ -118,6 +118,7 @@ titul za den ohlásil jen jednou na každé úrovni.
   jako v appce (směr podle `target_ref`, jinak `added_price`), notifikace jednou na
   cíl — v `alert_log` pod klíčem `T:ticker@cíl`; tyhle řádky se při úklidu nemažou
   (jinak by se po týdnu ozvaly znovu). Hlídá se i bez přepínače „Hlídat i watchlist“.
+  Funkce s cíli je v Supabase nasazená (12. 10. 2026, zkušební notifikace prošla).
 - `web/sw.js` je service worker jen pro notifikace, **nic necachuje** (kvůli
   `.htaccess` no-cache a okamžitým novým verzím). Nepřidávat do něj `fetch` handler.
 - Na iPhonu push funguje jen v appce přidané na plochu s `web/manifest.json`.

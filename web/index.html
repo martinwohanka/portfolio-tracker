@@ -355,6 +355,8 @@ tr.grp-item td:first-child{padding-left:14px;} tr.grp-item{background:var(--surf
 #inboxSetup ol b{color:var(--text); font-weight:600;}
 #inboxHistory .row{font-size:12.5px; color:var(--muted); margin-top:4px;}
 #pushProvs .push-row{color:var(--text);}
+.push-chips{display:flex; flex-wrap:wrap; gap:6px;}
+.push-chips .pill{font-size:12.5px; padding:4px 11px; border:1px solid var(--border); border-radius:999px; background:var(--surface); color:var(--text); cursor:pointer;}
 #pushStatus .ok{color:var(--green);} #pushStatus .warn{color:var(--muted);}
 .setSel{background:var(--bg); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:6px 10px; font-size:13px; font-family:inherit;}
 
@@ -596,6 +598,7 @@ tr.grp-item td:first-child{padding-left:14px;} tr.grp-item{background:var(--surf
       <div style="font-size:13.5px; color:var(--muted); margin-top:4px">Pozice u brokerů
         <span style="display:block; font-size:12.5px; color:var(--faint); margin-top:2px">Tituly a portfolio se hlídají jen u zaškrtnutých brokerů.</span></div>
       <div id="pushProvs" style="display:grid; gap:8px"></div>
+      <div id="pushWatched" style="margin-top:6px"></div>
     </div>
     <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:12px">
       <button class="btn primary" id="pushOn">Zapnout upozornění</button>
@@ -791,10 +794,11 @@ tr.grp-item td:first-child{padding-left:14px;} tr.grp-item{background:var(--surf
 <script>
 /* ================= KONFIGURACE ================= */
 const APP_VERSION = "2.1 (14. 6. 2026) — administrace";
-const FOOTER_VERSION = "v3.29 · 7. 10. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
+const FOOTER_VERSION = "v3.30 · 12. 10. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
 
 // Seznam změn — nejnovější nahoře. Při každé úpravě appky sem přidat řádek.
 const CHANGELOG = [
+  {v:"v3.30", d:"12. 10. 2026", items:["Upozornění na pohyb cen: v Nastavení je přehled hlídaných titulů — zvlášť z pozic a z watchlistu, s časem poslední aktualizace seznamu. Klepnutím na titul se otevře jeho detail","Zbytky pozic po prodeji (např. 0,000001 ks zlomkové akce) se už nehlídají — upozornění chodí jen na pozice od 100 Kč"]},
   {v:"v3.29", d:"7. 10. 2026", items:["Návod na zkratku „Do Fortivia“ odpovídá iOS 27: akce se jmenuje „Načíst obsah“, další volby se rozbalí šipkou za adresou, v poli adresy nesmí být „Vstup zkratky“ a při prvním spuštění je potřeba povolit přístup k supabase.co"]},
   {v:"v3.28", d:"7. 10. 2026", items:["Import zkratkou z iPhonu: výpis z XTB, Revolutu nebo Freedom 24 pošleš do Fortivia rovnou z listu sdílení (zkratka „Do Fortivia“) a appka ho při otevření sama naimportuje — bez vybírání souboru. Nastavení a návod jsou v Nastavení → Import zkratkou z iPhonu","Když import ze zkratky najde nesoulad s pozicemi u brokera, ukáže podrobnosti v okně importu"]},
   {v:"v3.27", d:"7. 10. 2026", items:["Graf Zisk ukazuje zisk za vybrané období — začíná nulou a končí přesně částkou nad grafem (třeba „zisk za posledních 6 měsíců“). Dřív kreslil celkový zisk od prvního nákupu, takže osa s částkou nad grafem nesouhlasila; celkový zisk je dál v Celkem P/L a v období Max","Osy všech grafů (portfolio i detail titulu) mají kulaté hodnoty — 0, 250 tis., 500 tis., 750 tis. místo 271 tis. nebo 812 tis. — a u všech popisků stejný počet desetinných míst"]},
@@ -4301,14 +4305,34 @@ function alertProvs(){
   return Array.isArray(a.providers) ? avail.filter(p=>a.providers.includes(p)) : avail;
 }
 function alertHoldings(){
-  const m={}, provs=alertProvs();
+  const m={}, val={}, provs=alertProvs();
   if(!provs.length) return [];
   for(const p of computePositions(provs.join("+"))){
     if(p.ticker.startsWith("!") || (META[p.ticker]||{}).approx) continue;
     const sym=AUTO_SFX[p.ticker]||p.ticker;
-    m[sym]=(m[sym]||0)+p.qty;
+    m[sym]=(m[sym]||0)+p.qty; val[sym]=(val[sym]||0)+(p.valCzk||0);
   }
-  return Object.keys(m).sort().map(s=>({s, q:+m[s].toPrecision(10)}));
+  // Zbytky po prodeji zlomkových akcí (0,000001 ks za pár haléřů) se nehlídají —
+  // jinak by chodila upozornění na tituly, které už v portfoliu prakticky nejsou.
+  return Object.keys(m).filter(s=>val[s]>=ALERT_MIN_CZK).sort().map(s=>({s, q:+m[s].toPrecision(10)}));
+}
+const ALERT_MIN_CZK = 100;   // pozice menší než 100 Kč se nehlídají
+/* Přehled toho, co server opravdu hlídá: pozice z uloženého seznamu (alert_settings.holdings)
+   a vlastní watchlist. Klepnutím na titul se otevře jeho detail. */
+async function renderPushWatched(){
+  const el=$("#pushWatched"); if(!el) return;
+  if(!ALERTS){ el.innerHTML=""; return; }
+  const held=(ALERTS.holdings||[]).map(h=>h.s);
+  let wl=[];
+  if(ALERTS.watchlist){
+    try{ if(WATCH===null) WATCH=await loadWatch(); }catch(e){}
+    wl=[...new Set((WATCH||[]).filter(w=>w.user_id===USER.id && w.ticker && !w.ticker.startsWith("!")).map(w=>w.ticker))].filter(t=>!held.includes(t)).sort();
+  }
+  const chip=(t,src)=>`<button class="pill" data-pushtk="${escapeHtml(t)}" title="${src}">${escapeHtml(t)}</button>`;
+  const when=ALERTS.updated_at ? ` · seznam pozic aktualizován ${fmtWhen(ALERTS.updated_at)}` : "";
+  el.innerHTML = `<div style="font-size:13.5px; color:var(--muted); margin:2px 0 6px">Hlídané tituly (${held.length+wl.length})${when}</div>`
+    + (held.length ? `<div style="font-size:12.5px; color:var(--faint); margin-bottom:4px">Z pozic</div><div class="push-chips">${held.map(t=>chip(t,"pozice")).join("")}</div>` : "")
+    + (wl.length ? `<div style="font-size:12.5px; color:var(--faint); margin:8px 0 4px">Z watchlistu</div><div class="push-chips">${wl.map(t=>chip(t,"watchlist")).join("")}</div>` : "");
 }
 /* Uloží změněná pole. Existující řádek se jen doplní (PATCH) — celý řádek by přepsal
    nastavení změněné mezitím na jiném zařízení (appka otevřená na Macu by jinak vrátila
@@ -4385,6 +4409,7 @@ function renderPushUI(){
     on=true; msg='<span class="ok">✓ Zapnuto na tomto zařízení</span>';
   }else msg='<span class="warn">Na tomto zařízení vypnuto.</span>';
   st.innerHTML=msg;
+  renderPushWatched();
   $("#pushOn").style.display = can && !on ? "" : "none";
   $("#pushTest").style.display = on ? "" : "none";
   $("#pushOff").style.display = on ? "" : "none";
@@ -4465,6 +4490,9 @@ $("#pushProvs").addEventListener("change", async e=>{
     toast(checked.length ? "Uloženo." : "Uloženo — pozice se teď nehlídají u žádného brokera.");
   }catch(err){ showErr(err.message); }
   renderPushUI();
+});
+$("#pushWatched").addEventListener("click", e=>{
+  const b=e.target.closest("[data-pushtk]"); if(b) openFromPush("./?t="+encodeURIComponent(b.dataset.pushtk));
 });
 // klepnutí na notifikaci: otevřít detail titulu (?t=NVDA, nebo zpráva od service workeru)
 async function openFromPush(url){

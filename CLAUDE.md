@@ -106,7 +106,9 @@ titul za den ohlásil jen jednou na každé úrovni.
   po každém načtení dat.
 - Výběr brokerů (od v3.23) je jen v appce: `alert_settings.providers` (jsonb pole,
   `null` = všichni včetně budoucích) určuje, z jakých brokerů appka počítá
-  `holdings` — server o brokerech neví a nemění se. Bez sloupce appka uloží zbytek
+  `holdings` — server o brokerech neví a nemění se. Pozice pod `ALERT_MIN_CZK`
+  (100 Kč — zbytky po prodeji zlomkových akcí) se do `holdings` neposílají (od v3.30).
+  Nastavení ukazuje přehled hlídaných titulů (z `holdings` + vlastní watchlist). Bez sloupce appka uloží zbytek
   nastavení a výběr brokerů ukáže jako nedostupný (v produkci sloupec už je,
   spuštěno 1. 10. 2026, výběr ověřen na iPhonu):
   ```sql

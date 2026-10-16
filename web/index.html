@@ -795,10 +795,11 @@ tr.grp-item td:first-child{padding-left:14px;} tr.grp-item{background:var(--surf
 <script>
 /* ================= KONFIGURACE ================= */
 const APP_VERSION = "2.1 (14. 6. 2026) — administrace";
-const FOOTER_VERSION = "v3.31 · 12. 10. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
+const FOOTER_VERSION = "v3.32 · 16. 10. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
 
 // Seznam změn — nejnovější nahoře. Při každé úpravě appky sem přidat řádek.
 const CHANGELOG = [
+  {v:"v3.32", d:"16. 10. 2026", items:["Přehled hlídaných titulů v Nastavení se po aktualizaci seznamu pozic hned překreslí — dřív ukazoval stav před aktualizací (např. už prodaný titul)","Když se seznam pozic nepodaří uložit na server, appka to napíše, místo aby chybu tiše přešla"]},
   {v:"v3.31", d:"12. 10. 2026", items:["Upozornění na cílové ceny: když titul z watchlistu dosáhne tvého cíle (růst nad cíl nebo pokles pod cíl podle toho, na co čekáš), přijde notifikace do telefonu — jednou na každý cíl, znovu až po jeho změně. Hlídá se každých 5 minut v obchodní době, i v pre-marketu a after-hours, pokud je zapnutý"]},
   {v:"v3.30", d:"12. 10. 2026", items:["Upozornění na pohyb cen: v Nastavení je přehled hlídaných titulů — zvlášť z pozic a z watchlistu, s časem poslední aktualizace seznamu. Klepnutím na titul se otevře jeho detail","Zbytky pozic po prodeji (např. 0,000001 ks zlomkové akce) se už nehlídají — upozornění chodí jen na pozice od 100 Kč"]},
   {v:"v3.29", d:"7. 10. 2026", items:["Návod na zkratku „Do Fortivia“ odpovídá iOS 27: akce se jmenuje „Načíst obsah“, další volby se rozbalí šipkou za adresou, v poli adresy nesmí být „Vstup zkratky“ a při prvním spuštění je potřeba povolit přístup k supabase.co"]},
@@ -4332,7 +4333,8 @@ async function renderPushWatched(){
   }
   const chip=(t,src)=>`<button class="pill" data-pushtk="${escapeHtml(t)}" title="${src}">${escapeHtml(t)}</button>`;
   const when=ALERTS.updated_at ? ` · seznam pozic aktualizován ${fmtWhen(ALERTS.updated_at)}` : "";
-  el.innerHTML = `<div style="font-size:13.5px; color:var(--muted); margin:2px 0 6px">Hlídané tituly (${held.length+wl.length})${when}</div>`
+  el.innerHTML = (ALERT_SYNC_ERR ? `<p style="font-size:12.5px; color:var(--red); margin-bottom:6px">Seznam pozic se nepodařilo uložit na server (${escapeHtml(ALERT_SYNC_ERR)}) — upozornění mohou chodit podle starého seznamu.</p>` : "")
+    + `<div style="font-size:13.5px; color:var(--muted); margin:2px 0 6px">Hlídané tituly (${held.length+wl.length})${when}</div>`
     + (held.length ? `<div style="font-size:12.5px; color:var(--faint); margin-bottom:4px">Z pozic</div><div class="push-chips">${held.map(t=>chip(t,"pozice")).join("")}</div>` : "")
     + (wl.length ? `<div style="font-size:12.5px; color:var(--faint); margin:8px 0 4px">Z watchlistu</div><div class="push-chips">${wl.map(t=>chip(t,"watchlist")).join("")}</div>` : "");
 }
@@ -4370,11 +4372,15 @@ async function syncAlertHoldings(){
   }catch(e){ return; }
   if(!ALERTS) return;                      // upozornění nejsou zapnutá
   ALERT_NO_PROV=!("providers" in ALERTS);
-  renderPushUI();
   const h=alertHoldings();
-  if(JSON.stringify(h)===JSON.stringify(ALERTS.holdings||[])) return;
-  try{ await saveAlerts({holdings:h}); }catch(e){}
+  if(JSON.stringify(h)!==JSON.stringify(ALERTS.holdings||[])){
+    // Chyba uložení se nesmí ztratit — server by dál hlídal starý seznam (prodané tituly)
+    try{ await saveAlerts({holdings:h}); ALERT_SYNC_ERR=null; }
+    catch(e){ ALERT_SYNC_ERR=e.message; }
+  } else ALERT_SYNC_ERR=null;
+  renderPushUI();                          // přehled až po uložení — dřív ukazoval stav před aktualizací
 }
+let ALERT_SYNC_ERR=null;
 async function loadAlerts(){
   try{ const r=await sb(`alert_settings?select=*&user_id=eq.${USER.id}`); ALERTS=(r&&r[0])||null; }catch(e){ ALERTS=null; }
   if(ALERTS && !("providers" in ALERTS)) ALERT_NO_PROV=true;

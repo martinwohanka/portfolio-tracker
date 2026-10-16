@@ -795,10 +795,11 @@ tr.grp-item td:first-child{padding-left:14px;} tr.grp-item{background:var(--surf
 <script>
 /* ================= KONFIGURACE ================= */
 const APP_VERSION = "2.1 (14. 6. 2026) — administrace";
-const FOOTER_VERSION = "v3.32 · 16. 10. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
+const FOOTER_VERSION = "v3.33 · 16. 10. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
 
 // Seznam změn — nejnovější nahoře. Při každé úpravě appky sem přidat řádek.
 const CHANGELOG = [
+  {v:"v3.33", d:"16. 10. 2026", items:["Appka se po návratu do popředí sama načte znovu, když je na webu novější verze — dlouho otevřená záložka nebo uspaná appka na iPhonu už nepoběží se starým kódem. Stará verze (před v3.25 viděla jen 1 000 transakcí) posílala hlídání upozornění zastaralý seznam pozic, a tak chodily notifikace i na prodané tituly"]},
   {v:"v3.32", d:"16. 10. 2026", items:["Přehled hlídaných titulů v Nastavení se po aktualizaci seznamu pozic hned překreslí — dřív ukazoval stav před aktualizací (např. už prodaný titul)","Když se seznam pozic nepodaří uložit na server, appka to napíše, místo aby chybu tiše přešla"]},
   {v:"v3.31", d:"12. 10. 2026", items:["Upozornění na cílové ceny: když titul z watchlistu dosáhne tvého cíle (růst nad cíl nebo pokles pod cíl podle toho, na co čekáš), přijde notifikace do telefonu — jednou na každý cíl, znovu až po jeho změně. Hlídá se každých 5 minut v obchodní době, i v pre-marketu a after-hours, pokud je zapnutý"]},
   {v:"v3.30", d:"12. 10. 2026", items:["Upozornění na pohyb cen: v Nastavení je přehled hlídaných titulů — zvlášť z pozic a z watchlistu, s časem poslední aktualizace seznamu. Klepnutím na titul se otevře jeho detail","Zbytky pozic po prodeji (např. 0,000001 ks zlomkové akce) se už nehlídají — upozornění chodí jen na pozice od 100 Kč"]},
@@ -5271,7 +5272,33 @@ async function autoRefresh(){
     REFRESHING=false; $("#btnRefresh").classList.remove("busy");
   }
 }
-document.addEventListener("visibilitychange", ()=>{ if(!document.hidden){ autoRefresh(); setTimeout(checkInbox, 400); } });
+/* Nová verze appky na webu → načíst ji. Appka otevřená dlouho (záložka na Macu,
+   uspaná appka na iPhonu) si po návratu obnoví data, ale ne vlastní kód — a stará
+   verze pak počítala podle starých pravidel (např. před v3.25 viděla jen 1 000
+   transakcí) a posílala serveru upozornění zastaralý seznam pozic. Porovnává se
+   Last-Modified stránky (HEAD, bez cache), znovu se načte jen když nic neprobíhá. */
+let APP_STAMP=null;
+async function pageStamp(){
+  try{
+    const r=await fetch(location.pathname+"?v="+Date.now(), {method:"HEAD", cache:"no-store"});
+    return r.ok ? (r.headers.get("last-modified")||r.headers.get("etag")) : null;
+  }catch(e){ return null; }
+}
+async function checkAppUpdate(){
+  const st=await pageStamp(); if(!st) return false;
+  if(!APP_STAMP){ APP_STAMP=st; return false; }
+  if(st===APP_STAMP) return false;
+  const busy = REFRESHING || INBOX_BUSY || $("#importModal").classList.contains("open")
+    || (document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName));
+  if(busy) return false;
+  location.reload();
+  return true;
+}
+document.addEventListener("visibilitychange", async ()=>{
+  if(document.hidden) return;
+  if(await checkAppUpdate()) return;
+  autoRefresh(); setTimeout(checkInbox, 400);
+});
 window.addEventListener("pageshow", e=>{ if(e.persisted) autoRefresh(); });
 window.addEventListener("online", ()=>autoRefresh());
 
@@ -5341,6 +5368,7 @@ async function boot(){
   render();
   if(location.search.includes("t=")) openFromPush(location.href);   // otevřeno klepnutím na notifikaci
   checkInbox();                   // výpisy poslané zkratkou
+  pageStamp().then(st=>{ if(st && !APP_STAMP) APP_STAMP=st; });     // pro hlídání nové verze
   // onboarding: žádné transakce -> uvítací overlay
   if(!TX.length) $("#onboard").classList.add("open");
   else checkTargetAlerts();          // watchlist: upozornění na dosažené cílové ceny

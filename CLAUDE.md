@@ -186,6 +186,10 @@ Po nasazení každé změny `web/index.html` je potřeba:
    `curl -s "https://portfolio.wohanka.online/?v=$(date +%s%N)"`.
    Úspěšný běh GitHub Actions sám o sobě nestačí. `.htaccess` nesmazat — bez něj
    hosting drží HTML 5 minut a prohlížeč ukazuje starou verzi až hodinu.
+   `manifest.json` do no-cache pravidla v `.htaccess` **nepatří** (od v3.35): bez
+   mezipaměti ho CDN posílá přes ochranu WEDOS, která požadavkům mimo prohlížeč
+   občas vrátí kontrolní HTML stránku — iPhone pak při „Přidat na plochu“ dal místo
+   ikony písmeno „F“. Změnu manifestu oznámit zvýšením `?v=` v `<link rel="manifest">`.
 2. **Zkontrolovat zobrazení na mobilu** — appku používám hlavně na iPhonu.
    Ověřovat na šířkách 390 px (běžný iPhone) a 430 px (Pro Max), a to
    v tmavém i světlém režimu. Nic se nesmí ořezávat ani vodorovně scrollovat.

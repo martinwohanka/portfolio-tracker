@@ -3,10 +3,14 @@
 # ale nová verze je vidět hned po nahrání — bez toho ji hosting nechal v mezipaměti
 # až 5 minut a prohlížeč ukazoval starou kopii ještě další hodinu
 # (stale-while-revalidate). Ikony a obrázky se dál drží dlouho.
-# Totéž platí pro service worker (sw.js) a manifest — jinak by se jejich změna
-# k zařízením dostávala se zpožděním.
+# Totéž platí pro service worker (sw.js) — jinak by se jeho změna k zařízením
+# dostávala se zpožděním.
+# manifest.json sem záměrně nepatří: bez mezipaměti ho CDN posílá přes ochranu
+# WEDOS, která požadavkům mimo prohlížeč (iPhone si manifest stahuje na pozadí při
+# „Přidat na plochu“) občas vrátí místo souboru kontrolní stránku — ikona na ploše
+# pak byla jen písmeno „F“. Změnu manifestu ať pozná parametr ?v= v odkazu v index.html.
 <IfModule mod_headers.c>
-  <FilesMatch "(\.html?|sw\.js|manifest\.json)$">
+  <FilesMatch "(\.html?|sw\.js)$">
     Header set Cache-Control "no-cache"
     Header unset Expires
   </FilesMatch>

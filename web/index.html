@@ -13,7 +13,7 @@
 <link rel="icon" type="image/png" sizes="64x64" href="fortivio-64.png">
 <link rel="icon" type="image/png" sizes="512x512" href="fortivio-512.png">
 <link rel="apple-touch-icon" sizes="180x180" href="fortivio-180.png">
-<link rel="manifest" href="manifest.json">
+<link rel="manifest" href="manifest.json?v=2">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -803,10 +803,11 @@ tr.grp-item td:first-child{padding-left:14px;} tr.grp-item{background:var(--surf
 <script>
 /* ================= KONFIGURACE ================= */
 const APP_VERSION = "2.1 (14. 6. 2026) — administrace";
-const FOOTER_VERSION = "v3.34 · 24. 10. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
+const FOOTER_VERSION = "v3.35 · 24. 10. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
 
 // Seznam změn — nejnovější nahoře. Při každé úpravě appky sem přidat řádek.
 const CHANGELOG = [
+  {v:"v3.35", d:"24. 10. 2026", items:["Oprava ikony na ploše iPhonu: při „Přidat na plochu“ se místo býka občas ukázalo jen písmeno „F“ — ochrana webhostingu iPhonu někdy místo popisu appky poslala kontrolní stránku. Popis appky se teď posílá jako běžný soubor a ikona je i na adrese, kterou iPhone zkouší jako záložní"]},
   {v:"v3.34", d:"24. 10. 2026", items:["Nastavení → Aplikace na ploše: na Androidu a v Chromu/Edge tlačítko Nainstalovat Fortivio, na iPhonu a Macu postup krok za krokem pro daný prohlížeč. Když už Fortivio běží z plochy, sekce to potvrdí","Ikona appky má i velikost 192 px, kterou Android a Chrome k instalaci potřebují"]},
   {v:"v3.33", d:"16. 10. 2026", items:["Appka se po návratu do popředí sama načte znovu, když je na webu novější verze — dlouho otevřená záložka nebo uspaná appka na iPhonu už nepoběží se starým kódem. Stará verze (před v3.25 viděla jen 1 000 transakcí) posílala hlídání upozornění zastaralý seznam pozic, a tak chodily notifikace i na prodané tituly"]},
   {v:"v3.32", d:"16. 10. 2026", items:["Přehled hlídaných titulů v Nastavení se po aktualizaci seznamu pozic hned překreslí — dřív ukazoval stav před aktualizací (např. už prodaný titul)","Když se seznam pozic nepodaří uložit na server, appka to napíše, místo aby chybu tiše přešla"]},

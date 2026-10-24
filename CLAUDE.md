@@ -190,6 +190,8 @@ Po nasazení každé změny `web/index.html` je potřeba:
    mezipaměti ho CDN posílá přes ochranu WEDOS, která požadavkům mimo prohlížeč
    občas vrátí kontrolní HTML stránku — iPhone pak při „Přidat na plochu“ dal místo
    ikony písmeno „F“. Změnu manifestu oznámit zvýšením `?v=` v `<link rel="manifest">`.
+   Od v3.36 je proto `apple-touch-icon` (a ikona 180 v manifestu) vložená přímo jako
+   `data:` obrázek — při změně ikony ji přegenerovat z `fortivio-180.png`.
 2. **Zkontrolovat zobrazení na mobilu** — appku používám hlavně na iPhonu.
    Ověřovat na šířkách 390 px (běžný iPhone) a 430 px (Pro Max), a to
    v tmavém i světlém režimu. Nic se nesmí ořezávat ani vodorovně scrollovat.

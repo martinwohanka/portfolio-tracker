@@ -356,6 +356,9 @@ tr.grp-item td:first-child{padding-left:14px;} tr.grp-item{background:var(--surf
 #inboxHistory .row{font-size:12.5px; color:var(--muted); margin-top:4px;}
 #pushProvs .push-row{color:var(--text);}
 .push-chips{display:flex; flex-wrap:wrap; gap:6px;}
+.install-help ol{margin:8px 0 0 20px; font-size:13px; color:var(--muted); line-height:1.6;}
+.install-help b{color:var(--text); font-weight:600;}
+#installStatus .ok{color:var(--green);}
 .push-chips .pill{font-size:12.5px; padding:4px 11px; border:1px solid var(--border); border-radius:999px; background:var(--surface); color:var(--text); cursor:pointer;}
 #pushStatus .ok{color:var(--green);} #pushStatus .warn{color:var(--muted);}
 .setSel{background:var(--bg); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:6px 10px; font-size:13px; font-family:inherit;}
@@ -563,6 +566,11 @@ tr.grp-item td:first-child{padding-left:14px;} tr.grp-item{background:var(--surf
   </section>
 
   <section id="v-nastaveni" style="display:none">
+    <h2 style="font-size:16px; margin:22px 0 4px">Aplikace na ploše</h2>
+    <div id="installStatus" style="font-size:13.5px; color:var(--muted); margin-bottom:10px"></div>
+    <button class="btn primary" id="installBtn" style="display:none">Nainstalovat Fortivio</button>
+    <div id="installHelp" class="install-help"></div>
+
     <h2 style="font-size:16px; margin:22px 0 4px">Co zobrazit při spuštění</h2>
     <p style="font-size:13px; color:var(--muted); margin-bottom:10px">Uloží se k tvému účtu, projeví se i na jiném zařízení.</p>
     <div style="display:grid; gap:10px; max-width:420px">
@@ -795,10 +803,11 @@ tr.grp-item td:first-child{padding-left:14px;} tr.grp-item{background:var(--surf
 <script>
 /* ================= KONFIGURACE ================= */
 const APP_VERSION = "2.1 (14. 6. 2026) — administrace";
-const FOOTER_VERSION = "v3.33 · 16. 10. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
+const FOOTER_VERSION = "v3.34 · 24. 10. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
 
 // Seznam změn — nejnovější nahoře. Při každé úpravě appky sem přidat řádek.
 const CHANGELOG = [
+  {v:"v3.34", d:"24. 10. 2026", items:["Nastavení → Aplikace na ploše: na Androidu a v Chromu/Edge tlačítko Nainstalovat Fortivio, na iPhonu a Macu postup krok za krokem pro daný prohlížeč. Když už Fortivio běží z plochy, sekce to potvrdí","Ikona appky má i velikost 192 px, kterou Android a Chrome k instalaci potřebují"]},
   {v:"v3.33", d:"16. 10. 2026", items:["Appka se po návratu do popředí sama načte znovu, když je na webu novější verze — dlouho otevřená záložka nebo uspaná appka na iPhonu už nepoběží se starým kódem. Stará verze (před v3.25 viděla jen 1 000 transakcí) posílala hlídání upozornění zastaralý seznam pozic, a tak chodily notifikace i na prodané tituly"]},
   {v:"v3.32", d:"16. 10. 2026", items:["Přehled hlídaných titulů v Nastavení se po aktualizaci seznamu pozic hned překreslí — dřív ukazoval stav před aktualizací (např. už prodaný titul)","Když se seznam pozic nepodaří uložit na server, appka to napíše, místo aby chybu tiše přešla"]},
   {v:"v3.31", d:"12. 10. 2026", items:["Upozornění na cílové ceny: když titul z watchlistu dosáhne tvého cíle (růst nad cíl nebo pokles pod cíl podle toho, na co čekáš), přijde notifikace do telefonu — jednou na každý cíl, znovu až po jeho změně. Hlídá se každých 5 minut v obchodní době, i v pre-marketu a after-hours, pokud je zapnutý"]},
@@ -2724,7 +2733,7 @@ function renderView(){
   else if(v==="alokace") renderAlloc();
   else if(v==="transakce") renderTxTable();
   else if(v==="watchlist") renderWatchlist();
-  else if(v==="nastaveni"){ renderPushUI(); renderInboxUI(); renderTickerMap(); renderCash(); renderCryptoReal(); renderProvOrder(); fillTaxYears(); }
+  else if(v==="nastaveni"){ renderInstallUI(); renderPushUI(); renderInboxUI(); renderTickerMap(); renderCash(); renderCryptoReal(); renderProvOrder(); fillTaxYears(); }
 }
 let posSort = {key:"valCzk", dir:-1};
 const POS_COLS = [["ticker","Titul",""],["qty","Ks","r"],["avg","Prům. nákup. cena","r hide-m"],
@@ -4516,6 +4525,46 @@ async function openFromPush(url){
 }
 if("serviceWorker" in navigator) navigator.serviceWorker.addEventListener("message", e=>{
   if(e.data && e.data.type==="open") openFromPush(e.data.url);
+});
+
+/* ================= INSTALACE NA PLOCHU =================
+   Android / Chrome / Edge: prohlížeč pošle beforeinstallprompt → tlačítko Nainstalovat.
+   iPhone (Safari) instalaci ze stránky spustit nedovolí — ukážeme postup pro list sdílení. */
+let INSTALL_EVT=null;
+window.addEventListener("beforeinstallprompt", e=>{ e.preventDefault(); INSTALL_EVT=e; renderInstallUI(); });
+window.addEventListener("appinstalled", ()=>{ INSTALL_EVT=null; toast("Fortivio je nainstalované na ploše."); renderInstallUI(); });
+function installPlatform(){
+  const ua=navigator.userAgent;
+  if(isIOS()) return /CriOS|FxiOS|EdgiOS/.test(ua) ? "ios-other" : "ios";
+  if(/Android/.test(ua)) return "android";
+  if(/Macintosh/.test(ua) && /Safari\//.test(ua) && !/Chrome|Chromium|Edg\//.test(ua)) return "mac-safari";
+  return "desktop";
+}
+function renderInstallUI(){
+  const st=$("#installStatus"); if(!st) return;
+  const btn=$("#installBtn"), help=$("#installHelp");
+  if(isStandalone()){
+    st.innerHTML='<span class="ok">✓ Fortivio je nainstalované — teď běží jako aplikace z plochy.</span>';
+    btn.style.display="none"; help.innerHTML=""; return;
+  }
+  st.textContent="Přidej si Fortivio na plochu jako aplikaci: otevírá se přes celou obrazovku bez lišty prohlížeče a na iPhonu umí i upozornění na pohyb cen.";
+  btn.style.display = INSTALL_EVT ? "" : "none";
+  const P=installPlatform();
+  const steps = {
+    "ios": ["V Safari klepni dole na <b>Sdílet</b> (čtvereček se šipkou nahoru).", "Sjeď níž a zvol <b>Přidat na plochu</b>.", "Vpravo nahoře potvrď <b>Přidat</b>. Od teď otevírej Fortivio z nové ikony na ploše."],
+    "ios-other": ["Klepni na <b>Sdílet</b> (čtvereček se šipkou nahoru) — v Chromu je vpravo v adresním řádku.", "Zvol <b>Přidat na plochu</b> a potvrď <b>Přidat</b>.", "Když volba chybí, otevři tuhle stránku v <b>Safari</b> a postupuj tam."],
+    "android": INSTALL_EVT ? ["Klepni na <b>Nainstalovat Fortivio</b> výše."] : ["V Chromu otevři menu <b>⋮</b> vpravo nahoře.", "Zvol <b>Nainstalovat aplikaci</b> (nebo <b>Přidat na plochu</b>) a potvrď."],
+    "mac-safari": ["V Safari zvol v horním menu <b>Soubor → Přidat do Docku</b>.", "Fortivio se pak otevírá jako samostatná aplikace z Docku."],
+    "desktop": INSTALL_EVT ? ["Klikni na <b>Nainstalovat Fortivio</b> výše."] : ["V Chromu nebo Edge klikni na ikonu <b>instalace</b> vpravo v adresním řádku, případně v menu <b>⋮</b> zvol <b>Instalovat</b> / <b>Nainstalovat aplikaci</b>."]
+  }[P];
+  help.innerHTML = "<ol>"+steps.map(x=>`<li>${x}</li>`).join("")+"</ol>";
+}
+$("#installBtn").addEventListener("click", async ()=>{
+  if(!INSTALL_EVT) return;
+  const ev=INSTALL_EVT; INSTALL_EVT=null;
+  ev.prompt();
+  try{ const ch=await ev.userChoice; if(ch && ch.outcome!=="accepted") INSTALL_EVT=null; }catch(e){}
+  renderInstallUI();
 });
 
 /* ================= IMPORT ZKRATKOU (schránka) =================

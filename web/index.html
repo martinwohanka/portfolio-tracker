@@ -805,10 +805,11 @@ tr.grp-item td:first-child{padding-left:14px;} tr.grp-item{background:var(--surf
 <script>
 /* ================= KONFIGURACE ================= */
 const APP_VERSION = "2.1 (14. 6. 2026) — administrace";
-const FOOTER_VERSION = "v3.36 · 24. 10. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
+const FOOTER_VERSION = "v3.37 · 5. 11. 2026";   // veřejné číslo + datum v patičce; další verze +0.01
 
 // Seznam změn — nejnovější nahoře. Při každé úpravě appky sem přidat řádek.
 const CHANGELOG = [
+  {v:"v3.37", d:"5. 11. 2026", items:["Rychlejší otevření appky: hned se ukážou čísla z minula a čerstvé ceny se dotáhnou na pozadí (točí se jen ⟳) — už se nečeká na obrazovce „Stahuji ceny…“","Ceny se stahují jen za poslední dny, celá historie nejvýš jednou denně — méně dat a rychlejší obnova i na mobilních datech","Titul, ke kterému se nedaří najít ceny, už nezdržuje každé otevření appky — dohledávání na jiných burzách se zkouší jen jednou denně"]},
   {v:"v3.36", d:"24. 10. 2026", items:["Ikona na ploše iPhonu: obrázek býka je teď přímo součástí stránky, takže ho iPhone při „Přidat na plochu“ nemusí stahovat zvlášť a místo něj se už neukáže písmeno „F“"]},
   {v:"v3.35", d:"24. 10. 2026", items:["Oprava ikony na ploše iPhonu: při „Přidat na plochu“ se místo býka občas ukázalo jen písmeno „F“ — ochrana webhostingu iPhonu někdy místo popisu appky poslala kontrolní stránku. Popis appky se teď posílá jako běžný soubor a ikona je i na adrese, kterou iPhone zkouší jako záložní"]},
   {v:"v3.34", d:"24. 10. 2026", items:["Nastavení → Aplikace na ploše: na Androidu a v Chromu/Edge tlačítko Nainstalovat Fortivio, na iPhonu a Macu postup krok za krokem pro daný prohlížeč. Když už Fortivio běží z plochy, sekce to potvrdí","Ikona appky má i velikost 192 px, kterou Android a Chrome k instalaci potřebují"]},
@@ -1000,7 +1001,11 @@ const CONFIG = {
 // PX_MAX_AGE: ceny starší než 5 minut se při načítání stáhnou znovu; appka se po
 // návratu z pozadí (iPhone) sama obnoví, když byla data načtená před víc než AUTO_REFRESH_AFTER
 const PX_MAX_AGE = 5*60*1000, AUTO_REFRESH_AFTER = 5*60*1000;
-let PX_STALE_OK = false;     // po importu: ceny z mezipaměti bez ohledu na stáří
+let PX_STALE_OK = false;     // po importu a při startu: ceny z mezipaměti bez ohledu na stáří
+let PX_OLDEST = Infinity;    // čas nejstarší ceny vzaté z mezipaměti (start appky → obnovit na pozadí)
+// Historie cen se nemění — celá (~140 kB na titul) se stahuje nejvýš jednou denně,
+// jinak jen posledních 5 dní, které se připojí k uložené řadě.
+const PX_FULL_AGE = 24*60*60*1000;
 const PRICE_TTL = 15*60*1000, FX_TTL = 6*60*60*1000, WPX_TTL = 5*60*1000;
 
 /* ================= STAV ================= */
@@ -1634,15 +1639,43 @@ function pickRange(firstDate){
   return days<330?"1y" : days<700?"2y" : days<1780?"5y" : days<3600?"10y" : "max";
 }
 async function loadDaily(ticker, firstDate){
-  const c = lsGet(`px:${ticker}`, PX_STALE_OK ? Infinity : PX_MAX_AGE);
-  if(c && c.firstDate<=firstDate && c.series.dates.length) { META[ticker]=c.meta; DAILY[ticker]=c.series; return; }
+  let c=null, t=0;
+  try{ const v=JSON.parse(localStorage.getItem(`px:${ticker}`)); if(v){ c=v.d; t=v.t; } }catch(e){}
+  if(c && (PX_STALE_OK || Date.now()-t < PX_MAX_AGE) && c.firstDate<=firstDate && c.series.dates.length){
+    META[ticker]=c.meta; DAILY[ticker]=c.series; PX_OLDEST=Math.min(PX_OLDEST, t); return;
+  }
   const d = await fetchDaily(ticker, firstDate);
   META[ticker]=d.meta; DAILY[ticker]=d.series;
 }
 /* Stáhne denní ceny z Yahoo a uloží je do mezipaměti — globální data nemění,
-   takže se dá volat i na pozadí, zatímco appka ukazuje původní čísla. */
+   takže se dá volat i na pozadí, zatímco appka ukazuje původní čísla.
+   Je-li v mezipaměti historie stažená celá během posledního dne, stáhnou se jen
+   poslední dny a připojí se k ní. Když se ale překrývající dny neshodují (štěpení
+   akcií — Yahoo pak přepočítá i staré ceny), stáhne se znovu všechno. */
 async function fetchDaily(ticker, firstDate){
-  const res = await fetchChart(ticker, pickRange(firstDate), "1d");
+  const c = lsGet(`px:${ticker}`, Infinity);
+  if(c && c.full && Date.now()-c.full < PX_FULL_AGE && c.firstDate<=firstDate && c.series.dates.length>5){
+    let n=null;
+    try{ n = parseDaily(await fetchChart(ticker, "5d", "1d")); }catch(e){}   // bez posledních dní → celá historie
+    const od = c.series.dates, nd = n ? n.series.dates : [];
+    let overlap = 0, ok = !!n && n.meta.currency===c.meta.currency;
+    for(let i=0; ok && i<nd.length-1; i++){          // poslední den může být dnešní, ten se mění
+      const j = od.indexOf(nd[i]); if(j<0) continue;
+      overlap++;
+      if(Math.abs(n.series.closes[i]/c.series.closes[j]-1) > 0.03) ok=false;
+    }
+    if(ok && overlap){
+      const k = od.findIndex(x=>x>=nd[0]), keep = k<0 ? od.length : k;
+      const d = {meta:c.meta, series:{dates:[...od.slice(0,keep), ...nd], closes:[...c.series.closes.slice(0,keep), ...n.series.closes]}};
+      lsSet(`px:${ticker}`, {...d, firstDate:c.firstDate, full:c.full});
+      return d;
+    }
+  }
+  const d = parseDaily(await fetchChart(ticker, pickRange(firstDate), "1d"));
+  lsSet(`px:${ticker}`, {...d, firstDate, full:Date.now()});
+  return d;
+}
+function parseDaily(res){
   let cur = (res.meta.currency||"USD");
   let div = 1;
   if(cur==="GBp"||cur==="GBX"){ cur="GBP"; div=100; }
@@ -1666,9 +1699,7 @@ async function fetchDaily(ticker, firstDate){
     if(rmp!=null){ dates.push(todayStr()); vals.push(rmp/div); }
     else throw new Error("prázdná data");
   }
-  const d = {meta:{currency:cur}, series:{dates, closes:vals}};
-  lsSet(`px:${ticker}`, {...d, firstDate});
-  return d;
+  return {meta:{currency:cur}, series:{dates, closes:vals}};
 }
 
 /* ================= KURZY (Frankfurter / ECB) ================= */
@@ -4706,17 +4737,20 @@ async function loadAllData(){
     catch(e){ priceErrors.push({ticker:tk, msg:e.message}); }
   }));
   // Ticker bez přípony burzy (evropské ETF): zkusit dohledat a načíst znovu.
+  // Neúspěšné hledání si appka den pamatuje — jinak by při každém otevření znovu
+  // zkoušela devět burz za sebou a „Stahuji ceny…“ by viselo i desítky sekund.
   const dohledane=[];
-  for(const e of [...priceErrors]){
+  await Promise.all([...priceErrors].map(async e=>{
+    if(lsGet(`nosfx:${e.ticker}`, PX_FULL_AGE)) return;
     const nalezeny = await resolveSymbol(e.ticker);
-    if(!nalezeny) continue;
+    if(!nalezeny){ lsSet(`nosfx:${e.ticker}`, 1); return; }
     AUTO_SFX[e.ticker] = nalezeny;
     try{
       await loadDaily(e.ticker, first[e.ticker]);
       priceErrors.splice(priceErrors.indexOf(e),1);
       dohledane.push(`${e.ticker} → ${nalezeny}`);
     }catch(err){ delete AUTO_SFX[e.ticker]; }
-  }
+  }));
   if(dohledane.length){ lsSet("autosfx", AUTO_SFX); toast("Dohledáno na burze: "+dohledane.join(", "), 5000); }
 
   // Pořád bez cen: ocenit vlastními nákupními cenami, ne nulou. Titul bez cen se
@@ -4768,7 +4802,10 @@ async function loadAllData(){
 // quiet: obnova na pozadí — obsah zůstane vidět, žádná načítací obrazovka;
 // vrací true, když se data opravdu načetla
 async function refreshAll(clearPx, deferRender, quiet){
-  if(clearPx) for(const k of Object.keys(localStorage)) if(k.startsWith("px:")) localStorage.removeItem(k);
+  // ⟳: ceny stáhnout znovu, ale uloženou historii nemazat — stačí dotáhnout poslední dny
+  if(clearPx) for(const k of Object.keys(localStorage)) if(k.startsWith("px:")){
+    try{ const v=JSON.parse(localStorage.getItem(k)); v.t=0; localStorage.setItem(k, JSON.stringify(v)); }catch(e){ localStorage.removeItem(k); }
+  }
   if(!quiet){ $("#loading").style.display="block"; $("#content").style.display="none"; $("#emptyState").style.display="none"; }
   try{
     $("#loadingMsg").textContent="Načítám transakce…";
@@ -5416,9 +5453,15 @@ async function boot(){
   try{ IS_ADMIN = await checkAdmin()===true; }catch(e){ IS_ADMIN=false; }
   if(IS_ADMIN){ $("#adminSection").style.display="block"; renderAdmin(); }
   loadAlerts();                   // upozornění: nastavení a odběr tohoto zařízení (souběžně s daty)
-  await refreshAll(false, true);  // načti data; výběr brokerů aplikuj až podle nich
+  // Ceny z minula (mezipaměť) se ukážou hned, čerstvé se dotáhnou na pozadí
+  // (autoRefresh níž) — dřív appka při každém otevření čekala na všechny ceny.
+  PX_STALE_OK=true; PX_OLDEST=Infinity;
+  try{ await refreshAll(false, true); }  // načti data; výběr brokerů aplikuj až podle nich
+  finally{ PX_STALE_OK=false; }
+  if(PX_OLDEST<Infinity) LAST_LOAD=Math.min(LAST_LOAD, PX_OLDEST);
   applySettings();
   render();
+  autoRefresh();                  // ceny starší než 5 minut obnovit (obsah zůstává vidět)
   if(location.search.includes("t=")) openFromPush(location.href);   // otevřeno klepnutím na notifikaci
   checkInbox();                   // výpisy poslané zkratkou
   pageStamp().then(st=>{ if(st && !APP_STAMP) APP_STAMP=st; });     // pro hlídání nové verze
